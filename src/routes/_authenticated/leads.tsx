@@ -218,7 +218,7 @@ function KanbanBoard({ leads, ownerMap }: { leads: Lead[]; ownerMap: Map<string,
   );
 
   async function moveTo(leadId: string, newStage: string) {
-    const { error } = await supabase.from("leads").update({ pipeline_stage: newStage }).eq("id", leadId);
+    const { error } = await supabase.from("leads").update({ pipeline_stage: newStage as never }).eq("id", leadId);
     if (error) toast.error(error.message);
     else {
       toast.success("Stage updated");
