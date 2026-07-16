@@ -65,8 +65,8 @@ function LeadsPage() {
     queryKey: ["leads", { stageFilter, statusFilter, q }],
     queryFn: async () => {
       let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
-      if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter);
-      if (statusFilter !== "all") query = query.eq("status", statusFilter);
+      if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter as never);
+      if (statusFilter !== "all") query = query.eq("status", statusFilter as never);
       if (q.trim()) query = query.ilike("company_name", `%${q}%`);
       const { data, error } = await query;
       if (error) throw error;
