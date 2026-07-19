@@ -15,7 +15,16 @@ import {
 } from "@/components/ui/select";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
-import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+const SERVICE_OPTIONS = [
+  "Custody & Allied Services",
+  "RTA",
+  "Trusteeship",
+  "Fund Accounting",
+  "Fund Administration",
+] as const;
 import { toast } from "sonner";
 import {
   ContactsTab,
