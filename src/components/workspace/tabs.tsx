@@ -457,6 +457,18 @@ export function FollowupsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
     },
   });
 
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("followups").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
+      toast.success("Follow-up deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const today = new Date().toISOString().split("T")[0];
   const pending = followups.filter((f) => f.status === "pending");
   const completed = followups.filter((f) => f.status === "completed");
