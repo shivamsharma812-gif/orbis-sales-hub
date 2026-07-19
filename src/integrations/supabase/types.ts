@@ -129,6 +129,7 @@ export type Database = {
           email: string | null
           id: string
           is_primary: boolean
+          linkedin_url: string | null
           name: string
           notes: string | null
           parent_id: string
@@ -143,6 +144,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_primary?: boolean
+          linkedin_url?: string | null
           name: string
           notes?: string | null
           parent_id: string
@@ -157,6 +159,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_primary?: boolean
+          linkedin_url?: string | null
           name?: string
           notes?: string | null
           parent_id?: string
@@ -265,49 +268,82 @@ export type Database = {
       }
       leads: {
         Row: {
+          city: string | null
           client_type: string | null
           company_name: string
           converted_client_id: string | null
+          country: string | null
           created_at: string
+          estimated_annual_revenue: number | null
           estimated_deal_value: number | null
+          expected_close_date: string | null
           id: string
           industry: string | null
           lead_source: string | null
           notes: string | null
           owner_id: string
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
+          priority: Database["public"]["Enums"]["priority_level"]
+          probability: number | null
+          referral_by: string | null
+          services: string[]
+          state: string | null
           status: Database["public"]["Enums"]["lead_status"]
+          sub_category: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
+          city?: string | null
           client_type?: string | null
           company_name: string
           converted_client_id?: string | null
+          country?: string | null
           created_at?: string
+          estimated_annual_revenue?: number | null
           estimated_deal_value?: number | null
+          expected_close_date?: string | null
           id?: string
           industry?: string | null
           lead_source?: string | null
           notes?: string | null
           owner_id: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          priority?: Database["public"]["Enums"]["priority_level"]
+          probability?: number | null
+          referral_by?: string | null
+          services?: string[]
+          state?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          sub_category?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
+          city?: string | null
           client_type?: string | null
           company_name?: string
           converted_client_id?: string | null
+          country?: string | null
           created_at?: string
+          estimated_annual_revenue?: number | null
           estimated_deal_value?: number | null
+          expected_close_date?: string | null
           id?: string
           industry?: string | null
           lead_source?: string | null
           notes?: string | null
           owner_id?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          priority?: Database["public"]["Enums"]["priority_level"]
+          probability?: number | null
+          referral_by?: string | null
+          services?: string[]
+          state?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          sub_category?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: [
           {
