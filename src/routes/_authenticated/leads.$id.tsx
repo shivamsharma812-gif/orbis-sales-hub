@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
-import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import {
   ContactsTab,
