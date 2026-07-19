@@ -13,7 +13,7 @@ import {
   ClipboardList,
   BellRing,
   Wallet,
-  Plus,
+  ArrowRight,
   ArrowRight,
   AlertTriangle,
 } from "lucide-react";
