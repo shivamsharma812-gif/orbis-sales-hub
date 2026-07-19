@@ -77,14 +77,9 @@ interface WorkspaceProps {
 export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    designation: "",
-    department: "",
-    email: "",
-    phone: "",
-    is_primary: false,
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const emptyForm = { name: "", designation: "", department: "", email: "", phone: "", is_primary: false };
+  const [form, setForm] = useState(emptyForm);
 
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts", parentType, parentId],
@@ -99,23 +94,59 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
     },
   });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("contacts").insert({
-        parent_type: parentType as never,
-        parent_id: parentId,
-        ...form,
-      });
-      if (error) throw error;
+      if (editingId) {
+        const { error } = await supabase.from("contacts").update(form).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("contacts").insert({
+          parent_type: parentType as never,
+          parent_id: parentId,
+          ...form,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contacts", parentType, parentId] });
       setOpen(false);
-      setForm({ name: "", designation: "", department: "", email: "", phone: "", is_primary: false });
-      toast.success("Contact added");
+      setEditingId(null);
+      setForm(emptyForm);
+      toast.success(editingId ? "Contact updated" : "Contact added");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("contacts").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contacts", parentType, parentId] });
+      toast.success("Contact deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const openEdit = (c: typeof contacts[number]) => {
+    setEditingId(c.id);
+    setForm({
+      name: c.name ?? "",
+      designation: c.designation ?? "",
+      department: c.department ?? "",
+      email: c.email ?? "",
+      phone: c.phone ?? "",
+      is_primary: !!c.is_primary,
+    });
+    setOpen(true);
+  };
+
+  const handleOpen = (o: boolean) => {
+    setOpen(o);
+    if (!o) { setEditingId(null); setForm(emptyForm); }
+  };
 
   return (
     <Card className="p-0 overflow-hidden">
@@ -123,12 +154,12 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
         <div className="text-sm font-semibold flex items-center gap-2">
           <User className="w-4 h-4" /> Contacts ({contacts.length})
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpen}>
           <DialogTrigger asChild>
             <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Add contact</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Add contact</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? "Edit contact" : "Add contact"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -145,8 +176,8 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
               </label>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={() => create.mutate()} disabled={!form.name || create.isPending}>Add</Button>
+              <Button variant="outline" onClick={() => handleOpen(false)}>Cancel</Button>
+              <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>{editingId ? "Save" : "Add"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -158,11 +189,12 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
             <TableHead>Designation</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {contacts.length === 0 && (
-            <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No contacts yet.</TableCell></TableRow>
+            <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No contacts yet.</TableCell></TableRow>
           )}
           {contacts.map((c) => (
             <TableRow key={c.id}>
@@ -173,6 +205,14 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
               <TableCell className="text-muted-foreground">{c.designation}</TableCell>
               <TableCell className="text-muted-foreground">{c.email}</TableCell>
               <TableCell className="text-muted-foreground">{c.phone}</TableCell>
+              <TableCell className="text-right">
+                <Button size="sm" variant="ghost" onClick={() => openEdit(c)}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this contact?")) del.mutate(c.id); }}>
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
