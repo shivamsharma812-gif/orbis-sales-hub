@@ -78,10 +78,11 @@ function LeadsPage() {
   return (
     <div>
       <PageHeader
-        title="Leads"
+        title="Pipeline"
         description="Prospective clients moving through the sales pipeline."
-        actions={<CreateLeadDialog />}
+        actions={<CreateLeadWizard />}
       />
+
       <div className="px-6 pt-4 flex items-center gap-2 flex-wrap">
         <div className="flex items-center rounded-md border border-border overflow-hidden">
           <button
