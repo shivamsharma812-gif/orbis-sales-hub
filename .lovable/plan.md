@@ -1,20 +1,23 @@
 ## Problem
 
-You're right. On the **Vertex Capital** lead (owned by Anita Chouhan, who sits under Murlidhar → Rishav), one of the tasks — *"Send NDA for signature"* — is assigned to **Shruti Dwivedi**, who reports up through a completely different sub-tree (Sharath → Vinay). That assignee has no hierarchical relationship to the record's owner, so it violates the "own + team" model.
+The notes RLS policy requires `owner_id = current_app_user_id()` on insert — the note's owner must be the logged-in user. But `NotesTab` inserts with `owner_id: ownerId`, where `ownerId` is the parent lead/client's owner. When a manager (or anyone who isn't the record's owner) adds a note on a subordinate's lead, the insert fails RLS.
 
-This isn't a one-off. A scan of the seeded `tasks` table shows the assignment logic was effectively random across the org — I found dozens of tasks where the assignee sits outside the owner's sub-tree (e.g. "Reconcile client AUC data" owned by Shivam Sharma but assigned to Anita Chouhan, who is not on Shivam's team).
-
-Only `tasks` has an `assigned_to` field. `meetings`, `followups`, `notes`, etc. are scoped purely by `owner_id`, so they're unaffected.
-
-## Rule to enforce
-
-For every task, the assignee must be **the owner themselves, or a descendant of the owner** in the reporting tree. That mirrors how visibility works: the owner and everyone above them in the chain can already see the task via RLS on `owner_id`; delegation only makes sense *downward* to your own team.
+Vertex Capital is owned by Anita Chouhan, so any other user adding a note there hits this error.
 
 ## Fix
 
-A single data-repair migration (no schema change, no code change):
+In `src/components/workspace/tabs.tsx` (`NotesTab.create` mutation), set `owner_id` to the current app user's id instead of the parent record's owner.
 
-1. For each task where `assigned_to` is not in `{owner_id} ∪ descendants(owner_id)`, reassign it to `owner_id`. Leaf owners (like Anita) end up owning their own tasks, which is correct — they have no team to delegate to.
-2. Verify: re-run the cross-hierarchy check; expected result is zero rows.
+- Use the existing `useCurrentUser()` hook to get the app user id.
+- Pass `owner_id: currentUser.id` when inserting into `notes`.
+- Disable the "Add note" button while the current user is loading.
 
-No RLS, UI, or seed-script changes are needed for this fix. If you'd also like me to add a DB-level trigger that *prevents* future out-of-tree assignments (so the app can't reintroduce this), say the word and I'll include it — but it's optional and the CRM UI can enforce it in the assignee picker instead.
+## Audit sibling tabs
+
+Same anti-pattern likely exists in other tabs that insert with `owner_id: ownerId`. Check and apply the same fix where the table's RLS insert policy scopes `owner_id` to the acting user (notes, tasks-assignee, followups, meetings, contacts, documents). For each, only change the field the policy actually constrains to the caller — do not alter parent-scoping fields.
+
+Specifically I'll re-check policies for `tasks`, `followups`, `meetings`, `contacts`, `documents` before editing, and only patch the ones whose WITH CHECK enforces `owner_id = current_app_user_id()`.
+
+## Out of scope
+
+No schema, policy, or business-logic changes. Purely a client-side correction so the insert satisfies existing RLS.

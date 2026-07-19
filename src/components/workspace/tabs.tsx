@@ -44,6 +44,7 @@ import {
   Trash2,
   Download,
 } from "lucide-react";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 type ParentType = "lead" | "client";
 interface WorkspaceProps {
@@ -585,9 +586,10 @@ export function TasksTab({ parentType, parentId, ownerId }: WorkspaceProps) {
 }
 
 /* ---------------- Notes (append-only) ---------------- */
-export function NotesTab({ parentType, parentId, ownerId }: WorkspaceProps) {
+export function NotesTab({ parentType, parentId }: WorkspaceProps) {
   const qc = useQueryClient();
   const [body, setBody] = useState("");
+  const { data: currentUser } = useCurrentUser();
 
   const { data: notes = [] } = useQuery({
     queryKey: ["notes", parentType, parentId],
@@ -604,10 +606,11 @@ export function NotesTab({ parentType, parentId, ownerId }: WorkspaceProps) {
 
   const create = useMutation({
     mutationFn: async () => {
+      if (!currentUser) throw new Error("Not signed in");
       const { error } = await supabase.from("notes").insert({
         parent_type: parentType as never,
         parent_id: parentId,
-        owner_id: ownerId,
+        owner_id: currentUser.id,
         body,
       });
       if (error) throw error;
@@ -628,7 +631,7 @@ export function NotesTab({ parentType, parentId, ownerId }: WorkspaceProps) {
       <div className="space-y-2">
         <Textarea rows={3} placeholder="Add a note…" value={body} onChange={(e) => setBody(e.target.value)} />
         <div className="flex justify-end">
-          <Button size="sm" onClick={() => create.mutate()} disabled={!body.trim() || create.isPending}>
+          <Button size="sm" onClick={() => create.mutate()} disabled={!body.trim() || create.isPending || !currentUser}>
             Add note
           </Button>
         </div>
@@ -700,9 +703,10 @@ export function TimelineTab({ parentType, parentId }: WorkspaceProps) {
 }
 
 /* ---------------- Documents ---------------- */
-export function DocumentsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
+export function DocumentsTab({ parentType, parentId }: WorkspaceProps) {
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const { data: currentUser } = useCurrentUser();
 
   const { data: docs = [] } = useQuery({
     queryKey: ["documents", parentType, parentId],
@@ -718,6 +722,10 @@ export function DocumentsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
   });
 
   async function handleUpload(file: File) {
+    if (!currentUser) {
+      toast.error("Not signed in");
+      return;
+    }
     setUploading(true);
     try {
       const path = `${parentType}/${parentId}/${Date.now()}_${file.name}`;
@@ -726,7 +734,7 @@ export function DocumentsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
       const { error: dbErr } = await supabase.from("documents").insert({
         parent_type: parentType as never,
         parent_id: parentId,
-        owner_id: ownerId,
+        owner_id: currentUser.id,
         file_name: file.name,
         storage_path: path,
         mime_type: file.type,
