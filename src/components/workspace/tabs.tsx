@@ -631,7 +631,7 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
       <div className="space-y-2">
         <Textarea rows={3} placeholder="Add a note…" value={body} onChange={(e) => setBody(e.target.value)} />
         <div className="flex justify-end">
-          <Button size="sm" onClick={() => create.mutate()} disabled={!body.trim() || create.isPending}>
+          <Button size="sm" onClick={() => create.mutate()} disabled={!body.trim() || create.isPending || !currentUser}>
             Add note
           </Button>
         </div>
