@@ -619,6 +619,18 @@ export function TasksTab({ parentType, parentId, ownerId }: WorkspaceProps) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] }),
   });
 
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] });
+      toast.success("Task deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
