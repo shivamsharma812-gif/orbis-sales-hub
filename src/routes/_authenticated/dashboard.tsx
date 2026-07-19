@@ -14,7 +14,6 @@ import {
   BellRing,
   Wallet,
   ArrowRight,
-  ArrowRight,
   AlertTriangle,
 } from "lucide-react";
 import { formatCurrencyCr, formatDate, relativeDay } from "@/lib/format";
