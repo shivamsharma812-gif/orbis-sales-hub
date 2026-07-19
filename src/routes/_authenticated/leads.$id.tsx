@@ -15,7 +15,16 @@ import {
 } from "@/components/ui/select";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
-import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+const SERVICE_OPTIONS = [
+  "Custody & Allied Services",
+  "RTA",
+  "Trusteeship",
+  "Fund Accounting",
+  "Fund Administration",
+] as const;
 import { toast } from "sonner";
 import {
   ContactsTab,
@@ -70,6 +79,18 @@ function LeadWorkspace() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lead", id] }),
+  });
+
+  const updateServices = useMutation({
+    mutationFn: async (services: string[]) => {
+      const { error } = await supabase.from("leads").update({ services }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Services updated");
+      qc.invalidateQueries({ queryKey: ["lead", id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const convert = useMutation({
@@ -257,6 +278,36 @@ function LeadWorkspace() {
                   <div className="mt-1 text-sm">{lead.notes}</div>
                 </div>
               )}
+              <div className="mt-6">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                  Services interested in
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {SERVICE_OPTIONS.map((s) => {
+                    const current: string[] = Array.isArray(lead.services) ? (lead.services as string[]) : [];
+                    const active = current.includes(s);
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        disabled={updateServices.isPending}
+                        onClick={() => {
+                          const next = active ? current.filter((x) => x !== s) : [...current, s];
+                          updateServices.mutate(next);
+                        }}
+                        className="focus:outline-none"
+                      >
+                        <Badge variant={active ? "default" : "outline"} className="cursor-pointer gap-1">
+                          {active && <Check className="w-3 h-3" />} {s}
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+                {(!lead.services || (lead.services as string[]).length === 0) && (
+                  <div className="mt-2 text-xs text-muted-foreground">No services selected yet — click to add.</div>
+                )}
+              </div>
             </Card>
           </TabsContent>
           <TabsContent value="contacts"><ContactsTab parentType="lead" parentId={lead.id} ownerId={lead.owner_id} /></TabsContent>
