@@ -122,6 +122,35 @@ function LeadWorkspace() {
     },
   });
 
+  const revive = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("leads")
+        .update({ status: "active" as never, pipeline_stage: "Prospect" as never })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Lead revived");
+      qc.invalidateQueries({ queryKey: ["lead", id] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteLead = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("leads").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Lead deleted");
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      navigate({ to: "/leads" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   if (!lead) return <div className="p-6 text-sm text-muted-foreground">Lead not found or access denied.</div>;
 
