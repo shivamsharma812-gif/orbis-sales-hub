@@ -539,6 +539,9 @@ export function FollowupsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
                     Completed {formatDate(f.completed_at)}
                   </div>
                 </div>
+                <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this follow-up?")) del.mutate(f.id); }}>
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </Button>
               </div>
             ))}
           </>
