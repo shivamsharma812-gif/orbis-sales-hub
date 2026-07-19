@@ -1,21 +1,20 @@
 ## Problem
 
-Clicking a lead or client name navigates to `/leads/:id` (URL and title update correctly), but the page still shows the list. Cause: TanStack file-based routing treats `leads.tsx` + `leads.$id.tsx` as **parent + child** (same for clients). The list files render their own content but no `<Outlet />`, so child detail routes match but have nowhere to render — the parent's list UI stays on screen.
+You're right. On the **Vertex Capital** lead (owned by Anita Chouhan, who sits under Murlidhar → Rishav), one of the tasks — *"Send NDA for signature"* — is assigned to **Shruti Dwivedi**, who reports up through a completely different sub-tree (Sharath → Vinay). That assignee has no hierarchical relationship to the record's owner, so it violates the "own + team" model.
 
-Confirmed in `src/routeTree.gen.ts`: `AuthenticatedLeadsRouteWithChildren` / `AuthenticatedClientsRouteWithChildren`.
+This isn't a one-off. A scan of the seeded `tasks` table shows the assignment logic was effectively random across the org — I found dozens of tasks where the assignee sits outside the owner's sub-tree (e.g. "Reconcile client AUC data" owned by Shivam Sharma but assigned to Anita Chouhan, who is not on Shivam's team).
+
+Only `tasks` has an `assigned_to` field. `meetings`, `followups`, `notes`, etc. are scoped purely by `owner_id`, so they're unaffected.
+
+## Rule to enforce
+
+For every task, the assignee must be **the owner themselves, or a descendant of the owner** in the reporting tree. That mirrors how visibility works: the owner and everyone above them in the chain can already see the task via RLS on `owner_id`; delegation only makes sense *downward* to your own team.
 
 ## Fix
 
-Convert the list routes into sibling index leaves so `/leads/$id` and `/clients/$id` are independent routes, not children of a layout.
+A single data-repair migration (no schema change, no code change):
 
-1. Rename `src/routes/_authenticated/leads.tsx` → `src/routes/_authenticated/leads.index.tsx`, and update its `createFileRoute("/_authenticated/leads")` string to `"/_authenticated/leads/"`.
-2. Rename `src/routes/_authenticated/clients.tsx` → `src/routes/_authenticated/clients.index.tsx`, and update its `createFileRoute("/_authenticated/clients")` to `"/_authenticated/clients/"`.
-3. Let the TanStack Router plugin regenerate `src/routeTree.gen.ts` on the next dev run.
+1. For each task where `assigned_to` is not in `{owner_id} ∪ descendants(owner_id)`, reassign it to `owner_id`. Leaf owners (like Anita) end up owning their own tasks, which is correct — they have no team to delegate to.
+2. Verify: re-run the cross-hierarchy check; expected result is zero rows.
 
-No component logic, queries, or links change. `<Link to="/leads/$id">` and `<Link to="/clients/$id">` continue to work.
-
-## Verify
-
-- Navigate to `/leads/<id>` — Lead Workspace renders (header, stage, tabs).
-- Navigate to `/clients/<id>` — Client Workspace renders.
-- `/leads` and `/clients` still render their lists.
+No RLS, UI, or seed-script changes are needed for this fix. If you'd also like me to add a DB-level trigger that *prevents* future out-of-tree assignments (so the app can't reintroduce this), say the word and I'll include it — but it's optional and the CRM UI can enforce it in the assignee picker instead.
