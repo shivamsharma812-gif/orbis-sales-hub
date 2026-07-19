@@ -703,9 +703,10 @@ export function TimelineTab({ parentType, parentId }: WorkspaceProps) {
 }
 
 /* ---------------- Documents ---------------- */
-export function DocumentsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
+export function DocumentsTab({ parentType, parentId }: WorkspaceProps) {
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const { data: currentUser } = useCurrentUser();
 
   const { data: docs = [] } = useQuery({
     queryKey: ["documents", parentType, parentId],
@@ -721,6 +722,10 @@ export function DocumentsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
   });
 
   async function handleUpload(file: File) {
+    if (!currentUser) {
+      toast.error("Not signed in");
+      return;
+    }
     setUploading(true);
     try {
       const path = `${parentType}/${parentId}/${Date.now()}_${file.name}`;
@@ -729,7 +734,7 @@ export function DocumentsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
       const { error: dbErr } = await supabase.from("documents").insert({
         parent_type: parentType as never,
         parent_id: parentId,
-        owner_id: ownerId,
+        owner_id: currentUser.id,
         file_name: file.name,
         storage_path: path,
         mime_type: file.type,
