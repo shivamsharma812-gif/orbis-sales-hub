@@ -256,10 +256,13 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
         status: "scheduled" as never,
       });
       if (error) throw error;
+      if (parentType === "lead") await advanceLeadStage(parentId, "Meeting Scheduled");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["lead", parentId] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
       setOpen(false);
       setForm({ meeting_date: "", meeting_type: "In-Person", agenda: "" });
       toast.success("Meeting scheduled");
@@ -274,8 +277,25 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
         .update({ status: "completed" as never, discussion_summary: summary, action_items: actions })
         .eq("id", id);
       if (error) throw error;
+      if (parentType === "lead") await advanceLeadStage(parentId, "Meeting Completed");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
+      qc.invalidateQueries({ queryKey: ["lead", parentId] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    },
+  });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("meetings").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
+      toast.success("Meeting deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
