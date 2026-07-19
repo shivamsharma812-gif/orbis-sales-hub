@@ -96,6 +96,8 @@ function LeadWorkspace() {
   const convert = useMutation({
     mutationFn: async () => {
       if (!lead) throw new Error("Lead missing");
+      const leadServices: string[] = Array.isArray(lead.services) ? (lead.services as string[]) : [];
+      const serviceType = leadServices.length > 0 ? leadServices.join(", ") : null;
       const { data: client, error: cErr } = await supabase
         .from("clients")
         .insert({
@@ -105,6 +107,7 @@ function LeadWorkspace() {
           owner_id: lead.owner_id,
           originating_lead_id: lead.id,
           annual_revenue: lead.estimated_deal_value,
+          service_type: serviceType,
         })
         .select()
         .single();
