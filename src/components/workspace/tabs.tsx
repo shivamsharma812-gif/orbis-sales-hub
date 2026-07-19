@@ -769,12 +769,22 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
         </div>
       </div>
       <div className="mt-4 space-y-2">
-        {notes.map((n) => (
-          <div key={n.id} className="border-l-2 border-primary pl-3 py-1">
-            <div className="text-sm">{n.body}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{formatDateTime(n.created_at)}</div>
-          </div>
-        ))}
+        {notes.map((n) => {
+          const isMine = currentUser && n.owner_id === currentUser.id;
+          return (
+            <div key={n.id} className="border-l-2 border-primary pl-3 py-1 flex items-start justify-between gap-2 group">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm">{n.body}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{formatDateTime(n.created_at)}</div>
+              </div>
+              {isMine && (
+                <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={() => { if (confirm("Delete this note?")) del.mutate(n.id); }}>
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
         {notes.length === 0 && (
           <div className="text-sm text-muted-foreground text-center py-6">No notes yet.</div>
         )}
