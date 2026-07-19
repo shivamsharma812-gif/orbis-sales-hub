@@ -50,14 +50,7 @@ function LeadWorkspace() {
     },
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ["users-lite"],
-    queryFn: async () => {
-      const { data } = await supabase.from("users").select("id, full_name");
-      return data ?? [];
-    },
-    staleTime: 300_000,
-  });
+  const { data: users = [] } = useAssignableUsers();
 
   const updateStage = useMutation({
     mutationFn: async (stage: string) => {
