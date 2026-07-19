@@ -1,13 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -15,15 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table,
   TableHeader,
@@ -33,9 +21,11 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { StageBadge, PIPELINE_STAGES, ACTIVE_STAGES } from "@/components/stage-badge";
-import { Plus, LayoutGrid, List, Filter } from "lucide-react";
+import { LayoutGrid, List, Filter } from "lucide-react";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
+import { CreateLeadWizard } from "@/components/create-lead-wizard";
+
 
 export const Route = createFileRoute("/_authenticated/leads/")({
   head: () => ({ meta: [{ title: "Leads — Orbis CRM" }] }),
