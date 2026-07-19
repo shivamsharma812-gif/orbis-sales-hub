@@ -35,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/clients/$id")({
 function ClientWorkspace() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", id],
@@ -57,6 +58,64 @@ function ClientWorkspace() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["client", id] }),
+  });
+
+  const revertToLead = useMutation({
+    mutationFn: async () => {
+      if (!client) throw new Error("Client missing");
+      let leadId = client.originating_lead_id as string | null;
+      if (leadId) {
+        // Reactivate original lead
+        const { error: uErr } = await supabase
+          .from("leads")
+          .update({
+            status: "active" as never,
+            pipeline_stage: "Prospect" as never,
+            converted_client_id: null,
+          })
+          .eq("id", leadId);
+        if (uErr) throw uErr;
+      } else {
+        // Create a fresh lead from client data
+        const { data: newLead, error: iErr } = await supabase
+          .from("leads")
+          .insert({
+            company_name: client.company_name,
+            client_type: client.client_type,
+            industry: client.industry,
+            owner_id: client.owner_id,
+            pipeline_stage: "Prospect" as never,
+            status: "active" as never,
+            estimated_deal_value: client.annual_revenue,
+          })
+          .select()
+          .single();
+        if (iErr) throw iErr;
+        leadId = newLead.id;
+      }
+      const { error: dErr } = await supabase.from("clients").delete().eq("id", id);
+      if (dErr) throw dErr;
+      return leadId!;
+    },
+    onSuccess: (leadId) => {
+      toast.success("Reverted to lead");
+      qc.invalidateQueries();
+      navigate({ to: "/leads/$id", params: { id: leadId } });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteClient = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("clients").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Client deleted");
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      navigate({ to: "/clients" });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   if (isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
