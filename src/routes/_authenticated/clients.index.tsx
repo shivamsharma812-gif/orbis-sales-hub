@@ -91,7 +91,7 @@ function ClientsPage() {
           <SelectTrigger className="w-44 h-9"><Filter className="w-3.5 h-3.5 mr-1 text-muted-foreground" /><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All services</SelectItem>
-            {["Custody","Fund Accounting","Trusteeship","RTA"].map((s) => (
+            {["Custody & Allied Services","Fund Accounting","Trusteeship","RTA"].map((s) => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
           </SelectContent>
@@ -158,7 +158,7 @@ function CreateClientDialog() {
     company_name: "",
     client_type: "AIF",
     industry: "Financial Services",
-    service_type: "Custody",
+    service_type: "Custody & Allied Services",
     auc: "",
     annual_revenue: "",
   });
@@ -190,7 +190,7 @@ function CreateClientDialog() {
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Client created");
       setOpen(false);
-      setForm({ company_name: "", client_type: "AIF", industry: "Financial Services", service_type: "Custody", auc: "", annual_revenue: "" });
+      setForm({ company_name: "", client_type: "AIF", industry: "Financial Services", service_type: "Custody & Allied Services", auc: "", annual_revenue: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -218,7 +218,7 @@ function CreateClientDialog() {
             <Select value={form.service_type} onValueChange={(v) => setForm({ ...form, service_type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {["Custody","Fund Accounting","Trusteeship","RTA"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {["Custody & Allied Services","Fund Accounting","Trusteeship","RTA"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
