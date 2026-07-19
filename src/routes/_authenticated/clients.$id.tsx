@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2, Undo2 } from "lucide-react";
+import { toast } from "sonner";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import {
   ContactsTab,
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/clients/$id")({
 function ClientWorkspace() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", id],
@@ -58,6 +60,64 @@ function ClientWorkspace() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["client", id] }),
   });
 
+  const revertToLead = useMutation({
+    mutationFn: async () => {
+      if (!client) throw new Error("Client missing");
+      let leadId = client.originating_lead_id as string | null;
+      if (leadId) {
+        // Reactivate original lead
+        const { error: uErr } = await supabase
+          .from("leads")
+          .update({
+            status: "active" as never,
+            pipeline_stage: "Prospect" as never,
+            converted_client_id: null,
+          })
+          .eq("id", leadId);
+        if (uErr) throw uErr;
+      } else {
+        // Create a fresh lead from client data
+        const { data: newLead, error: iErr } = await supabase
+          .from("leads")
+          .insert({
+            company_name: client.company_name,
+            client_type: client.client_type,
+            industry: client.industry,
+            owner_id: client.owner_id,
+            pipeline_stage: "Prospect" as never,
+            status: "active" as never,
+            estimated_deal_value: client.annual_revenue,
+          })
+          .select()
+          .single();
+        if (iErr) throw iErr;
+        leadId = newLead.id;
+      }
+      const { error: dErr } = await supabase.from("clients").delete().eq("id", id);
+      if (dErr) throw dErr;
+      return leadId!;
+    },
+    onSuccess: (leadId) => {
+      toast.success("Reverted to lead");
+      qc.invalidateQueries();
+      navigate({ to: "/leads/$id", params: { id: leadId } });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteClient = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("clients").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Client deleted");
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      navigate({ to: "/clients" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   if (!client) return <div className="p-6 text-sm text-muted-foreground">Client not found or access denied.</div>;
 
@@ -67,9 +127,27 @@ function ClientWorkspace() {
         title={client.company_name}
         description={`${client.client_type ?? ""} · ${client.industry ?? ""}`}
         actions={
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/clients"><ArrowLeft className="w-4 h-4" /> Back</Link>
-          </Button>
+          <>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/clients"><ArrowLeft className="w-4 h-4" /> Back</Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { if (confirm("Revert this client back to a lead? The client record will be removed.")) revertToLead.mutate(); }}
+              disabled={revertToLead.isPending}
+            >
+              <Undo2 className="w-4 h-4" /> Revert to lead
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { if (confirm("Delete this client permanently? This cannot be undone.")) deleteClient.mutate(); }}
+              disabled={deleteClient.isPending}
+            >
+              <Trash2 className="w-4 h-4 text-destructive" /> Delete
+            </Button>
+          </>
         }
       />
 
