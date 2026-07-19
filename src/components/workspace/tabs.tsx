@@ -43,8 +43,28 @@ import {
   FileUp,
   Trash2,
   Download,
+  Pencil,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { PIPELINE_STAGES } from "@/components/stage-badge";
+
+// Advance a lead's pipeline_stage forward only (never regress).
+async function advanceLeadStage(leadId: string, targetStage: string) {
+  const { data: lead } = await supabase
+    .from("leads")
+    .select("pipeline_stage, status")
+    .eq("id", leadId)
+    .maybeSingle();
+  if (!lead || lead.status !== "active") return;
+  const currentIdx = PIPELINE_STAGES.indexOf(lead.pipeline_stage as never);
+  const targetIdx = PIPELINE_STAGES.indexOf(targetStage as never);
+  if (targetIdx > currentIdx) {
+    await supabase
+      .from("leads")
+      .update({ pipeline_stage: targetStage as never })
+      .eq("id", leadId);
+  }
+}
 
 type ParentType = "lead" | "client";
 interface WorkspaceProps {
