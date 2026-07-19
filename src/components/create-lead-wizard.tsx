@@ -717,7 +717,7 @@ export function CreateLeadWizard() {
                     label="Est. annual revenue"
                     value={
                       form.estimated_annual_revenue
-                        ? `₹${form.estimated_annual_revenue} Cr`
+                        ? `₹${toCrores(form.estimated_annual_revenue, form.revenue_unit).toFixed(2)} Cr`
                         : "—"
                     }
                   />
