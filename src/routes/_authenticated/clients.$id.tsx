@@ -47,14 +47,7 @@ function ClientWorkspace() {
     },
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ["users-lite"],
-    queryFn: async () => {
-      const { data } = await supabase.from("users").select("id, full_name");
-      return data ?? [];
-    },
-    staleTime: 300_000,
-  });
+  const { data: users = [] } = useAssignableUsers();
 
   const reassign = useMutation({
     mutationFn: async (ownerId: string) => {
