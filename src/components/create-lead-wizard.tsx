@@ -103,6 +103,12 @@ const SERVICES = [
   "Fund Administration",
 ] as const;
 
+function toCrores(value: string, unit: "cr" | "lakh"): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return unit === "lakh" ? n / 100 : n;
+}
+
 const STEPS = [
   { key: "basic", title: "Basic Information" },
   { key: "contact", title: "Primary Contact" },
