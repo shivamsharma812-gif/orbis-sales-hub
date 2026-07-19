@@ -5,6 +5,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -98,6 +99,13 @@ function LeadsPage() {
             <LayoutGrid className="w-3.5 h-3.5" /> Pipeline
           </button>
         </div>
+        <Button
+          variant={statusFilter === "lost" ? "default" : "outline"}
+          size="sm"
+          onClick={() => { setStatusFilter(statusFilter === "lost" ? "active" : "lost"); setView("list"); }}
+        >
+          {statusFilter === "lost" ? "Showing lost leads" : "View lost leads"}
+        </Button>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           <Input
             placeholder="Search company…"

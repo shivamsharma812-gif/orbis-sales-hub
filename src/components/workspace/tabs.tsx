@@ -43,8 +43,28 @@ import {
   FileUp,
   Trash2,
   Download,
+  Pencil,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { PIPELINE_STAGES } from "@/components/stage-badge";
+
+// Advance a lead's pipeline_stage forward only (never regress).
+async function advanceLeadStage(leadId: string, targetStage: string) {
+  const { data: lead } = await supabase
+    .from("leads")
+    .select("pipeline_stage, status")
+    .eq("id", leadId)
+    .maybeSingle();
+  if (!lead || lead.status !== "active") return;
+  const currentIdx = PIPELINE_STAGES.indexOf(lead.pipeline_stage as never);
+  const targetIdx = PIPELINE_STAGES.indexOf(targetStage as never);
+  if (targetIdx > currentIdx) {
+    await supabase
+      .from("leads")
+      .update({ pipeline_stage: targetStage as never })
+      .eq("id", leadId);
+  }
+}
 
 type ParentType = "lead" | "client";
 interface WorkspaceProps {
@@ -57,14 +77,9 @@ interface WorkspaceProps {
 export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    designation: "",
-    department: "",
-    email: "",
-    phone: "",
-    is_primary: false,
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const emptyForm = { name: "", designation: "", department: "", email: "", phone: "", is_primary: false };
+  const [form, setForm] = useState(emptyForm);
 
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts", parentType, parentId],
@@ -79,23 +94,59 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
     },
   });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("contacts").insert({
-        parent_type: parentType as never,
-        parent_id: parentId,
-        ...form,
-      });
-      if (error) throw error;
+      if (editingId) {
+        const { error } = await supabase.from("contacts").update(form).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("contacts").insert({
+          parent_type: parentType as never,
+          parent_id: parentId,
+          ...form,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contacts", parentType, parentId] });
       setOpen(false);
-      setForm({ name: "", designation: "", department: "", email: "", phone: "", is_primary: false });
-      toast.success("Contact added");
+      setEditingId(null);
+      setForm(emptyForm);
+      toast.success(editingId ? "Contact updated" : "Contact added");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("contacts").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contacts", parentType, parentId] });
+      toast.success("Contact deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const openEdit = (c: typeof contacts[number]) => {
+    setEditingId(c.id);
+    setForm({
+      name: c.name ?? "",
+      designation: c.designation ?? "",
+      department: c.department ?? "",
+      email: c.email ?? "",
+      phone: c.phone ?? "",
+      is_primary: !!c.is_primary,
+    });
+    setOpen(true);
+  };
+
+  const handleOpen = (o: boolean) => {
+    setOpen(o);
+    if (!o) { setEditingId(null); setForm(emptyForm); }
+  };
 
   return (
     <Card className="p-0 overflow-hidden">
@@ -103,12 +154,12 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
         <div className="text-sm font-semibold flex items-center gap-2">
           <User className="w-4 h-4" /> Contacts ({contacts.length})
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpen}>
           <DialogTrigger asChild>
             <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Add contact</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Add contact</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? "Edit contact" : "Add contact"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -125,8 +176,8 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
               </label>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={() => create.mutate()} disabled={!form.name || create.isPending}>Add</Button>
+              <Button variant="outline" onClick={() => handleOpen(false)}>Cancel</Button>
+              <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>{editingId ? "Save" : "Add"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -138,11 +189,12 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
             <TableHead>Designation</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {contacts.length === 0 && (
-            <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No contacts yet.</TableCell></TableRow>
+            <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No contacts yet.</TableCell></TableRow>
           )}
           {contacts.map((c) => (
             <TableRow key={c.id}>
@@ -153,6 +205,14 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
               <TableCell className="text-muted-foreground">{c.designation}</TableCell>
               <TableCell className="text-muted-foreground">{c.email}</TableCell>
               <TableCell className="text-muted-foreground">{c.phone}</TableCell>
+              <TableCell className="text-right">
+                <Button size="sm" variant="ghost" onClick={() => openEdit(c)}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this contact?")) del.mutate(c.id); }}>
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -196,10 +256,13 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
         status: "scheduled" as never,
       });
       if (error) throw error;
+      if (parentType === "lead") await advanceLeadStage(parentId, "Meeting Scheduled");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["lead", parentId] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
       setOpen(false);
       setForm({ meeting_date: "", meeting_type: "In-Person", agenda: "" });
       toast.success("Meeting scheduled");
@@ -214,8 +277,25 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
         .update({ status: "completed" as never, discussion_summary: summary, action_items: actions })
         .eq("id", id);
       if (error) throw error;
+      if (parentType === "lead") await advanceLeadStage(parentId, "Meeting Completed");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
+      qc.invalidateQueries({ queryKey: ["lead", parentId] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    },
+  });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("meetings").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
+      toast.success("Meeting deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
@@ -255,7 +335,7 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
           <div className="text-center text-sm text-muted-foreground py-8">No meetings yet.</div>
         )}
         {meetings.map((m) => (
-          <MeetingRow key={m.id} m={m} onComplete={(summary, actions) => complete.mutate({ id: m.id, summary, actions })} />
+          <MeetingRow key={m.id} m={m} onComplete={(summary, actions) => complete.mutate({ id: m.id, summary, actions })} onDelete={() => { if (confirm("Delete this meeting?")) del.mutate(m.id); }} />
         ))}
       </div>
     </Card>
@@ -265,9 +345,11 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
 function MeetingRow({
   m,
   onComplete,
+  onDelete,
 }: {
   m: { id: string; meeting_date: string; meeting_type: string; status: string; agenda: string | null; discussion_summary: string | null; action_items: string | null };
   onComplete: (summary: string, actions: string) => void;
+  onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState("");
@@ -281,7 +363,12 @@ function MeetingRow({
             {formatDateTime(m.meeting_date)} · {m.meeting_type}
           </div>
         </div>
-        <Badge variant={m.status === "completed" ? "secondary" : "outline"}>{m.status}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={m.status === "completed" ? "secondary" : "outline"}>{m.status}</Badge>
+          <Button size="sm" variant="ghost" onClick={onDelete}>
+            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+          </Button>
+        </div>
       </div>
       {m.discussion_summary && (
         <div className="mt-2 text-sm text-muted-foreground">{m.discussion_summary}</div>
@@ -370,6 +457,18 @@ export function FollowupsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
     },
   });
 
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("followups").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
+      toast.success("Follow-up deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const today = new Date().toISOString().split("T")[0];
   const pending = followups.filter((f) => f.status === "pending");
   const completed = followups.filter((f) => f.status === "completed");
@@ -422,6 +521,9 @@ export function FollowupsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
                 </div>
               </div>
               {overdue && <Badge variant="destructive">Overdue</Badge>}
+              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this follow-up?")) del.mutate(f.id); }}>
+                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+              </Button>
             </div>
           );
         })}
@@ -437,6 +539,9 @@ export function FollowupsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
                     Completed {formatDate(f.completed_at)}
                   </div>
                 </div>
+                <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this follow-up?")) del.mutate(f.id); }}>
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </Button>
               </div>
             ))}
           </>
@@ -514,6 +619,18 @@ export function TasksTab({ parentType, parentId, ownerId }: WorkspaceProps) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] }),
   });
 
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] });
+      toast.success("Task deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
@@ -578,6 +695,9 @@ export function TasksTab({ parentType, parentId, ownerId }: WorkspaceProps) {
                 {t.due_date ? relativeDay(t.due_date) : "No due date"} · {t.priority} · {users.find((u) => u.id === t.assigned_to)?.full_name ?? "—"}
               </div>
             </div>
+            <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this task?")) del.mutate(t.id); }}>
+              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+            </Button>
           </div>
         ))}
       </div>
@@ -623,6 +743,18 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("notes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notes", parentType, parentId] });
+      toast.success("Note deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <Card className="p-4">
       <div className="text-sm font-semibold flex items-center gap-2 mb-3">
@@ -637,12 +769,22 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
         </div>
       </div>
       <div className="mt-4 space-y-2">
-        {notes.map((n) => (
-          <div key={n.id} className="border-l-2 border-primary pl-3 py-1">
-            <div className="text-sm">{n.body}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{formatDateTime(n.created_at)}</div>
-          </div>
-        ))}
+        {notes.map((n) => {
+          const isMine = currentUser && n.owner_id === currentUser.id;
+          return (
+            <div key={n.id} className="border-l-2 border-primary pl-3 py-1 flex items-start justify-between gap-2 group">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm">{n.body}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{formatDateTime(n.created_at)}</div>
+              </div>
+              {isMine && (
+                <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={() => { if (confirm("Delete this note?")) del.mutate(n.id); }}>
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
         {notes.length === 0 && (
           <div className="text-sm text-muted-foreground text-center py-6">No notes yet.</div>
         )}

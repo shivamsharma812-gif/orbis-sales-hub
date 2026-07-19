@@ -50,22 +50,40 @@ const SUB_CATEGORIES: Record<string, string[]> = {
 
 const COUNTRIES = [
   "India",
-  "Singapore",
-  "Mauritius",
-  "Luxembourg",
-  "United Arab Emirates",
-  "United Kingdom",
-  "United States",
-  "Hong Kong",
-  "Switzerland",
-  "Cayman Islands",
-  "Ireland",
-  "Netherlands",
-  "Australia",
-  "Canada",
-  "Japan",
+  "GIFT City (India)",
+  "Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan",
+  "Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bermuda","Bhutan","Bolivia",
+  "Bosnia and Herzegovina","Botswana","Brazil","British Virgin Islands","Brunei","Bulgaria","Burkina Faso","Burundi",
+  "Cambodia","Cameroon","Canada","Cayman Islands","Chile","China","Colombia","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic",
+  "Denmark","Djibouti","Dominica","Dominican Republic",
+  "Ecuador","Egypt","El Salvador","Estonia","Ethiopia",
+  "Fiji","Finland","France",
+  "Gabon","Gambia","Georgia","Germany","Ghana","Greece","Guatemala","Guernsey","Guinea","Guyana",
+  "Haiti","Honduras","Hong Kong","Hungary",
+  "Iceland","Indonesia","Iran","Iraq","Ireland","Isle of Man","Israel","Italy","Ivory Coast",
+  "Jamaica","Japan","Jersey","Jordan",
+  "Kazakhstan","Kenya","Kuwait","Kyrgyzstan",
+  "Laos","Latvia","Lebanon","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg",
+  "Macau","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Mauritania","Mauritius","Mexico","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar",
+  "Namibia","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Macedonia","Norway",
+  "Oman",
+  "Pakistan","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Puerto Rico",
+  "Qatar",
+  "Romania","Russia","Rwanda",
+  "Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Somalia","South Africa","South Korea","Spain","Sri Lanka","Sudan","Sweden","Switzerland","Syria",
+  "Taiwan","Tajikistan","Tanzania","Thailand","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan",
+  "Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan",
+  "Venezuela","Vietnam",
+  "Yemen",
+  "Zambia","Zimbabwe",
   "Other",
 ];
+
+const CATEGORIES_HIDE_STATE = new Set([
+  "Foreign Portfolio Investor (FPI)",
+  "Foreign Direct Investment (FDI)",
+  "Foreign Venture Capital Investor (FVCI)",
+]);
 
 const LEAD_SOURCES = [
   "Referral",
@@ -84,6 +102,12 @@ const SERVICES = [
   "Fund Accounting",
   "Fund Administration",
 ] as const;
+
+function toCrores(value: string, unit: "cr" | "lakh"): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return unit === "lakh" ? n / 100 : n;
+}
 
 const STEPS = [
   { key: "basic", title: "Basic Information" },
@@ -117,6 +141,7 @@ interface FormState {
   priority: "low" | "medium" | "high";
   expected_close_date: string;
   estimated_annual_revenue: string;
+  revenue_unit: "cr" | "lakh";
   probability: string;
   internal_remarks: string;
   // Step 4
@@ -145,6 +170,7 @@ const initialState: FormState = {
   priority: "medium",
   expected_close_date: "",
   estimated_annual_revenue: "",
+  revenue_unit: "cr",
   probability: "20",
   internal_remarks: "",
   services: [],
@@ -233,10 +259,10 @@ export function CreateLeadWizard() {
           priority: form.priority,
           expected_close_date: form.expected_close_date || null,
           estimated_annual_revenue: form.estimated_annual_revenue
-            ? Number(form.estimated_annual_revenue)
+            ? toCrores(form.estimated_annual_revenue, form.revenue_unit)
             : null,
           estimated_deal_value: form.estimated_annual_revenue
-            ? Number(form.estimated_annual_revenue)
+            ? toCrores(form.estimated_annual_revenue, form.revenue_unit)
             : 0,
           probability: form.probability ? Number(form.probability) : null,
           notes: form.internal_remarks || null,
@@ -396,10 +422,12 @@ export function CreateLeadWizard() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label>State</Label>
-                <Input value={form.state} onChange={(e) => update("state", e.target.value)} />
-              </div>
+              {!CATEGORIES_HIDE_STATE.has(form.client_category) && (
+                <div className="space-y-1.5">
+                  <Label>State</Label>
+                  <Input value={form.state} onChange={(e) => update("state", e.target.value)} />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>City</Label>
                 <Input value={form.city} onChange={(e) => update("city", e.target.value)} />
@@ -562,14 +590,31 @@ export function CreateLeadWizard() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Estimated annual revenue (₹ Cr)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.estimated_annual_revenue}
-                  onChange={(e) => update("estimated_annual_revenue", e.target.value)}
-                />
+                <Label>Estimated annual revenue</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.estimated_annual_revenue}
+                    onChange={(e) => update("estimated_annual_revenue", e.target.value)}
+                  />
+                  <Select
+                    value={form.revenue_unit}
+                    onValueChange={(v) => update("revenue_unit", v as "cr" | "lakh")}
+                  >
+                    <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cr">₹ Crores</SelectItem>
+                      <SelectItem value="lakh">₹ Lakhs</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.estimated_annual_revenue && (
+                  <div className="text-[10px] text-muted-foreground">
+                    = ₹{toCrores(form.estimated_annual_revenue, form.revenue_unit).toFixed(2)} Cr
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Probability (%)</Label>
@@ -672,7 +717,7 @@ export function CreateLeadWizard() {
                     label="Est. annual revenue"
                     value={
                       form.estimated_annual_revenue
-                        ? `₹${form.estimated_annual_revenue} Cr`
+                        ? `₹${toCrores(form.estimated_annual_revenue, form.revenue_unit).toFixed(2)} Cr`
                         : "—"
                     }
                   />
