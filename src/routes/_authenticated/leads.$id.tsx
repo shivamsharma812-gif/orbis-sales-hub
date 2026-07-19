@@ -174,6 +174,19 @@ function LeadWorkspace() {
                 </Button>
               </>
             )}
+            {lead.status === "lost" && (
+              <Button variant="outline" size="sm" onClick={() => revive.mutate()} disabled={revive.isPending}>
+                <RotateCcw className="w-4 h-4" /> Revive lead
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { if (confirm("Delete this lead permanently? This cannot be undone.")) deleteLead.mutate(); }}
+              disabled={deleteLead.isPending}
+            >
+              <Trash2 className="w-4 h-4 text-destructive" /> Delete
+            </Button>
           </>
         }
       />
