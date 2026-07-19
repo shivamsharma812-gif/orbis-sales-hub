@@ -81,6 +81,18 @@ function LeadWorkspace() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lead", id] }),
   });
 
+  const updateServices = useMutation({
+    mutationFn: async (services: string[]) => {
+      const { error } = await supabase.from("leads").update({ services }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Services updated");
+      qc.invalidateQueries({ queryKey: ["lead", id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const convert = useMutation({
     mutationFn: async () => {
       if (!lead) throw new Error("Lead missing");
