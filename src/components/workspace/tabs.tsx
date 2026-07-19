@@ -345,9 +345,11 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
 function MeetingRow({
   m,
   onComplete,
+  onDelete,
 }: {
   m: { id: string; meeting_date: string; meeting_type: string; status: string; agenda: string | null; discussion_summary: string | null; action_items: string | null };
   onComplete: (summary: string, actions: string) => void;
+  onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState("");
