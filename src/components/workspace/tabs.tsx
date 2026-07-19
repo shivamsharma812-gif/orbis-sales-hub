@@ -586,9 +586,10 @@ export function TasksTab({ parentType, parentId, ownerId }: WorkspaceProps) {
 }
 
 /* ---------------- Notes (append-only) ---------------- */
-export function NotesTab({ parentType, parentId, ownerId }: WorkspaceProps) {
+export function NotesTab({ parentType, parentId }: WorkspaceProps) {
   const qc = useQueryClient();
   const [body, setBody] = useState("");
+  const { data: currentUser } = useCurrentUser();
 
   const { data: notes = [] } = useQuery({
     queryKey: ["notes", parentType, parentId],
@@ -605,10 +606,11 @@ export function NotesTab({ parentType, parentId, ownerId }: WorkspaceProps) {
 
   const create = useMutation({
     mutationFn: async () => {
+      if (!currentUser) throw new Error("Not signed in");
       const { error } = await supabase.from("notes").insert({
         parent_type: parentType as never,
         parent_id: parentId,
-        owner_id: ownerId,
+        owner_id: currentUser.id,
         body,
       });
       if (error) throw error;
