@@ -24,6 +24,7 @@ import {
   TimelineTab,
   DocumentsTab,
 } from "@/components/workspace/tabs";
+import { useAssignableUsers } from "@/hooks/use-assignable-users";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({ meta: [{ title: "Client — Orbis CRM" }] }),
@@ -47,14 +48,7 @@ function ClientWorkspace() {
     },
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ["users-lite"],
-    queryFn: async () => {
-      const { data } = await supabase.from("users").select("id, full_name");
-      return data ?? [];
-    },
-    staleTime: 300_000,
-  });
+  const { data: users = [] } = useAssignableUsers();
 
   const reassign = useMutation({
     mutationFn: async (ownerId: string) => {

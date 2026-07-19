@@ -13,7 +13,6 @@ import {
   ClipboardList,
   BellRing,
   Wallet,
-  Plus,
   ArrowRight,
   AlertTriangle,
 } from "lucide-react";
@@ -138,18 +137,11 @@ function DashboardPage() {
         title="Dashboard"
         description="Live view of your work and pipeline."
         actions={
-          <>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/leads">
-                <Plus className="w-4 h-4" /> New lead
-              </Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link to="/leads">
-                Open pipeline <ArrowRight className="w-4 h-4" />
-              </Link>
-            </Button>
-          </>
+          <Button asChild size="sm">
+            <Link to="/leads">
+              Open pipeline <ArrowRight className="w-4 h-4" />
+            </Link>
+          </Button>
         }
       />
 

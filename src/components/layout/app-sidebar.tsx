@@ -25,7 +25,7 @@ import { initials } from "@/lib/format";
 
 const NAV = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Leads", url: "/leads", icon: Target },
+  { title: "Pipeline", url: "/leads", icon: Target },
   { title: "Clients", url: "/clients", icon: Building2 },
   { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Users", url: "/users", icon: Users },
