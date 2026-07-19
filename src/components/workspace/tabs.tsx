@@ -743,6 +743,18 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("notes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notes", parentType, parentId] });
+      toast.success("Note deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <Card className="p-4">
       <div className="text-sm font-semibold flex items-center gap-2 mb-3">
