@@ -584,14 +584,31 @@ export function CreateLeadWizard() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Estimated annual revenue (₹ Cr)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.estimated_annual_revenue}
-                  onChange={(e) => update("estimated_annual_revenue", e.target.value)}
-                />
+                <Label>Estimated annual revenue</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.estimated_annual_revenue}
+                    onChange={(e) => update("estimated_annual_revenue", e.target.value)}
+                  />
+                  <Select
+                    value={form.revenue_unit}
+                    onValueChange={(v) => update("revenue_unit", v as "cr" | "lakh")}
+                  >
+                    <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cr">₹ Crores</SelectItem>
+                      <SelectItem value="lakh">₹ Lakhs</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.estimated_annual_revenue && (
+                  <div className="text-[10px] text-muted-foreground">
+                    = ₹{toCrores(form.estimated_annual_revenue, form.revenue_unit).toFixed(2)} Cr
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Probability (%)</Label>
