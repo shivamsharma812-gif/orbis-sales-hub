@@ -135,6 +135,7 @@ interface FormState {
   priority: "low" | "medium" | "high";
   expected_close_date: string;
   estimated_annual_revenue: string;
+  revenue_unit: "cr" | "lakh";
   probability: string;
   internal_remarks: string;
   // Step 4
