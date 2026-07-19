@@ -26,6 +26,7 @@ import {
   TimelineTab,
   DocumentsTab,
 } from "@/components/workspace/tabs";
+import { useAssignableUsers } from "@/hooks/use-assignable-users";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   head: () => ({ meta: [{ title: "Lead — Orbis CRM" }] }),
