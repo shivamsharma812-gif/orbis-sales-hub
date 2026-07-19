@@ -363,7 +363,12 @@ function MeetingRow({
             {formatDateTime(m.meeting_date)} · {m.meeting_type}
           </div>
         </div>
-        <Badge variant={m.status === "completed" ? "secondary" : "outline"}>{m.status}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={m.status === "completed" ? "secondary" : "outline"}>{m.status}</Badge>
+          <Button size="sm" variant="ghost" onClick={onDelete}>
+            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+          </Button>
+        </div>
       </div>
       {m.discussion_summary && (
         <div className="mt-2 text-sm text-muted-foreground">{m.discussion_summary}</div>
