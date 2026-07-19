@@ -218,7 +218,7 @@ function CreateClientDialog() {
             <Select value={form.service_type} onValueChange={(v) => setForm({ ...form, service_type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {["Custody","Fund Accounting","Trusteeship","RTA","Escrow"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {["Custody","Fund Accounting","Trusteeship","RTA"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
