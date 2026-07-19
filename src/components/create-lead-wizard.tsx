@@ -416,10 +416,12 @@ export function CreateLeadWizard() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label>State</Label>
-                <Input value={form.state} onChange={(e) => update("state", e.target.value)} />
-              </div>
+              {!CATEGORIES_HIDE_STATE.has(form.client_category) && (
+                <div className="space-y-1.5">
+                  <Label>State</Label>
+                  <Input value={form.state} onChange={(e) => update("state", e.target.value)} />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>City</Label>
                 <Input value={form.city} onChange={(e) => update("city", e.target.value)} />
