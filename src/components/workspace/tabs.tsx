@@ -335,7 +335,7 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
           <div className="text-center text-sm text-muted-foreground py-8">No meetings yet.</div>
         )}
         {meetings.map((m) => (
-          <MeetingRow key={m.id} m={m} onComplete={(summary, actions) => complete.mutate({ id: m.id, summary, actions })} />
+          <MeetingRow key={m.id} m={m} onComplete={(summary, actions) => complete.mutate({ id: m.id, summary, actions })} onDelete={() => { if (confirm("Delete this meeting?")) del.mutate(m.id); }} />
         ))}
       </div>
     </Card>
