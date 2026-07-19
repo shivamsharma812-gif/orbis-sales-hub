@@ -44,6 +44,7 @@ import {
   Trash2,
   Download,
 } from "lucide-react";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 type ParentType = "lead" | "client";
 interface WorkspaceProps {
