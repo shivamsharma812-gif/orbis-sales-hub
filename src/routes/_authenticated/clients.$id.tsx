@@ -127,9 +127,27 @@ function ClientWorkspace() {
         title={client.company_name}
         description={`${client.client_type ?? ""} · ${client.industry ?? ""}`}
         actions={
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/clients"><ArrowLeft className="w-4 h-4" /> Back</Link>
-          </Button>
+          <>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/clients"><ArrowLeft className="w-4 h-4" /> Back</Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { if (confirm("Revert this client back to a lead? The client record will be removed.")) revertToLead.mutate(); }}
+              disabled={revertToLead.isPending}
+            >
+              <Undo2 className="w-4 h-4" /> Revert to lead
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { if (confirm("Delete this client permanently? This cannot be undone.")) deleteClient.mutate(); }}
+              disabled={deleteClient.isPending}
+            >
+              <Trash2 className="w-4 h-4 text-destructive" /> Delete
+            </Button>
+          </>
         }
       />
 
