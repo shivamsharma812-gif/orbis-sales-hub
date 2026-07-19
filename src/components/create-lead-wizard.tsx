@@ -164,6 +164,7 @@ const initialState: FormState = {
   priority: "medium",
   expected_close_date: "",
   estimated_annual_revenue: "",
+  revenue_unit: "cr",
   probability: "20",
   internal_remarks: "",
   services: [],
