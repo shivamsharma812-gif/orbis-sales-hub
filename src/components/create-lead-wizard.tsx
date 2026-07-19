@@ -253,10 +253,10 @@ export function CreateLeadWizard() {
           priority: form.priority,
           expected_close_date: form.expected_close_date || null,
           estimated_annual_revenue: form.estimated_annual_revenue
-            ? Number(form.estimated_annual_revenue)
+            ? toCrores(form.estimated_annual_revenue, form.revenue_unit)
             : null,
           estimated_deal_value: form.estimated_annual_revenue
-            ? Number(form.estimated_annual_revenue)
+            ? toCrores(form.estimated_annual_revenue, form.revenue_unit)
             : 0,
           probability: form.probability ? Number(form.probability) : null,
           notes: form.internal_remarks || null,
