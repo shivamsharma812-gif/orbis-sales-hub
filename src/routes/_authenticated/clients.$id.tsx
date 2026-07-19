@@ -144,7 +144,7 @@ function ClientWorkspace() {
             <Card className="p-4">
               <div className="text-sm">Current service: <Badge variant="outline">{client.service_type ?? "—"}</Badge></div>
               <div className="text-xs text-muted-foreground mt-2">
-                Additional services (Custody, Trusteeship, Fund Accounting, RTA, Escrow, Compliance) will be
+                Additional services (Custody, Trusteeship, Fund Accounting, RTA, Compliance) will be
                 managed here once the Client Onboarding module ships.
               </div>
             </Card>
