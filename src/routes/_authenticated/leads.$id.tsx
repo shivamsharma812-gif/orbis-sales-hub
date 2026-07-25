@@ -248,6 +248,20 @@ function LeadWorkspace() {
                 <RotateCcw className="w-4 h-4" /> Revive lead
               </Button>
             )}
+            {me?.id === lead.owner_id && lead.status === "active" && (
+              <Button
+                variant={(lead as { shared_with_team?: boolean }).shared_with_team ? "default" : "outline"}
+                size="sm"
+                onClick={() => toggleShare.mutate(!(lead as { shared_with_team?: boolean }).shared_with_team)}
+                disabled={toggleShare.isPending}
+              >
+                {(lead as { shared_with_team?: boolean }).shared_with_team ? (
+                  <><UserX className="w-4 h-4" /> Unshare from team</>
+                ) : (
+                  <><Users className="w-4 h-4" /> Share with team</>
+                )}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
