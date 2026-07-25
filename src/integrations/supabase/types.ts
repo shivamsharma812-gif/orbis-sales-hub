@@ -280,6 +280,8 @@ export type Database = {
           id: string
           industry: string | null
           lead_source: string | null
+          lost_at: string | null
+          lost_reason: string | null
           notes: string | null
           owner_id: string
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
@@ -306,6 +308,8 @@ export type Database = {
           id?: string
           industry?: string | null
           lead_source?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
           notes?: string | null
           owner_id: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
@@ -332,6 +336,8 @@ export type Database = {
           id?: string
           industry?: string | null
           lead_source?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
           notes?: string | null
           owner_id?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
