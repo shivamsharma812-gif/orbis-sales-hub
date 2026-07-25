@@ -25,8 +25,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
-import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 const SERVICE_OPTIONS = [
   "Custody & Allied Services",
@@ -73,6 +74,25 @@ function LeadWorkspace() {
   });
 
   const { data: users = [] } = useAssignableUsers();
+  const { data: me } = useCurrentUser();
+
+  const toggleShare = useMutation({
+    mutationFn: async (next: boolean) => {
+      const { error } = await supabase
+        .from("leads")
+        .update({ shared_with_team: next } as never)
+        .eq("id", id);
+      if (error) throw error;
+      return next;
+    },
+    onSuccess: (next) => {
+      toast.success(next ? "Shared with your team" : "Sharing turned off");
+      qc.invalidateQueries({ queryKey: ["lead", id] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const updateStage = useMutation({
     mutationFn: async (stage: string) => {
@@ -207,7 +227,7 @@ function LeadWorkspace() {
     <div>
       <PageHeader
         title={lead.company_name}
-        description={`${lead.client_type ?? ""} · ${lead.industry ?? ""} · ${lead.lead_source ?? ""}`}
+        description={`${lead.client_type ?? ""} · ${lead.lead_source ?? ""}`}
         actions={
           <>
             <Button asChild variant="ghost" size="sm">
