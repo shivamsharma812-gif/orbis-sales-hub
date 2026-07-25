@@ -142,25 +142,38 @@ function LeadWorkspace() {
   });
 
   const markLost = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (reason: string) => {
       const { error } = await supabase
         .from("leads")
-        .update({ status: "lost" as never, pipeline_stage: "Lost" as never })
+        .update({
+          status: "lost" as never,
+          pipeline_stage: "Lost" as never,
+          lost_reason: reason,
+          lost_at: new Date().toISOString(),
+        } as never)
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Marked lost");
+      setLostOpen(false);
+      setLostReason("");
       qc.invalidateQueries({ queryKey: ["lead", id] });
       qc.invalidateQueries({ queryKey: ["leads"] });
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const revive = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
         .from("leads")
-        .update({ status: "active" as never, pipeline_stage: "Prospect" as never })
+        .update({
+          status: "active" as never,
+          pipeline_stage: "Prospect" as never,
+          lost_reason: null,
+          lost_at: null,
+        } as never)
         .eq("id", id);
       if (error) throw error;
     },
