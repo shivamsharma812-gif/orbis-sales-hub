@@ -125,7 +125,7 @@ function ClientWorkspace() {
     <div>
       <PageHeader
         title={client.company_name}
-        description={`${client.client_type ?? ""} · ${client.industry ?? ""}`}
+        description={client.client_type ?? ""}
         actions={
           <>
             <Button asChild variant="ghost" size="sm">
@@ -195,7 +195,6 @@ function ClientWorkspace() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <Field label="Company" value={client.company_name} />
                 <Field label="Client type" value={client.client_type} />
-                <Field label="Industry" value={client.industry} />
                 <Field label="Service" value={client.service_type} />
                 <Field label="AUC" value={formatCurrencyCr(client.auc)} />
                 <Field label="Annual revenue" value={formatCurrencyCr(client.annual_revenue)} />
