@@ -13,6 +13,7 @@ import {
 import { LogOut, ChevronDown } from "lucide-react";
 import { initials } from "@/lib/format";
 import { GlobalSearch } from "./global-search";
+import { MarketTicker } from "./market-ticker";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function TopBar() {
@@ -31,6 +32,7 @@ export function TopBar() {
     <div className="flex-1 flex items-center gap-3">
       <GlobalSearch />
       <div className="ml-auto flex items-center gap-2">
+        <MarketTicker />
         {me && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
