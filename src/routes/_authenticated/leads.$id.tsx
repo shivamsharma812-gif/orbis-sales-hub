@@ -215,7 +215,7 @@ function LeadWorkspace() {
             </Button>
             {lead.status === "active" && (
               <>
-                <Button variant="outline" size="sm" onClick={() => markLost.mutate()}>
+                <Button variant="outline" size="sm" onClick={() => setLostOpen(true)}>
                   <XCircle className="w-4 h-4" /> Mark lost
                 </Button>
                 <Button size="sm" onClick={() => convert.mutate()} disabled={convert.isPending}>
