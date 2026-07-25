@@ -56,6 +56,8 @@ function LeadWorkspace() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [lostOpen, setLostOpen] = useState(false);
+  const [lostReason, setLostReason] = useState("");
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
