@@ -13,8 +13,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
-import { formatCurrencyCr, formatDate } from "@/lib/format";
+import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
 import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -46,6 +56,8 @@ function LeadWorkspace() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [lostOpen, setLostOpen] = useState(false);
+  const [lostReason, setLostReason] = useState("");
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
@@ -132,25 +144,38 @@ function LeadWorkspace() {
   });
 
   const markLost = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (reason: string) => {
       const { error } = await supabase
         .from("leads")
-        .update({ status: "lost" as never, pipeline_stage: "Lost" as never })
+        .update({
+          status: "lost" as never,
+          pipeline_stage: "Lost" as never,
+          lost_reason: reason,
+          lost_at: new Date().toISOString(),
+        } as never)
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Marked lost");
+      setLostOpen(false);
+      setLostReason("");
       qc.invalidateQueries({ queryKey: ["lead", id] });
       qc.invalidateQueries({ queryKey: ["leads"] });
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const revive = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
         .from("leads")
-        .update({ status: "active" as never, pipeline_stage: "Prospect" as never })
+        .update({
+          status: "active" as never,
+          pipeline_stage: "Prospect" as never,
+          lost_reason: null,
+          lost_at: null,
+        } as never)
         .eq("id", id);
       if (error) throw error;
     },
@@ -190,7 +215,7 @@ function LeadWorkspace() {
             </Button>
             {lead.status === "active" && (
               <>
-                <Button variant="outline" size="sm" onClick={() => markLost.mutate()}>
+                <Button variant="outline" size="sm" onClick={() => setLostOpen(true)}>
                   <XCircle className="w-4 h-4" /> Mark lost
                 </Button>
                 <Button size="sm" onClick={() => convert.mutate()} disabled={convert.isPending}>
@@ -215,8 +240,49 @@ function LeadWorkspace() {
         }
       />
 
+      {lead.status === "lost" && (lead as { lost_reason?: string | null }).lost_reason && (
+        <div className="px-6 pt-4">
+          <Card className="p-4 border-destructive/40">
+            <div className="text-xs uppercase tracking-wider text-destructive">
+              Lost reason {(lead as { lost_at?: string | null }).lost_at && `· ${formatDateTime((lead as { lost_at?: string | null }).lost_at)}`}
+            </div>
+            <div className="mt-1 text-sm whitespace-pre-wrap">{(lead as { lost_reason?: string | null }).lost_reason}</div>
+          </Card>
+        </div>
+      )}
+
+      <Dialog open={lostOpen} onOpenChange={(v) => { setLostOpen(v); if (!v) setLostReason(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark lead as lost</DialogTitle>
+            <DialogDescription>Please share why this lead was lost. This helps track patterns and improve win rates.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="lost-reason">Why was this lead lost?</Label>
+            <Textarea
+              id="lost-reason"
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+              placeholder="e.g. Chose competitor on pricing, timing not right, budget cut, no decision maker access…"
+              rows={5}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setLostOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => markLost.mutate(lostReason.trim())}
+              disabled={!lostReason.trim() || markLost.isPending}
+            >
+              Mark lost
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Overview strip */}
       <div className="p-6 pb-0 grid grid-cols-2 md:grid-cols-4 gap-3">
+
         <Card className="p-3">
           <div className="text-xs text-muted-foreground uppercase tracking-wider">Stage</div>
           <div className="mt-1.5">

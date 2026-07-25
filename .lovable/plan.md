@@ -1,28 +1,20 @@
-# Fix Lead / Client Delete
+# Capture "Why lead was lost?" reason
 
-## Root cause (verified)
+## Schema
 
-The DELETE policies on both tables are:
+Migration adds two nullable columns to `public.leads`:
+- `lost_reason` (text) — free-text explanation
+- `lost_at` (timestamptz) — when it was marked lost
 
-- `leads_delete_ceo` — `USING (is_top_of_tree())`
-- `clients_delete_ceo` — `USING (is_top_of_tree())`
+## UI
 
-Only the CEO can delete. For any other signed-in user, PostgREST returns success with 0 rows affected — no error surfaces to the UI, so the button appears to do nothing.
+Update `src/routes/_authenticated/leads.$id.tsx`:
+- Replace the plain "Mark lost" button with one that opens a small confirmation Dialog containing a required Textarea ("Why was this lead lost?").
+- On confirm, the `markLost` mutation now writes `status='lost'`, `pipeline_stage='Lost'`, `lost_reason=<text>`, `lost_at=now()`.
+- Show the saved reason on the Overview tab when `status === 'lost'` (labelled "Lost reason", with the date), placed near the top so it's visible immediately.
+- When a lead is revived, clear `lost_reason` and `lost_at` in the `revive` mutation so a future loss captures a fresh reason.
 
-## Fix
+## Not changed
 
-Migration to replace both DELETE policies so they match the existing hierarchy model used by SELECT/UPDATE:
-
-- Drop `leads_delete_ceo` and `clients_delete_ceo`.
-- Create `leads_delete_hierarchy` — `USING (can_access_owner(owner_id))`.
-- Create `clients_delete_hierarchy` — `USING (can_access_owner(owner_id))`.
-
-Result: the owner of a record and any manager above them in the reporting tree can delete it (same rule as edit). This is consistent with the "Delete" buttons already present on lead and client workspaces.
-
-## Optional follow-up (not in this change)
-
-The client-side mutations don't check `count`/rows-affected, so RLS blocks currently look like a no-op. Not fixing here since the policy fix removes the symptom, but worth noting for future writes — surfacing "nothing was deleted" as an error would catch this class of bug earlier.
-
-## No code changes
-
-Frontend already calls `.delete().eq('id', id)` correctly. Only the RLS policies need updating.
+- Lost-leads list filter, delete flow, and other tabs are untouched.
+- No changes to clients or other tables.
