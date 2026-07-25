@@ -370,7 +370,7 @@ function LeadWorkspace() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <Field label="Company" value={lead.company_name} />
                 <Field label="Client type" value={lead.client_type} />
-                <Field label="Industry" value={lead.industry} />
+                
                 <Field label="Lead source" value={lead.lead_source} />
                 <Field label="Pipeline stage" value={lead.pipeline_stage} />
                 <Field label="Estimated value" value={formatCurrencyCr(lead.estimated_deal_value)} />
