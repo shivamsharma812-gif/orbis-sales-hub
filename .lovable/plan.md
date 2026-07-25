@@ -1,23 +1,28 @@
-## Problem
+# Fix Lead / Client Delete
 
-The notes RLS policy requires `owner_id = current_app_user_id()` on insert — the note's owner must be the logged-in user. But `NotesTab` inserts with `owner_id: ownerId`, where `ownerId` is the parent lead/client's owner. When a manager (or anyone who isn't the record's owner) adds a note on a subordinate's lead, the insert fails RLS.
+## Root cause (verified)
 
-Vertex Capital is owned by Anita Chouhan, so any other user adding a note there hits this error.
+The DELETE policies on both tables are:
+
+- `leads_delete_ceo` — `USING (is_top_of_tree())`
+- `clients_delete_ceo` — `USING (is_top_of_tree())`
+
+Only the CEO can delete. For any other signed-in user, PostgREST returns success with 0 rows affected — no error surfaces to the UI, so the button appears to do nothing.
 
 ## Fix
 
-In `src/components/workspace/tabs.tsx` (`NotesTab.create` mutation), set `owner_id` to the current app user's id instead of the parent record's owner.
+Migration to replace both DELETE policies so they match the existing hierarchy model used by SELECT/UPDATE:
 
-- Use the existing `useCurrentUser()` hook to get the app user id.
-- Pass `owner_id: currentUser.id` when inserting into `notes`.
-- Disable the "Add note" button while the current user is loading.
+- Drop `leads_delete_ceo` and `clients_delete_ceo`.
+- Create `leads_delete_hierarchy` — `USING (can_access_owner(owner_id))`.
+- Create `clients_delete_hierarchy` — `USING (can_access_owner(owner_id))`.
 
-## Audit sibling tabs
+Result: the owner of a record and any manager above them in the reporting tree can delete it (same rule as edit). This is consistent with the "Delete" buttons already present on lead and client workspaces.
 
-Same anti-pattern likely exists in other tabs that insert with `owner_id: ownerId`. Check and apply the same fix where the table's RLS insert policy scopes `owner_id` to the acting user (notes, tasks-assignee, followups, meetings, contacts, documents). For each, only change the field the policy actually constrains to the caller — do not alter parent-scoping fields.
+## Optional follow-up (not in this change)
 
-Specifically I'll re-check policies for `tasks`, `followups`, `meetings`, `contacts`, `documents` before editing, and only patch the ones whose WITH CHECK enforces `owner_id = current_app_user_id()`.
+The client-side mutations don't check `count`/rows-affected, so RLS blocks currently look like a no-op. Not fixing here since the policy fix removes the symptom, but worth noting for future writes — surfacing "nothing was deleted" as an error would catch this class of bug earlier.
 
-## Out of scope
+## No code changes
 
-No schema, policy, or business-logic changes. Purely a client-side correction so the insert satisfies existing RLS.
+Frontend already calls `.delete().eq('id', id)` correctly. Only the RLS policies need updating.
