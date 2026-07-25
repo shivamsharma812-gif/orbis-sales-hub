@@ -240,8 +240,49 @@ function LeadWorkspace() {
         }
       />
 
+      {lead.status === "lost" && (lead as { lost_reason?: string | null }).lost_reason && (
+        <div className="px-6 pt-4">
+          <Card className="p-4 border-destructive/40">
+            <div className="text-xs uppercase tracking-wider text-destructive">
+              Lost reason {(lead as { lost_at?: string | null }).lost_at && `· ${formatDateTime((lead as { lost_at?: string | null }).lost_at)}`}
+            </div>
+            <div className="mt-1 text-sm whitespace-pre-wrap">{(lead as { lost_reason?: string | null }).lost_reason}</div>
+          </Card>
+        </div>
+      )}
+
+      <Dialog open={lostOpen} onOpenChange={(v) => { setLostOpen(v); if (!v) setLostReason(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark lead as lost</DialogTitle>
+            <DialogDescription>Please share why this lead was lost. This helps track patterns and improve win rates.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="lost-reason">Why was this lead lost?</Label>
+            <Textarea
+              id="lost-reason"
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+              placeholder="e.g. Chose competitor on pricing, timing not right, budget cut, no decision maker access…"
+              rows={5}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setLostOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => markLost.mutate(lostReason.trim())}
+              disabled={!lostReason.trim() || markLost.isPending}
+            >
+              Mark lost
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Overview strip */}
       <div className="p-6 pb-0 grid grid-cols-2 md:grid-cols-4 gap-3">
+
         <Card className="p-3">
           <div className="text-xs text-muted-foreground uppercase tracking-wider">Stage</div>
           <div className="mt-1.5">
