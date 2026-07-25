@@ -12,10 +12,9 @@ type Quote = { price: number; change: number; changePct: number } | null;
 
 async function fetchQuote(symbol: string): Promise<Quote> {
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbol)}`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
     const res = await fetch(url, {
       headers: {
-        // Yahoo rejects requests without a UA
         "User-Agent":
           "Mozilla/5.0 (compatible; OrbisCRM/1.0; +https://lovable.dev)",
         Accept: "application/json",
@@ -23,21 +22,23 @@ async function fetchQuote(symbol: string): Promise<Quote> {
     });
     if (!res.ok) return null;
     const json = (await res.json()) as {
-      quoteResponse?: {
+      chart?: {
         result?: Array<{
-          regularMarketPrice?: number;
-          regularMarketChange?: number;
-          regularMarketChangePercent?: number;
+          meta?: {
+            regularMarketPrice?: number;
+            chartPreviousClose?: number;
+            previousClose?: number;
+          };
         }>;
       };
     };
-    const r = json.quoteResponse?.result?.[0];
-    if (!r || typeof r.regularMarketPrice !== "number") return null;
-    return {
-      price: r.regularMarketPrice,
-      change: r.regularMarketChange ?? 0,
-      changePct: r.regularMarketChangePercent ?? 0,
-    };
+    const m = json.chart?.result?.[0]?.meta;
+    const price = m?.regularMarketPrice;
+    const prev = m?.chartPreviousClose ?? m?.previousClose;
+    if (typeof price !== "number" || typeof prev !== "number" || prev === 0) return null;
+    const change = price - prev;
+    const changePct = (change / prev) * 100;
+    return { price, change, changePct };
   } catch {
     return null;
   }
