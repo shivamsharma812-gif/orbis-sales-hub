@@ -289,6 +289,7 @@ export type Database = {
           probability: number | null
           referral_by: string | null
           services: string[]
+          shared_with_team: boolean
           state: string | null
           status: Database["public"]["Enums"]["lead_status"]
           sub_category: string | null
@@ -317,6 +318,7 @@ export type Database = {
           probability?: number | null
           referral_by?: string | null
           services?: string[]
+          shared_with_team?: boolean
           state?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           sub_category?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           probability?: number | null
           referral_by?: string | null
           services?: string[]
+          shared_with_team?: boolean
           state?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           sub_category?: string | null

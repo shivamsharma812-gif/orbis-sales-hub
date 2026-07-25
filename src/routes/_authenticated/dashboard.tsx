@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { formatCurrencyCr, formatDate, relativeDay } from "@/lib/format";
 import type { LucideIcon } from "lucide-react";
+import { MarketTicker } from "@/components/layout/market-ticker";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Orbis CRM" }] }),
@@ -146,6 +147,9 @@ function DashboardPage() {
       />
 
       <div className="p-6 space-y-6">
+        <Card className="p-3">
+          <MarketTicker />
+        </Card>
         {/* KPI grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <KpiCard label="Active Leads" value={metrics?.activeLeads} icon={Target} loading={isLoading} />

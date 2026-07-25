@@ -25,8 +25,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
-import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 const SERVICE_OPTIONS = [
   "Custody & Allied Services",
@@ -73,6 +74,25 @@ function LeadWorkspace() {
   });
 
   const { data: users = [] } = useAssignableUsers();
+  const { data: me } = useCurrentUser();
+
+  const toggleShare = useMutation({
+    mutationFn: async (next: boolean) => {
+      const { error } = await supabase
+        .from("leads")
+        .update({ shared_with_team: next } as never)
+        .eq("id", id);
+      if (error) throw error;
+      return next;
+    },
+    onSuccess: (next) => {
+      toast.success(next ? "Shared with your team" : "Sharing turned off");
+      qc.invalidateQueries({ queryKey: ["lead", id] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const updateStage = useMutation({
     mutationFn: async (stage: string) => {
@@ -207,7 +227,7 @@ function LeadWorkspace() {
     <div>
       <PageHeader
         title={lead.company_name}
-        description={`${lead.client_type ?? ""} · ${lead.industry ?? ""} · ${lead.lead_source ?? ""}`}
+        description={`${lead.client_type ?? ""} · ${lead.lead_source ?? ""}`}
         actions={
           <>
             <Button asChild variant="ghost" size="sm">
@@ -226,6 +246,20 @@ function LeadWorkspace() {
             {lead.status === "lost" && (
               <Button variant="outline" size="sm" onClick={() => revive.mutate()} disabled={revive.isPending}>
                 <RotateCcw className="w-4 h-4" /> Revive lead
+              </Button>
+            )}
+            {me?.id === lead.owner_id && lead.status === "active" && (
+              <Button
+                variant={(lead as { shared_with_team?: boolean }).shared_with_team ? "default" : "outline"}
+                size="sm"
+                onClick={() => toggleShare.mutate(!(lead as { shared_with_team?: boolean }).shared_with_team)}
+                disabled={toggleShare.isPending}
+              >
+                {(lead as { shared_with_team?: boolean }).shared_with_team ? (
+                  <><UserX className="w-4 h-4" /> Unshare from team</>
+                ) : (
+                  <><Users className="w-4 h-4" /> Share with team</>
+                )}
               </Button>
             )}
             <Button
@@ -336,7 +370,7 @@ function LeadWorkspace() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <Field label="Company" value={lead.company_name} />
                 <Field label="Client type" value={lead.client_type} />
-                <Field label="Industry" value={lead.industry} />
+                
                 <Field label="Lead source" value={lead.lead_source} />
                 <Field label="Pipeline stage" value={lead.pipeline_stage} />
                 <Field label="Estimated value" value={formatCurrencyCr(lead.estimated_deal_value)} />

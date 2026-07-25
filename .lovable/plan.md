@@ -1,28 +1,31 @@
-## Add a market data strip to the top bar
+## Changes
 
-Show live **Nifty 50**, **Sensex**, and **USD → INR** in the app header so it's visible on every authenticated page (dashboard, pipeline, clients, etc.), not just one screen.
+### 1. Move market ticker to dashboard only
+- Remove `<MarketTicker />` from `src/components/layout/top-bar.tsx`.
+- Render `<MarketTicker />` at the top of `src/routes/_authenticated/dashboard.tsx` (above the KPI row), visible at all widths.
 
-### Data source
-Use a free, no-key API so nothing needs to be configured:
-- **Yahoo Finance quote endpoint** (`^NSEI` for Nifty 50, `^BSESN` for Sensex, `USDINR=X` for the FX rate) — returns current price, previous close, and change.
+### 2. Share leads down the hierarchy
+Add a per-lead "share with team" toggle so an owner can make a specific lead visible (read-only) to their descendants.
 
-Because Yahoo blocks direct browser calls (CORS), the fetch runs through a small **TanStack server route** at `src/routes/api/market-quotes.ts`. The route:
-- Fetches the three symbols in parallel server-side.
-- Returns a slim JSON payload: `{ nifty, sensex, usdinr }` each with `price`, `change`, `changePct`.
-- Sets `Cache-Control: s-maxage=60` so we don't hammer the upstream.
+**DB migration:**
+- Add `leads.shared_with_team boolean not null default false`.
+- Update `leads` SELECT policy to also allow reads when `shared_with_team = true` AND the current user is a descendant of `owner_id` (via `is_descendant_of(owner_id, current_app_user_id())`).
+- Keep UPDATE/DELETE/INSERT policies unchanged — sharing grants view only, not edit.
 
-### UI
-New component `src/components/layout/market-ticker.tsx`:
-- Three compact pills: label + price + colored delta (green up / red down, using existing semantic tokens — no hardcoded colors).
-- Uses TanStack Query with `refetchInterval: 60_000` and `staleTime: 60_000`.
-- Skeleton while loading; silently hidden if the upstream fails (no scary error in the header).
-- Hidden on small screens (`hidden lg:flex`) so it doesn't crowd the mobile top bar.
+**UI (`src/routes/_authenticated/leads.$id.tsx`):**
+- Add a "Share with my team" toggle button in the header actions, visible only to the lead's owner (or the owner's managers).
+- Toggling flips `shared_with_team` and invalidates the lead query. Show current state ("Shared with team" / "Share with team").
 
-Wired into `src/components/layout/top-bar.tsx` between `GlobalSearch` and the account menu.
+Clients are unchanged (only leads, per request).
 
-### Caveats worth flagging
-- Yahoo's unofficial endpoint isn't guaranteed stable. If it ever breaks, swap the server route to another free provider (e.g. Stooq) — the UI stays the same.
-- Quotes are delayed ~15 min (standard for free feeds), not real-time tick data.
-- Markets closed → values will simply show last close with a zero/near-zero delta.
+### 3. Remove Industry field from lead & client views
+- `src/routes/_authenticated/leads.$id.tsx`: remove the Industry row from the Overview panel.
+- `src/routes/_authenticated/clients.$id.tsx`: remove the Industry row from the Overview panel.
+- Leave the DB column alone (data preserved, just hidden).
 
-No database or schema changes.
+## Files touched
+- `src/components/layout/top-bar.tsx`
+- `src/routes/_authenticated/dashboard.tsx`
+- `src/routes/_authenticated/leads.$id.tsx`
+- `src/routes/_authenticated/clients.$id.tsx`
+- New migration: add `shared_with_team` column + updated SELECT policy on `leads`
