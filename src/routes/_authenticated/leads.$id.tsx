@@ -25,9 +25,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
-import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
 
 const SERVICE_OPTIONS = [
   "Custody & Allied Services",
