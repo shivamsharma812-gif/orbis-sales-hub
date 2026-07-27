@@ -67,7 +67,7 @@ function LeadWorkspace() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leads")
-        .select("*, owner:users!leads_owner_id_fkey(full_name, designation)")
+        .select("*, owner:users!leads_owner_id_fkey(full_name, designation), co_owner:users!leads_co_owner_id_fkey(id, full_name, designation)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
