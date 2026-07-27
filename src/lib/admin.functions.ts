@@ -31,6 +31,36 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   if (!data) throw new Response("Forbidden — system admin only", { status: 403 });
 }
 
+/** Look up an existing auth user by email (paginates admin.listUsers). */
+async function findAuthUserByEmail(
+  admin: any,
+  email: string,
+): Promise<{ id: string; email: string } | null> {
+  const target = email.toLowerCase();
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data) return null;
+    const hit = data.users.find((u: any) => (u.email ?? "").toLowerCase() === target);
+    if (hit) return { id: hit.id, email: hit.email };
+    if (data.users.length < 200) return null;
+  }
+  return null;
+}
+
+/** Send a password-recovery link to an existing auth user. Falls back to
+ *  inviteUserByEmail-style error shape. Used when an email is already
+ *  registered so the recipient can set a fresh password. */
+async function sendRecoveryEmail(
+  admin: any,
+  email: string,
+  redirectTo: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error } = await admin.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+
 
 interface InviteInput {
   full_name: string;
@@ -95,24 +125,40 @@ export const inviteUser = createServerFn({ method: "POST" })
 
     // 2. Send Supabase invite email
     const origin = resolveAppOrigin();
+    const redirectTo = `${origin}/auth/set-password`;
     const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       data.email,
-      {
-        redirectTo: `${origin}/auth/set-password`,
-        data: { full_name: data.full_name },
-      },
+      { redirectTo, data: { full_name: data.full_name } },
     );
-    if (inviteErr || !invited?.user) {
-      return { ok: false, error: inviteErr?.message ?? "Invite failed" };
+
+    let authUserId: string | null = invited?.user?.id ?? null;
+
+    if (inviteErr) {
+      const msg = (inviteErr as any)?.message ?? "";
+      const code = (inviteErr as any)?.code ?? "";
+      const alreadyExists =
+        code === "email_exists" ||
+        /already been registered|already registered|already exists/i.test(msg);
+      if (!alreadyExists) return { ok: false, error: msg || "Invite failed" };
+
+      const existingAuth = await findAuthUserByEmail(supabaseAdmin, data.email);
+      if (!existingAuth) return { ok: false, error: msg || "Invite failed" };
+      authUserId = existingAuth.id;
+
+      const rec = await sendRecoveryEmail(supabaseAdmin, data.email, redirectTo);
+      if (!rec.ok) return { ok: false, error: rec.error };
     }
 
     // 3. Link auth user back to app user row
-    await supabaseAdmin
-      .from("users")
-      .update({ auth_user_id: invited.user.id })
-      .eq("id", appUserId);
+    if (authUserId) {
+      await supabaseAdmin
+        .from("users")
+        .update({ auth_user_id: authUserId })
+        .eq("id", appUserId);
+    }
 
-    return { ok: true, app_user_id: appUserId, auth_user_id: invited.user.id };
+    return { ok: true, app_user_id: appUserId, auth_user_id: authUserId };
+
   });
 
 export const inviteExistingUser = createServerFn({ method: "POST" })
@@ -158,23 +204,42 @@ export const inviteExistingUser = createServerFn({ method: "POST" })
     if (updErr) return { ok: false, error: updErr.message };
 
     const origin = resolveAppOrigin();
+    const redirectTo = `${origin}/auth/set-password`;
     const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       data.email,
-      {
-        redirectTo: `${origin}/auth/set-password`,
-        data: { full_name: row.full_name },
-      },
+      { redirectTo, data: { full_name: row.full_name } },
     );
-    if (inviteErr || !invited?.user) {
-      return { ok: false, error: inviteErr?.message ?? "Invite failed" };
+
+    let authUserId: string | null = invited?.user?.id ?? null;
+
+    if (inviteErr) {
+      // If the email is already registered in auth, link the existing auth
+      // user to this directory row and send a password-recovery email so they
+      // can set a fresh password.
+      const msg = (inviteErr as any)?.message ?? "";
+      const code = (inviteErr as any)?.code ?? "";
+      const alreadyExists =
+        code === "email_exists" ||
+        /already been registered|already registered|already exists/i.test(msg);
+      if (!alreadyExists) return { ok: false, error: msg || "Invite failed" };
+
+      const existingAuth = await findAuthUserByEmail(supabaseAdmin, data.email);
+      if (!existingAuth) return { ok: false, error: msg || "Invite failed" };
+      authUserId = existingAuth.id;
+
+      const rec = await sendRecoveryEmail(supabaseAdmin, data.email, redirectTo);
+      if (!rec.ok) return { ok: false, error: rec.error };
     }
 
-    await supabaseAdmin
-      .from("users")
-      .update({ auth_user_id: invited.user.id })
-      .eq("id", data.user_id);
+    if (authUserId) {
+      await supabaseAdmin
+        .from("users")
+        .update({ auth_user_id: authUserId })
+        .eq("id", data.user_id);
+    }
 
     return { ok: true };
+
   });
 
 export const resendInvite = createServerFn({ method: "POST" })
