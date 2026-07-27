@@ -161,6 +161,16 @@ function UsersPage() {
                         {isAdmin && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
+                              {!u.auth_user_id && (
+                                <InviteDirectoryUserDialog
+                                  user={{
+                                    id: u.id,
+                                    full_name: u.full_name,
+                                    email: u.email,
+                                    phone: u.phone,
+                                  }}
+                                />
+                              )}
                               {u.auth_user_id && (
                                 <Button
                                   size="sm"
