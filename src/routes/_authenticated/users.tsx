@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { initials } from "@/lib/format";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { InviteUserDialog } from "@/components/invite-user-dialog";
+import { InviteDirectoryUserDialog } from "@/components/invite-directory-user-dialog";
 import { resendInvite, setUserStatus, setAdminRole } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { Mail, Shield, ShieldOff, UserCheck, UserX } from "lucide-react";
