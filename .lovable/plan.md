@@ -1,40 +1,46 @@
-Finish the user onboarding and email reminder system for Orbis CRM.
+## Goal
 
-## What is already built
-- `user_roles` table + `system_admin` role; MD & CEO is the first admin.
-- `inviteUser` server function using Supabase Auth admin invite.
-- `/auth/set-password` public route for invited users to set/reset passwords.
-- Users page with an "Invite User" dialog visible only to `system_admin`.
-- `reminder_sent_at` columns added to `meetings` and `followups` to prevent duplicate sends.
+Let system admins invite directory users who already exist in the Users table (but have no login yet) directly from the Users page — filling in only their **email** and **phone**, then sending the same Supabase invite email that new-user invites use.
 
-## What still needs to be done
+## Current state (verified)
 
-### 1. Set up email domain for app emails
-- Required before any non-auth emails (daily digest, meeting reminders, follow-up reminders) can be sent.
-- This is a one-time DNS verification step.
-- Once verified, transactional email templates can be scaffolded.
+- `src/routes/_authenticated/users.tsx` shows a "Login: Not invited" badge for rows where `auth_user_id` is null, but has no action to invite them. Only `InviteUserDialog` (for brand-new employees) is exposed.
+- `src/lib/admin.functions.ts` has `inviteUser` (creates a new `users` row + auth invite) and `resendInvite` (only works after a user already has `auth_user_id`).
+- The seeded directory rows have placeholder `@orbis.demo` emails and no phone numbers, so we cannot just re-send — we must update contact info first, then invite.
 
-### 2. Scaffold transactional email templates
-- Daily 8:00 AM digest email: lists today's and overdue meetings, follow-ups, and tasks for the recipient.
-- Meeting reminder email: sent 1 hour before a scheduled meeting.
-- Follow-up reminder email: sent on the follow-up due date.
+## Changes
 
-### 3. Create public cron hook endpoints
-- `POST /api/public/hooks/send-daily-digests` — runs once per day at 8:00 AM IST, queries all users, gathers their day's items, sends one email per user, and records send time.
-- `POST /api/public/hooks/send-item-reminders` — runs every 5 minutes, finds meetings starting within the next hour and follow-ups due today that have not yet been reminded, sends emails, and updates `reminder_sent_at`.
+### 1. New server function `inviteExistingUser` in `src/lib/admin.functions.ts`
 
-### 4. Schedule cron jobs in the database
-- Use `pg_cron` to call the two public hook endpoints at the required cadence.
-- Both endpoints will verify a shared secret header so only the cron caller can trigger sends.
+Input: `{ user_id, email, phone }`.
 
-### 5. Add UI controls for reminders (optional)
-- A settings section where admins can toggle digest/reminder emails globally.
+Behavior (admin-only, same `assertAdmin` guard):
+- Load the `users` row by `user_id`; reject if `auth_user_id` is already set ("already invited").
+- Reject if another `users` row already uses the new email.
+- Update the row's `email` and `phone` with the provided values.
+- Call `supabaseAdmin.auth.admin.inviteUserByEmail(email, { redirectTo: '<origin>/auth/set-password', data: { full_name } })`.
+- Link the returned `auth.user.id` back onto the row's `auth_user_id`.
+- Return `{ ok, error? }`.
 
-## Outcome
-- Admins can invite real users from the Users page today (works immediately).
-- Automated daily digests and per-item reminders start sending once the email domain is verified and the cron jobs are scheduled.
+### 2. New component `src/components/invite-directory-user-dialog.tsx`
 
-## Technical details
-- Auth emails (invites, password resets) use Supabase's built-in sender and do not require a custom domain.
-- App/transactional emails (reminders, digests) require the custom domain and will use the scaffolded Lovable email templates.
-- Cron endpoints will be placed under `src/routes/api/public/hooks/` and protected by a secret token in the `Authorization` header.
+Small dialog opened per-row. Props: `{ user: UserRow }`. Fields:
+- **Email** (pre-filled with existing email if it looks real, blank if it's a `@orbis.demo` placeholder).
+- **Phone** (pre-filled from row).
+
+Zod-validated (email format, phone max length). Submit calls `inviteExistingUser` via `useServerFn` + `useMutation`, invalidates `["users-all"]`, toasts success/error.
+
+### 3. Wire the action into `src/routes/_authenticated/users.tsx`
+
+In the Admin actions cell, when `!u.auth_user_id`, render an "Invite to portal" button (Mail icon + label) that opens `InviteDirectoryUserDialog` for that row. Keep the existing re-send / grant-admin / deactivate buttons for already-invited rows unchanged.
+
+## Out of scope
+
+- Bulk selection / multi-invite (single-row action only for now).
+- Demo-account cleanup (user said they'll handle later).
+- Custom-branded invite email (still uses Supabase default sender, same as today).
+
+## Technical notes
+
+- No schema change; `users.email` and `users.phone` already exist and are editable by admins under existing RLS via the service-role client.
+- Uses the same `redirectTo: /auth/set-password` flow as `inviteUser`, so recipients land on the existing set-password page.
