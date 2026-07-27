@@ -188,23 +188,42 @@ export const inviteExistingUser = createServerFn({ method: "POST" })
     if (updErr) return { ok: false, error: updErr.message };
 
     const origin = resolveAppOrigin();
+    const redirectTo = `${origin}/auth/set-password`;
     const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       data.email,
-      {
-        redirectTo: `${origin}/auth/set-password`,
-        data: { full_name: row.full_name },
-      },
+      { redirectTo, data: { full_name: row.full_name } },
     );
-    if (inviteErr || !invited?.user) {
-      return { ok: false, error: inviteErr?.message ?? "Invite failed" };
+
+    let authUserId: string | null = invited?.user?.id ?? null;
+
+    if (inviteErr) {
+      // If the email is already registered in auth, link the existing auth
+      // user to this directory row and send a password-recovery email so they
+      // can set a fresh password.
+      const msg = (inviteErr as any)?.message ?? "";
+      const code = (inviteErr as any)?.code ?? "";
+      const alreadyExists =
+        code === "email_exists" ||
+        /already been registered|already registered|already exists/i.test(msg);
+      if (!alreadyExists) return { ok: false, error: msg || "Invite failed" };
+
+      const existingAuth = await findAuthUserByEmail(supabaseAdmin, data.email);
+      if (!existingAuth) return { ok: false, error: msg || "Invite failed" };
+      authUserId = existingAuth.id;
+
+      const rec = await sendRecoveryEmail(supabaseAdmin, data.email, redirectTo);
+      if (!rec.ok) return { ok: false, error: rec.error };
     }
 
-    await supabaseAdmin
-      .from("users")
-      .update({ auth_user_id: invited.user.id })
-      .eq("id", data.user_id);
+    if (authUserId) {
+      await supabaseAdmin
+        .from("users")
+        .update({ auth_user_id: authUserId })
+        .eq("id", data.user_id);
+    }
 
     return { ok: true };
+
   });
 
 export const resendInvite = createServerFn({ method: "POST" })
