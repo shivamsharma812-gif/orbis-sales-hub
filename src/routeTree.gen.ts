@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthSetPasswordRouteImport } from './routes/auth.set-password'
 import { Route as ApiMarketQuotesRouteImport } from './routes/api/market-quotes'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -36,6 +37,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSetPasswordRoute = AuthSetPasswordRouteImport.update({
+  id: '/set-password',
+  path: '/set-password',
+  getParentRoute: () => AuthRoute,
 } as any)
 const ApiMarketQuotesRoute = ApiMarketQuotesRouteImport.update({
   id: '/api/market-quotes',
@@ -92,12 +98,13 @@ const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/api/market-quotes': typeof ApiMarketQuotesRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/bootstrap-demo-users': typeof ApiPublicBootstrapDemoUsersRoute
@@ -106,12 +113,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/api/market-quotes': typeof ApiMarketQuotesRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/bootstrap-demo-users': typeof ApiPublicBootstrapDemoUsersRoute
@@ -122,12 +130,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/api/market-quotes': typeof ApiMarketQuotesRoute
+  '/auth/set-password': typeof AuthSetPasswordRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/bootstrap-demo-users': typeof ApiPublicBootstrapDemoUsersRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/api/market-quotes'
+    | '/auth/set-password'
     | '/clients/$id'
     | '/leads/$id'
     | '/api/public/bootstrap-demo-users'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/api/market-quotes'
+    | '/auth/set-password'
     | '/clients/$id'
     | '/leads/$id'
     | '/api/public/bootstrap-demo-users'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/users'
     | '/api/market-quotes'
+    | '/auth/set-password'
     | '/_authenticated/clients/$id'
     | '/_authenticated/leads/$id'
     | '/api/public/bootstrap-demo-users'
@@ -183,7 +195,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   ApiMarketQuotesRoute: typeof ApiMarketQuotesRoute
   ApiPublicBootstrapDemoUsersRoute: typeof ApiPublicBootstrapDemoUsersRoute
 }
@@ -210,6 +222,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/auth/set-password': {
+      id: '/auth/set-password'
+      path: '/set-password'
+      fullPath: '/auth/set-password'
+      preLoaderRoute: typeof AuthSetPasswordRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/api/market-quotes': {
       id: '/api/market-quotes'
@@ -309,10 +328,20 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AuthRouteChildren {
+  AuthSetPasswordRoute: typeof AuthSetPasswordRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthSetPasswordRoute: AuthSetPasswordRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   ApiMarketQuotesRoute: ApiMarketQuotesRoute,
   ApiPublicBootstrapDemoUsersRoute: ApiPublicBootstrapDemoUsersRoute,
 }
