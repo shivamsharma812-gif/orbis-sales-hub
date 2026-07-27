@@ -25,9 +25,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
-import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
 
 const SERVICE_OPTIONS = [
   "Custody & Allied Services",
@@ -59,13 +60,14 @@ function LeadWorkspace() {
   const navigate = useNavigate();
   const [lostOpen, setLostOpen] = useState(false);
   const [lostReason, setLostReason] = useState("");
+  const [shareTransferOpen, setShareTransferOpen] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leads")
-        .select("*, owner:users!leads_owner_id_fkey(full_name, designation)")
+        .select("*, owner:users!leads_owner_id_fkey(full_name, designation), co_owner:users!leads_co_owner_id_fkey(id, full_name, designation)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -262,6 +264,11 @@ function LeadWorkspace() {
                 )}
               </Button>
             )}
+            {(me?.designation === "President" || me?.designation === "MD & CEO") && lead.status === "active" && (
+              <Button variant="outline" size="sm" onClick={() => setShareTransferOpen(true)}>
+                <Share2 className="w-4 h-4" /> Share / Transfer
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -284,6 +291,26 @@ function LeadWorkspace() {
           </Card>
         </div>
       )}
+
+      {(lead as { co_owner?: { full_name: string } | null }).co_owner && (
+        <div className="px-6 pt-4">
+          <Card className="p-3 border-primary/40 flex items-center gap-2 text-sm">
+            <Share2 className="w-4 h-4 text-primary" />
+            <span>
+              Shared 50/50 with <span className="font-medium">{(lead as { co_owner?: { full_name: string } | null }).co_owner!.full_name}</span> — estimated revenue is split equally between both accounts.
+            </span>
+          </Card>
+        </div>
+      )}
+
+      <ShareTransferLeadDialog
+        open={shareTransferOpen}
+        onOpenChange={setShareTransferOpen}
+        leadId={lead.id}
+        currentOwnerId={lead.owner_id}
+        currentCoOwnerId={(lead as { co_owner_id?: string | null }).co_owner_id ?? null}
+      />
+
 
       <Dialog open={lostOpen} onOpenChange={(v) => { setLostOpen(v); if (!v) setLostReason(""); }}>
         <DialogContent>
