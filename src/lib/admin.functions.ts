@@ -125,24 +125,40 @@ export const inviteUser = createServerFn({ method: "POST" })
 
     // 2. Send Supabase invite email
     const origin = resolveAppOrigin();
+    const redirectTo = `${origin}/auth/set-password`;
     const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       data.email,
-      {
-        redirectTo: `${origin}/auth/set-password`,
-        data: { full_name: data.full_name },
-      },
+      { redirectTo, data: { full_name: data.full_name } },
     );
-    if (inviteErr || !invited?.user) {
-      return { ok: false, error: inviteErr?.message ?? "Invite failed" };
+
+    let authUserId: string | null = invited?.user?.id ?? null;
+
+    if (inviteErr) {
+      const msg = (inviteErr as any)?.message ?? "";
+      const code = (inviteErr as any)?.code ?? "";
+      const alreadyExists =
+        code === "email_exists" ||
+        /already been registered|already registered|already exists/i.test(msg);
+      if (!alreadyExists) return { ok: false, error: msg || "Invite failed" };
+
+      const existingAuth = await findAuthUserByEmail(supabaseAdmin, data.email);
+      if (!existingAuth) return { ok: false, error: msg || "Invite failed" };
+      authUserId = existingAuth.id;
+
+      const rec = await sendRecoveryEmail(supabaseAdmin, data.email, redirectTo);
+      if (!rec.ok) return { ok: false, error: rec.error };
     }
 
     // 3. Link auth user back to app user row
-    await supabaseAdmin
-      .from("users")
-      .update({ auth_user_id: invited.user.id })
-      .eq("id", appUserId);
+    if (authUserId) {
+      await supabaseAdmin
+        .from("users")
+        .update({ auth_user_id: authUserId })
+        .eq("id", appUserId);
+    }
 
-    return { ok: true, app_user_id: appUserId, auth_user_id: invited.user.id };
+    return { ok: true, app_user_id: appUserId, auth_user_id: authUserId };
+
   });
 
 export const inviteExistingUser = createServerFn({ method: "POST" })
