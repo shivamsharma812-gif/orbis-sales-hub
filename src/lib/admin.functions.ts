@@ -31,6 +31,36 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   if (!data) throw new Response("Forbidden — system admin only", { status: 403 });
 }
 
+/** Look up an existing auth user by email (paginates admin.listUsers). */
+async function findAuthUserByEmail(
+  admin: any,
+  email: string,
+): Promise<{ id: string; email: string } | null> {
+  const target = email.toLowerCase();
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data) return null;
+    const hit = data.users.find((u: any) => (u.email ?? "").toLowerCase() === target);
+    if (hit) return { id: hit.id, email: hit.email };
+    if (data.users.length < 200) return null;
+  }
+  return null;
+}
+
+/** Send a password-recovery link to an existing auth user. Falls back to
+ *  inviteUserByEmail-style error shape. Used when an email is already
+ *  registered so the recipient can set a fresh password. */
+async function sendRecoveryEmail(
+  admin: any,
+  email: string,
+  redirectTo: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error } = await admin.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+
 
 interface InviteInput {
   full_name: string;
