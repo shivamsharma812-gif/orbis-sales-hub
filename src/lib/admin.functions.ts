@@ -97,6 +97,70 @@ export const inviteUser = createServerFn({ method: "POST" })
     return { ok: true, app_user_id: appUserId, auth_user_id: invited.user.id };
   });
 
+export const inviteExistingUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => {
+    const d = raw as { user_id?: string; email?: string; phone?: string | null };
+    if (!d.user_id || typeof d.user_id !== "string") throw new Error("user_id required");
+    if (!d.email || typeof d.email !== "string") throw new Error("email required");
+    const email = d.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("invalid email");
+    return {
+      user_id: d.user_id,
+      email,
+      phone: (d.phone as string | null) ?? null,
+    };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: row, error: rowErr } = await supabaseAdmin
+      .from("users")
+      .select("id, full_name, email, auth_user_id")
+      .eq("id", data.user_id)
+      .single();
+    if (rowErr || !row) return { ok: false, error: rowErr?.message ?? "User not found" };
+    if (row.auth_user_id) return { ok: false, error: "This user has already been invited." };
+
+    if (data.email !== row.email) {
+      const { data: clash } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("email", data.email)
+        .neq("id", data.user_id)
+        .maybeSingle();
+      if (clash) return { ok: false, error: "Another user already uses this email." };
+    }
+
+    const { error: updErr } = await supabaseAdmin
+      .from("users")
+      .update({ email: data.email, phone: data.phone })
+      .eq("id", data.user_id);
+    if (updErr) return { ok: false, error: updErr.message };
+
+    const origin =
+      process.env.PUBLIC_APP_URL ??
+      `https://project--${process.env.SUPABASE_PROJECT_ID ?? ""}.lovable.app`;
+    const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      data.email,
+      {
+        redirectTo: `${origin}/auth/set-password`,
+        data: { full_name: row.full_name },
+      },
+    );
+    if (inviteErr || !invited?.user) {
+      return { ok: false, error: inviteErr?.message ?? "Invite failed" };
+    }
+
+    await supabaseAdmin
+      .from("users")
+      .update({ auth_user_id: invited.user.id })
+      .eq("id", data.user_id);
+
+    return { ok: true };
+  });
+
 export const resendInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => {

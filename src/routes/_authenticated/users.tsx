@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { initials } from "@/lib/format";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { InviteUserDialog } from "@/components/invite-user-dialog";
+import { InviteDirectoryUserDialog } from "@/components/invite-directory-user-dialog";
 import { resendInvite, setUserStatus, setAdminRole } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { Mail, Shield, ShieldOff, UserCheck, UserX } from "lucide-react";
@@ -160,6 +161,16 @@ function UsersPage() {
                         {isAdmin && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
+                              {!u.auth_user_id && (
+                                <InviteDirectoryUserDialog
+                                  user={{
+                                    id: u.id,
+                                    full_name: u.full_name,
+                                    email: u.email,
+                                    phone: u.phone,
+                                  }}
+                                />
+                              )}
                               {u.auth_user_id && (
                                 <Button
                                   size="sm"
