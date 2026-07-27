@@ -1,46 +1,30 @@
-## Goal
+## Why this is happening
 
-Let system admins invite directory users who already exist in the Users table (but have no login yet) directly from the Users page — filling in only their **email** and **phone**, then sending the same Supabase invite email that new-user invites use.
+The invite link in the email is a Supabase `/auth/v1/verify?...&redirect_to=...` URL. After Supabase verifies the token, it redirects the user to `redirect_to` — **but only if that URL is in the project's allowed Redirect URLs**. Otherwise Supabase falls back to the project's **Site URL**, which is currently pointing at the default Lovable URL, so users land on the Lovable login screen instead of `/auth/set-password` in this app.
 
-## Current state (verified)
+On top of that, our invite code builds the redirect from env vars that aren't reliably set:
 
-- `src/routes/_authenticated/users.tsx` shows a "Login: Not invited" badge for rows where `auth_user_id` is null, but has no action to invite them. Only `InviteUserDialog` (for brand-new employees) is exposed.
-- `src/lib/admin.functions.ts` has `inviteUser` (creates a new `users` row + auth invite) and `resendInvite` (only works after a user already has `auth_user_id`).
-- The seeded directory rows have placeholder `@orbis.demo` emails and no phone numbers, so we cannot just re-send — we must update contact info first, then invite.
+```ts
+const origin =
+  process.env.PUBLIC_APP_URL ??
+  `https://project--${process.env.SUPABASE_PROJECT_ID ?? ""}.lovable.app`;
+```
 
-## Changes
+`PUBLIC_APP_URL` isn't defined and `SUPABASE_PROJECT_ID` isn't the Lovable project ID, so the fallback string is malformed. Even when Supabase's allowlist is right, we're handing it a broken `redirectTo`.
 
-### 1. New server function `inviteExistingUser` in `src/lib/admin.functions.ts`
+## Fix
 
-Input: `{ user_id, email, phone }`.
+1. **Use the correct stable app URL as the redirect base.** Lovable exposes stable URLs derived from the Lovable project id (`project--{id}.lovable.app` for production, `project--{id}-dev.lovable.app` for preview). Hardcode these into a small helper in `src/lib/admin.functions.ts` (production URL by default, preview URL when running against the preview environment). Remove the `PUBLIC_APP_URL` / `SUPABASE_PROJECT_ID` guesswork.
 
-Behavior (admin-only, same `assertAdmin` guard):
-- Load the `users` row by `user_id`; reject if `auth_user_id` is already set ("already invited").
-- Reject if another `users` row already uses the new email.
-- Update the row's `email` and `phone` with the provided values.
-- Call `supabaseAdmin.auth.admin.inviteUserByEmail(email, { redirectTo: '<origin>/auth/set-password', data: { full_name } })`.
-- Link the returned `auth.user.id` back onto the row's `auth_user_id`.
-- Return `{ ok, error? }`.
+2. **Send the invite `redirectTo` to `${appUrl}/auth/set-password`** from all three call sites (`inviteUser`, `inviteExistingUser`, `resendInvite`).
 
-### 2. New component `src/components/invite-directory-user-dialog.tsx`
+3. **Register the app URLs in Supabase Auth** so the redirect is honored and the Site URL no longer points to Lovable's default:
+   - Site URL → the published/preview app URL
+   - Additional Redirect URLs → `${appUrl}/auth/set-password`, `${appUrl}/auth`, plus the custom domain when you add one later
 
-Small dialog opened per-row. Props: `{ user: UserRow }`. Fields:
-- **Email** (pre-filled with existing email if it looks real, blank if it's a `@orbis.demo` placeholder).
-- **Phone** (pre-filled from row).
+4. **Verify** by sending a fresh invite to a test address and confirming the email link lands on this app's `/auth/set-password` page (not Lovable's login).
 
-Zod-validated (email format, phone max length). Submit calls `inviteExistingUser` via `useServerFn` + `useMutation`, invalidates `["users-all"]`, toasts success/error.
+## Notes for later
 
-### 3. Wire the action into `src/routes/_authenticated/users.tsx`
-
-In the Admin actions cell, when `!u.auth_user_id`, render an "Invite to portal" button (Mail icon + label) that opens `InviteDirectoryUserDialog` for that row. Keep the existing re-send / grant-admin / deactivate buttons for already-invited rows unchanged.
-
-## Out of scope
-
-- Bulk selection / multi-invite (single-row action only for now).
-- Demo-account cleanup (user said they'll handle later).
-- Custom-branded invite email (still uses Supabase default sender, same as today).
-
-## Technical notes
-
-- No schema change; `users.email` and `users.phone` already exist and are editable by admins under existing RLS via the service-role client.
-- Uses the same `redirectTo: /auth/set-password` flow as `inviteUser`, so recipients land on the existing set-password page.
+- When you connect a custom domain, add it to the Supabase Auth allowlist too and switch the helper's base URL to it, otherwise invites will keep pointing at the `lovable.app` URL.
+- Old invite emails already sent will still contain the old broken redirect — resend them after the fix.
