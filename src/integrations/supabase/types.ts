@@ -270,6 +270,7 @@ export type Database = {
         Row: {
           city: string | null
           client_type: string | null
+          co_owner_id: string | null
           company_name: string
           converted_client_id: string | null
           country: string | null
@@ -299,6 +300,7 @@ export type Database = {
         Insert: {
           city?: string | null
           client_type?: string | null
+          co_owner_id?: string | null
           company_name: string
           converted_client_id?: string | null
           country?: string | null
@@ -328,6 +330,7 @@ export type Database = {
         Update: {
           city?: string | null
           client_type?: string | null
+          co_owner_id?: string | null
           company_name?: string
           converted_client_id?: string | null
           country?: string | null
@@ -355,6 +358,13 @@ export type Database = {
           website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_co_owner_id_fkey"
+            columns: ["co_owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_converted_client_id_fkey"
             columns: ["converted_client_id"]
