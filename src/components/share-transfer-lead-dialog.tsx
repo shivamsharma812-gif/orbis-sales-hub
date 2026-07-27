@@ -106,26 +106,36 @@ export function ShareTransferLeadDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <RadioGroup value={mode} onValueChange={(v) => setMode(v as "transfer" | "share")}>
-            <div className="flex items-start gap-2 rounded-md border p-3">
-              <RadioGroupItem value="transfer" id="mode-transfer" className="mt-0.5" />
-              <div className="flex-1">
-                <Label htmlFor="mode-transfer" className="font-medium">Transfer lead</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Reassigns full ownership to another President. You lose access unless they share it back.
-                </p>
-              </div>
+          {isCeo ? (
+            <div className="rounded-md border p-3 text-sm">
+              <div className="font-medium">Transfer lead</div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                As MD &amp; CEO you can transfer this lead to any President. Sharing (50/50 split) is available only between Presidents.
+              </p>
             </div>
-            <div className="flex items-start gap-2 rounded-md border p-3">
-              <RadioGroupItem value="share" id="mode-share" className="mt-0.5" />
-              <div className="flex-1">
-                <Label htmlFor="mode-share" className="font-medium">Share lead (split 50/50)</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Both Presidents keep the lead on their account; estimated revenue is counted at 50% each.
-                </p>
+          ) : (
+            <RadioGroup value={mode} onValueChange={(v) => setMode(v as "transfer" | "share")}>
+              <div className="flex items-start gap-2 rounded-md border p-3">
+                <RadioGroupItem value="transfer" id="mode-transfer" className="mt-0.5" />
+                <div className="flex-1">
+                  <Label htmlFor="mode-transfer" className="font-medium">Transfer lead</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Reassigns full ownership to another President. You lose access unless they share it back.
+                  </p>
+                </div>
               </div>
-            </div>
-          </RadioGroup>
+              <div className="flex items-start gap-2 rounded-md border p-3">
+                <RadioGroupItem value="share" id="mode-share" className="mt-0.5" />
+                <div className="flex-1">
+                  <Label htmlFor="mode-share" className="font-medium">Share lead (split 50/50)</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Both Presidents keep the lead on their account; estimated revenue is counted at 50% each.
+                  </p>
+                </div>
+              </div>
+            </RadioGroup>
+          )}
+
 
           <div className="space-y-1.5">
             <Label>{mode === "transfer" ? "Transfer to" : "Share with"}</Label>
