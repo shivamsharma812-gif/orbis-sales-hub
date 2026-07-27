@@ -94,9 +94,7 @@ export const inviteUser = createServerFn({ method: "POST" })
     }
 
     // 2. Send Supabase invite email
-    const origin =
-      process.env.PUBLIC_APP_URL ??
-      `https://project--${process.env.SUPABASE_PROJECT_ID ?? ""}.lovable.app`;
+    const origin = resolveAppOrigin();
     const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       data.email,
       {
@@ -159,9 +157,7 @@ export const inviteExistingUser = createServerFn({ method: "POST" })
       .eq("id", data.user_id);
     if (updErr) return { ok: false, error: updErr.message };
 
-    const origin =
-      process.env.PUBLIC_APP_URL ??
-      `https://project--${process.env.SUPABASE_PROJECT_ID ?? ""}.lovable.app`;
+    const origin = resolveAppOrigin();
     const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       data.email,
       {
@@ -191,9 +187,7 @@ export const resendInvite = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const origin =
-      process.env.PUBLIC_APP_URL ??
-      `https://project--${process.env.SUPABASE_PROJECT_ID ?? ""}.lovable.app`;
+    const origin = resolveAppOrigin();
     const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
       redirectTo: `${origin}/auth/set-password`,
     });
