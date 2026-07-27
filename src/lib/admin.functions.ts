@@ -2,15 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /** Verify the caller is a system_admin. Throws 403 otherwise. */
-async function assertAdmin(context: {
-  supabase: {
-    rpc: (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => Promise<{ data: unknown; error: unknown }>;
-  };
-  userId: string;
-}) {
+async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "system_admin",
@@ -18,6 +10,7 @@ async function assertAdmin(context: {
   if (error) throw new Response("Forbidden", { status: 403 });
   if (!data) throw new Response("Forbidden — system admin only", { status: 403 });
 }
+
 
 interface InviteInput {
   full_name: string;
