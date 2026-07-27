@@ -29,6 +29,7 @@ interface Props {
   leadId: string;
   currentOwnerId: string;
   currentCoOwnerId: string | null;
+  currentUserDesignation: string;
 }
 
 export function ShareTransferLeadDialog({
@@ -37,9 +38,11 @@ export function ShareTransferLeadDialog({
   leadId,
   currentOwnerId,
   currentCoOwnerId,
+  currentUserDesignation,
 }: Props) {
   const qc = useQueryClient();
-  const [mode, setMode] = useState<"transfer" | "share">("transfer");
+  const isCeo = currentUserDesignation === "MD & CEO";
+  const [mode, setMode] = useState<"transfer" | "share">(isCeo ? "transfer" : "transfer");
   const [targetId, setTargetId] = useState<string>("");
 
   const { data: peers = [] } = useQuery({
@@ -55,7 +58,14 @@ export function ShareTransferLeadDialog({
     },
   });
 
-  const options = peers.filter((p) => p.id !== currentOwnerId);
+  // CEO: show all Presidents (exclude MD & CEO themselves). Presidents: show only other Presidents (exclude self and CEO).
+  const options = peers.filter((p) => {
+    if (p.id === currentOwnerId) return false;
+    if (isCeo) return p.designation === "President";
+    // President user
+    return p.designation === "President";
+  });
+
 
   const apply = useMutation({
     mutationFn: async () => {
@@ -96,26 +106,36 @@ export function ShareTransferLeadDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <RadioGroup value={mode} onValueChange={(v) => setMode(v as "transfer" | "share")}>
-            <div className="flex items-start gap-2 rounded-md border p-3">
-              <RadioGroupItem value="transfer" id="mode-transfer" className="mt-0.5" />
-              <div className="flex-1">
-                <Label htmlFor="mode-transfer" className="font-medium">Transfer lead</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Reassigns full ownership to another President. You lose access unless they share it back.
-                </p>
-              </div>
+          {isCeo ? (
+            <div className="rounded-md border p-3 text-sm">
+              <div className="font-medium">Transfer lead</div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                As MD &amp; CEO you can transfer this lead to any President. Sharing (50/50 split) is available only between Presidents.
+              </p>
             </div>
-            <div className="flex items-start gap-2 rounded-md border p-3">
-              <RadioGroupItem value="share" id="mode-share" className="mt-0.5" />
-              <div className="flex-1">
-                <Label htmlFor="mode-share" className="font-medium">Share lead (split 50/50)</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Both Presidents keep the lead on their account; estimated revenue is counted at 50% each.
-                </p>
+          ) : (
+            <RadioGroup value={mode} onValueChange={(v) => setMode(v as "transfer" | "share")}>
+              <div className="flex items-start gap-2 rounded-md border p-3">
+                <RadioGroupItem value="transfer" id="mode-transfer" className="mt-0.5" />
+                <div className="flex-1">
+                  <Label htmlFor="mode-transfer" className="font-medium">Transfer lead</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Reassigns full ownership to another President. You lose access unless they share it back.
+                  </p>
+                </div>
               </div>
-            </div>
-          </RadioGroup>
+              <div className="flex items-start gap-2 rounded-md border p-3">
+                <RadioGroupItem value="share" id="mode-share" className="mt-0.5" />
+                <div className="flex-1">
+                  <Label htmlFor="mode-share" className="font-medium">Share lead (split 50/50)</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Both Presidents keep the lead on their account; estimated revenue is counted at 50% each.
+                  </p>
+                </div>
+              </div>
+            </RadioGroup>
+          )}
+
 
           <div className="space-y-1.5">
             <Label>{mode === "transfer" ? "Transfer to" : "Share with"}</Label>

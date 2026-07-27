@@ -4,6 +4,8 @@ const SYMBOLS = {
   nifty: "^NSEI",
   sensex: "^BSESN",
   usdinr: "USDINR=X",
+  gold: "GC=F", // COMEX gold, USD per troy ounce
+  silver: "SI=F", // COMEX silver, USD per troy ounce
 } as const;
 
 type Key = keyof typeof SYMBOLS;
@@ -44,6 +46,17 @@ async function fetchQuote(symbol: string): Promise<Quote> {
   }
 }
 
+const OZ_TO_G = 31.1034768;
+
+function convert(q: Quote, factor: number): Quote {
+  if (!q) return null;
+  const price = q.price * factor;
+  const prev = (q.price - q.change) * factor;
+  const change = price - prev;
+  const changePct = prev === 0 ? 0 : (change / prev) * 100;
+  return { price, change, changePct };
+}
+
 export const Route = createFileRoute("/api/market-quotes")({
   server: {
     handlers: {
@@ -52,9 +65,23 @@ export const Route = createFileRoute("/api/market-quotes")({
         const results = await Promise.all(
           keys.map((k) => fetchQuote(SYMBOLS[k])),
         );
-        const payload = Object.fromEntries(
+        const raw = Object.fromEntries(
           keys.map((k, i) => [k, results[i]]),
         ) as Record<Key, Quote>;
+
+        const usd = raw.usdinr?.price ?? null;
+        // Gold: convert USD/oz -> INR per 10g
+        const gold = usd ? convert(raw.gold, (usd * 10) / OZ_TO_G) : null;
+        // Silver: convert USD/oz -> INR per 1kg (1000g)
+        const silver = usd ? convert(raw.silver, (usd * 1000) / OZ_TO_G) : null;
+
+        const payload = {
+          nifty: raw.nifty,
+          sensex: raw.sensex,
+          usdinr: raw.usdinr,
+          gold,
+          silver,
+        };
         return new Response(JSON.stringify(payload), {
           headers: {
             "content-type": "application/json",

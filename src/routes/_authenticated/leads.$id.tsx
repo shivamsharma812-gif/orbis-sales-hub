@@ -309,7 +309,9 @@ function LeadWorkspace() {
         leadId={lead.id}
         currentOwnerId={lead.owner_id}
         currentCoOwnerId={(lead as { co_owner_id?: string | null }).co_owner_id ?? null}
+        currentUserDesignation={me?.designation ?? ""}
       />
+
 
 
       <Dialog open={lostOpen} onOpenChange={(v) => { setLostOpen(v); if (!v) setLostReason(""); }}>
