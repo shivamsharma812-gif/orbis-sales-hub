@@ -1,5 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getRequestHeader } from "@tanstack/react-start/server";
+
+/** Resolve the app's public origin for auth redirect links. Prefers the
+ * request Origin header (works for preview, published, and custom domains),
+ * then falls back to the project's stable Lovable URL. */
+function resolveAppOrigin(): string {
+  const fromHeader =
+    getRequestHeader("origin") ??
+    (() => {
+      const referer = getRequestHeader("referer");
+      if (!referer) return null;
+      try {
+        return new URL(referer).origin;
+      } catch {
+        return null;
+      }
+    })();
+  if (fromHeader) return fromHeader;
+  return "https://project--578df23e-8042-4ac1-8683-a82843cea2e9.lovable.app";
+}
 
 /** Verify the caller is a system_admin. Throws 403 otherwise. */
 async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -74,9 +94,7 @@ export const inviteUser = createServerFn({ method: "POST" })
     }
 
     // 2. Send Supabase invite email
-    const origin =
-      process.env.PUBLIC_APP_URL ??
-      `https://project--${process.env.SUPABASE_PROJECT_ID ?? ""}.lovable.app`;
+    const origin = resolveAppOrigin();
     const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       data.email,
       {
@@ -139,9 +157,7 @@ export const inviteExistingUser = createServerFn({ method: "POST" })
       .eq("id", data.user_id);
     if (updErr) return { ok: false, error: updErr.message };
 
-    const origin =
-      process.env.PUBLIC_APP_URL ??
-      `https://project--${process.env.SUPABASE_PROJECT_ID ?? ""}.lovable.app`;
+    const origin = resolveAppOrigin();
     const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       data.email,
       {
@@ -171,9 +187,7 @@ export const resendInvite = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const origin =
-      process.env.PUBLIC_APP_URL ??
-      `https://project--${process.env.SUPABASE_PROJECT_ID ?? ""}.lovable.app`;
+    const origin = resolveAppOrigin();
     const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
       redirectTo: `${origin}/auth/set-password`,
     });
