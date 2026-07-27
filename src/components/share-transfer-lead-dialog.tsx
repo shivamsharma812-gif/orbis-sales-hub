@@ -29,6 +29,7 @@ interface Props {
   leadId: string;
   currentOwnerId: string;
   currentCoOwnerId: string | null;
+  currentUserDesignation: string;
 }
 
 export function ShareTransferLeadDialog({
@@ -37,9 +38,11 @@ export function ShareTransferLeadDialog({
   leadId,
   currentOwnerId,
   currentCoOwnerId,
+  currentUserDesignation,
 }: Props) {
   const qc = useQueryClient();
-  const [mode, setMode] = useState<"transfer" | "share">("transfer");
+  const isCeo = currentUserDesignation === "MD & CEO";
+  const [mode, setMode] = useState<"transfer" | "share">(isCeo ? "transfer" : "transfer");
   const [targetId, setTargetId] = useState<string>("");
 
   const { data: peers = [] } = useQuery({
@@ -55,7 +58,14 @@ export function ShareTransferLeadDialog({
     },
   });
 
-  const options = peers.filter((p) => p.id !== currentOwnerId);
+  // CEO: show all Presidents (exclude MD & CEO themselves). Presidents: show only other Presidents (exclude self and CEO).
+  const options = peers.filter((p) => {
+    if (p.id === currentOwnerId) return false;
+    if (isCeo) return p.designation === "President";
+    // President user
+    return p.designation === "President";
+  });
+
 
   const apply = useMutation({
     mutationFn: async () => {
