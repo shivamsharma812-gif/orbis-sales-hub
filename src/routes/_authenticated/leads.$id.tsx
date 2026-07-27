@@ -60,6 +60,7 @@ function LeadWorkspace() {
   const navigate = useNavigate();
   const [lostOpen, setLostOpen] = useState(false);
   const [lostReason, setLostReason] = useState("");
+  const [shareTransferOpen, setShareTransferOpen] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
