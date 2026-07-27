@@ -225,6 +225,7 @@ export type Database = {
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
           priority: Database["public"]["Enums"]["priority_level"]
+          reminder_sent_at: string | null
           status: Database["public"]["Enums"]["followup_status"]
           updated_at: string
         }
@@ -239,6 +240,7 @@ export type Database = {
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
           priority?: Database["public"]["Enums"]["priority_level"]
+          reminder_sent_at?: string | null
           status?: Database["public"]["Enums"]["followup_status"]
           updated_at?: string
         }
@@ -253,6 +255,7 @@ export type Database = {
           parent_id?: string
           parent_type?: Database["public"]["Enums"]["parent_kind"]
           priority?: Database["public"]["Enums"]["priority_level"]
+          reminder_sent_at?: string | null
           status?: Database["public"]["Enums"]["followup_status"]
           updated_at?: string
         }
@@ -394,6 +397,7 @@ export type Database = {
           owner_id: string
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
+          reminder_sent_at: string | null
           status: Database["public"]["Enums"]["meeting_status"]
           updated_at: string
         }
@@ -409,6 +413,7 @@ export type Database = {
           owner_id: string
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
+          reminder_sent_at?: string | null
           status?: Database["public"]["Enums"]["meeting_status"]
           updated_at?: string
         }
@@ -424,6 +429,7 @@ export type Database = {
           owner_id?: string
           parent_id?: string
           parent_type?: Database["public"]["Enums"]["parent_kind"]
+          reminder_sent_at?: string | null
           status?: Database["public"]["Enums"]["meeting_status"]
           updated_at?: string
         }
@@ -556,6 +562,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           auth_user_id: string | null
@@ -620,6 +647,13 @@ export type Database = {
         Returns: boolean
       }
       current_app_user_id: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_descendant_of: {
         Args: { manager_user_id: string; target_user_id: string }
         Returns: boolean
@@ -627,6 +661,7 @@ export type Database = {
       is_top_of_tree: { Args: never; Returns: boolean }
     }
     Enums: {
+      app_role: "system_admin"
       client_status: "active" | "inactive"
       followup_status: "pending" | "completed"
       lead_status: "active" | "won" | "lost" | "archived"
@@ -773,6 +808,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["system_admin"],
       client_status: ["active", "inactive"],
       followup_status: ["pending", "completed"],
       lead_status: ["active", "won", "lost", "archived"],
