@@ -264,6 +264,11 @@ function LeadWorkspace() {
                 )}
               </Button>
             )}
+            {(me?.designation === "President" || me?.designation === "MD & CEO") && lead.status === "active" && (
+              <Button variant="outline" size="sm" onClick={() => setShareTransferOpen(true)}>
+                <Share2 className="w-4 h-4" /> Share / Transfer
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
