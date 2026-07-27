@@ -292,6 +292,26 @@ function LeadWorkspace() {
         </div>
       )}
 
+      {(lead as { co_owner?: { full_name: string } | null }).co_owner && (
+        <div className="px-6 pt-4">
+          <Card className="p-3 border-primary/40 flex items-center gap-2 text-sm">
+            <Share2 className="w-4 h-4 text-primary" />
+            <span>
+              Shared 50/50 with <span className="font-medium">{(lead as { co_owner?: { full_name: string } | null }).co_owner!.full_name}</span> — estimated revenue is split equally between both accounts.
+            </span>
+          </Card>
+        </div>
+      )}
+
+      <ShareTransferLeadDialog
+        open={shareTransferOpen}
+        onOpenChange={setShareTransferOpen}
+        leadId={lead.id}
+        currentOwnerId={lead.owner_id}
+        currentCoOwnerId={(lead as { co_owner_id?: string | null }).co_owner_id ?? null}
+      />
+
+
       <Dialog open={lostOpen} onOpenChange={(v) => { setLostOpen(v); if (!v) setLostReason(""); }}>
         <DialogContent>
           <DialogHeader>
