@@ -219,13 +219,18 @@ function TeamReport() {
     queryFn: async () => {
       const [users, leads, clients] = await Promise.all([
         supabase.from("users").select("id, full_name, designation"),
-        supabase.from("leads").select("owner_id, estimated_deal_value, status"),
+        supabase.from("leads").select("owner_id, co_owner_id, estimated_deal_value, status"),
         supabase.from("clients").select("owner_id, annual_revenue").eq("status", "active"),
       ]);
       const rows = (users.data ?? []).map((u) => {
-        const myLeads = leads.data?.filter((l) => l.owner_id === u.id) ?? [];
+        const asOwner = leads.data?.filter((l) => l.owner_id === u.id) ?? [];
+        const asCo = leads.data?.filter((l) => (l as { co_owner_id?: string | null }).co_owner_id === u.id) ?? [];
+        const myLeads = [...asOwner, ...asCo];
         const myClients = clients.data?.filter((c) => c.owner_id === u.id) ?? [];
-        const pipeline = myLeads.filter((l) => l.status === "active").reduce((s, l) => s + Number(l.estimated_deal_value ?? 0), 0);
+        const share = (l: { co_owner_id?: string | null }) => (l.co_owner_id ? 0.5 : 1);
+        const pipeline = myLeads
+          .filter((l) => l.status === "active")
+          .reduce((s, l) => s + Number(l.estimated_deal_value ?? 0) * share(l as { co_owner_id?: string | null }), 0);
         const won = myLeads.filter((l) => l.status === "won").length;
         const rev = myClients.reduce((s, c) => s + Number(c.annual_revenue ?? 0), 0);
         return {
