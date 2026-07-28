@@ -64,7 +64,7 @@ export function MarketTicker() {
   if (!data.nifty && !data.sensex && !data.usdinr && !data.gold && !data.silver) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       <Pill label="NIFTY" quote={data.nifty} />
       <Pill label="SENSEX" quote={data.sensex} />
       <Pill label="USD/INR" quote={data.usdinr} digits={4} />
