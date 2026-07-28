@@ -34,7 +34,7 @@ function Pill({
   const up = quote.change >= 0;
   const Icon = up ? ArrowUp : ArrowDown;
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 text-xs">
+    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs whitespace-nowrap shrink-0">
       <span className="font-medium text-muted-foreground">{label}</span>
       <span className="font-mono tabular-nums">
         {prefix}{formatPrice(quote.price, digits)}{suffix}
@@ -64,7 +64,7 @@ export function MarketTicker() {
   if (!data.nifty && !data.sensex && !data.usdinr && !data.gold && !data.silver) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       <Pill label="NIFTY" quote={data.nifty} />
       <Pill label="SENSEX" quote={data.sensex} />
       <Pill label="USD/INR" quote={data.usdinr} digits={4} />
