@@ -34,7 +34,7 @@ function Pill({
   const up = quote.change >= 0;
   const Icon = up ? ArrowUp : ArrowDown;
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 text-xs">
+    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs whitespace-nowrap shrink-0">
       <span className="font-medium text-muted-foreground">{label}</span>
       <span className="font-mono tabular-nums">
         {prefix}{formatPrice(quote.price, digits)}{suffix}
