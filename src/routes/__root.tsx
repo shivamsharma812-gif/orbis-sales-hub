@@ -36,12 +36,26 @@ function NotFoundComponent() {
   );
 }
 
+const STALE_CHUNK_RE =
+  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i;
+
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    // A stale hashed chunk (old build still cached in the browser) is not an app
+    // bug — reload once to pick up the current build.
+    if (typeof window !== "undefined" && STALE_CHUNK_RE.test(error.message ?? "")) {
+      const key = "orbis:stale-chunk-reload";
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1");
+        window.location.reload();
+        return;
+      }
+    }
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
