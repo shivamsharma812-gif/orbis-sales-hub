@@ -320,82 +320,28 @@ function LeadWorkspace() {
 
 
 
-      <Dialog open={lostOpen} onOpenChange={(v) => { setLostOpen(v); if (!v) { setLostChoice(""); setLostOther(""); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Mark lead as lost</DialogTitle>
-            <DialogDescription>Select why this lead was lost. This helps track patterns and improve win rates.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <RadioGroup value={lostChoice} onValueChange={setLostChoice}>
-              {LOST_REASONS.map((r) => (
-                <div key={r} className="flex items-center gap-2 rounded-md border p-2.5">
-                  <RadioGroupItem value={r} id={`lost-${r}`} />
-                  <Label htmlFor={`lost-${r}`} className="font-normal cursor-pointer">{r}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-            {lostChoice === "Other" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="lost-other">Please specify</Label>
-                <Textarea
-                  id="lost-other"
-                  value={lostOther}
-                  onChange={(e) => setLostOther(e.target.value)}
-                  placeholder="e.g. Chose competitor on pricing, timing not right, budget cut…"
-                  rows={4}
-                />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setLostOpen(false)}>Cancel</Button>
-            <Button
-              variant="destructive"
-              onClick={() => markLost.mutate(lostChoice === "Other" ? lostOther.trim() : lostChoice)}
-              disabled={!lostChoice || (lostChoice === "Other" && !lostOther.trim()) || markLost.isPending}
-            >
-              Mark lost
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <MarkLostDialog
+        open={lostOpen}
+        onOpenChange={setLostOpen}
+        leadId={lead.id}
+        leadName={lead.company_name}
+      />
 
-      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Convert to client</DialogTitle>
-            <DialogDescription>
-              Select the services this mandate has been signed for. These will show on the client record.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            {SERVICE_OPTIONS.map((s) => (
-              <div key={s} className="flex items-center gap-2 rounded-md border p-2.5">
-                <Checkbox
-                  id={`mandate-${s}`}
-                  checked={mandateServices.includes(s)}
-                  onCheckedChange={(c) =>
-                    setMandateServices((prev) =>
-                      c ? [...prev, s] : prev.filter((x) => x !== s),
-                    )
-                  }
-                />
-                <Label htmlFor={`mandate-${s}`} className="font-normal cursor-pointer">{s}</Label>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setConvertOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => convert.mutate(mandateServices)}
-              disabled={mandateServices.length === 0 || convert.isPending}
-            >
-              Convert to client
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConvertLeadDialog
+        open={convertOpen}
+        onOpenChange={setConvertOpen}
+        lead={{
+          id: lead.id,
+          company_name: lead.company_name,
+          client_type: lead.client_type,
+          industry: lead.industry,
+          owner_id: lead.owner_id,
+          estimated_deal_value: lead.estimated_deal_value,
+          services: (lead.services as string[] | null) ?? [],
+        }}
+        onConverted={(clientId) => navigate({ to: "/clients/$id", params: { id: clientId } })}
+      />
+
 
 
       {/* Overview strip */}
