@@ -238,11 +238,13 @@ function LeadsPage() {
                   </TableRow>
                 )}
                 {leads.map((l) => (
-                  <TableRow key={l.id} className="cursor-pointer">
+                  <TableRow
+                    key={l.id}
+                    className="cursor-pointer hover:bg-accent/50"
+                    onClick={() => navigate({ to: "/leads/$id", params: { id: l.id } })}
+                  >
                     <TableCell className="font-medium">
-                      <Link to="/leads/$id" params={{ id: l.id }} className="hover:underline">
-                        {l.company_name}
-                      </Link>
+                      {l.company_name}
                       <div className="text-xs text-muted-foreground">{l.client_type}</div>
                     </TableCell>
                     <TableCell>{ownerMap.get(l.owner_id) ?? "—"}</TableCell>
@@ -265,7 +267,7 @@ function LeadsPage() {
                             className="h-7 w-7 text-success hover:text-success"
                             title="Convert to client"
                             aria-label={`Convert ${l.company_name} to client`}
-                            onClick={() => setConvertLead(l)}
+                            onClick={(e) => { e.stopPropagation(); setConvertLead(l); }}
                           >
                             <Check className="w-4 h-4" />
                           </Button>
@@ -275,7 +277,7 @@ function LeadsPage() {
                             className="h-7 w-7 text-destructive hover:text-destructive"
                             title="Mark lost"
                             aria-label={`Mark ${l.company_name} lost`}
-                            onClick={() => setLostLead(l)}
+                            onClick={(e) => { e.stopPropagation(); setLostLead(l); }}
                           >
                             <X className="w-4 h-4" />
                           </Button>
