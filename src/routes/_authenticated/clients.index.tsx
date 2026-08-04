@@ -127,11 +127,13 @@ function ClientsPage() {
               {clients.map((c) => {
                 const owner = (c as unknown as { owner?: { full_name: string } }).owner;
                 return (
-                  <TableRow key={c.id}>
+                  <TableRow
+                    key={c.id}
+                    className="cursor-pointer hover:bg-accent/50"
+                    onClick={() => navigate({ to: "/clients/$id", params: { id: c.id } })}
+                  >
                     <TableCell className="font-medium">
-                      <Link to="/clients/$id" params={{ id: c.id }} className="hover:underline">
-                        {c.company_name}
-                      </Link>
+                      {c.company_name}
                       <div className="text-xs text-muted-foreground">{c.client_type}</div>
                     </TableCell>
                     <TableCell>{owner?.full_name ?? "—"}</TableCell>
