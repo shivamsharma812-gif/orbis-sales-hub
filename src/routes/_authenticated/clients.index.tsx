@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -44,6 +44,7 @@ function ClientsPage() {
   const [serviceFilter, setServiceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
   const [q, setQ] = useState("");
+  const navigate = useNavigate({ from: "/clients" });
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients", { serviceFilter, statusFilter, q }],
@@ -126,11 +127,13 @@ function ClientsPage() {
               {clients.map((c) => {
                 const owner = (c as unknown as { owner?: { full_name: string } }).owner;
                 return (
-                  <TableRow key={c.id}>
+                  <TableRow
+                    key={c.id}
+                    className="cursor-pointer hover:bg-accent/50"
+                    onClick={() => navigate({ to: "/clients/$id", params: { id: c.id } })}
+                  >
                     <TableCell className="font-medium">
-                      <Link to="/clients/$id" params={{ id: c.id }} className="hover:underline">
-                        {c.company_name}
-                      </Link>
+                      {c.company_name}
                       <div className="text-xs text-muted-foreground">{c.client_type}</div>
                     </TableCell>
                     <TableCell>{owner?.full_name ?? "—"}</TableCell>

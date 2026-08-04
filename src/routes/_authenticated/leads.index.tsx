@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -87,6 +87,7 @@ function LeadsPage() {
   const [convertLead, setConvertLead] = useState<ConvertibleLead | null>(null);
   const [lostLead, setLostLead] = useState<Lead | null>(null);
   const months = monthOptions();
+  const navigate = useNavigate({ from: "/leads" });
 
   const { data: leads = [] } = useQuery({
     queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q }],
@@ -237,11 +238,13 @@ function LeadsPage() {
                   </TableRow>
                 )}
                 {leads.map((l) => (
-                  <TableRow key={l.id} className="cursor-pointer">
+                  <TableRow
+                    key={l.id}
+                    className="cursor-pointer hover:bg-accent/50"
+                    onClick={() => navigate({ to: "/leads/$id", params: { id: l.id } })}
+                  >
                     <TableCell className="font-medium">
-                      <Link to="/leads/$id" params={{ id: l.id }} className="hover:underline">
-                        {l.company_name}
-                      </Link>
+                      {l.company_name}
                       <div className="text-xs text-muted-foreground">{l.client_type}</div>
                     </TableCell>
                     <TableCell>{ownerMap.get(l.owner_id) ?? "—"}</TableCell>
@@ -264,7 +267,7 @@ function LeadsPage() {
                             className="h-7 w-7 text-success hover:text-success"
                             title="Convert to client"
                             aria-label={`Convert ${l.company_name} to client`}
-                            onClick={() => setConvertLead(l)}
+                            onClick={(e) => { e.stopPropagation(); setConvertLead(l); }}
                           >
                             <Check className="w-4 h-4" />
                           </Button>
@@ -274,7 +277,7 @@ function LeadsPage() {
                             className="h-7 w-7 text-destructive hover:text-destructive"
                             title="Mark lost"
                             aria-label={`Mark ${l.company_name} lost`}
-                            onClick={() => setLostLead(l)}
+                            onClick={(e) => { e.stopPropagation(); setLostLead(l); }}
                           >
                             <X className="w-4 h-4" />
                           </Button>
@@ -325,7 +328,7 @@ function KanbanBoard({
   onConvert: (lead: Lead) => void;
   onMarkLost: (lead: Lead) => void;
 }) {
-
+  const navigate = useNavigate({ from: "/leads" });
   const qc = useQueryClient();
   const stages = ACTIVE_STAGES;
 
@@ -370,21 +373,18 @@ function KanbanBoard({
               <div
                 key={l.id}
                 className="bg-card border border-border rounded p-2.5 cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => navigate({ to: "/leads/$id", params: { id: l.id } })}
               >
-                <Link
-                  to="/leads/$id"
-                  params={{ id: l.id }}
-                  className="text-sm font-medium block truncate"
-                >
+                <div className="text-sm font-medium block truncate">
                   {l.company_name}
-                </Link>
+                </div>
                 <div className="text-xs text-muted-foreground truncate">
                   {ownerMap.get(l.owner_id) ?? "—"}
                 </div>
                 <div className="mt-1.5 flex items-center justify-between">
                   <div className="text-xs font-mono">{formatCurrencyCr(l.estimated_deal_value)}</div>
                   <Select value={l.pipeline_stage} onValueChange={(v) => moveTo(l.id, v)}>
-                    <SelectTrigger className="h-6 text-[10px] px-1.5 w-auto border-0 hover:bg-accent">
+                    <SelectTrigger className="h-6 text-[10px] px-1.5 w-auto border-0 hover:bg-accent" onClick={(e) => e.stopPropagation()}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -404,7 +404,7 @@ function KanbanBoard({
                       className="h-6 w-6 text-success hover:text-success"
                       title="Convert to client"
                       aria-label={`Convert ${l.company_name} to client`}
-                      onClick={() => onConvert(l)}
+                      onClick={(e) => { e.stopPropagation(); onConvert(l); }}
                     >
                       <Check className="w-3.5 h-3.5" />
                     </Button>
@@ -414,7 +414,7 @@ function KanbanBoard({
                       className="h-6 w-6 text-destructive hover:text-destructive"
                       title="Mark lost"
                       aria-label={`Mark ${l.company_name} lost`}
-                      onClick={() => onMarkLost(l)}
+                      onClick={(e) => { e.stopPropagation(); onMarkLost(l); }}
                     >
                       <X className="w-3.5 h-3.5" />
                     </Button>
