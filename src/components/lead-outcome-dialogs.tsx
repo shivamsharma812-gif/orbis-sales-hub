@@ -36,7 +36,6 @@ export interface ConvertibleLead {
   id: string;
   company_name: string;
   client_type: string | null;
-  industry?: string | null;
   owner_id: string;
   estimated_deal_value?: number | null;
   services?: string[] | null;
@@ -73,7 +72,6 @@ export function ConvertLeadDialog({
         .insert({
           company_name: lead.company_name,
           client_type: lead.client_type,
-          industry: lead.industry ?? null,
           owner_id: lead.owner_id,
           originating_lead_id: lead.id,
           annual_revenue: lead.estimated_deal_value ?? 0,

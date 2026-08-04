@@ -268,7 +268,6 @@ function LeadWorkspace() {
           id: lead.id,
           company_name: lead.company_name,
           client_type: lead.client_type,
-          industry: lead.industry,
           owner_id: lead.owner_id,
           estimated_deal_value: lead.estimated_deal_value,
           services: (lead.services as string[] | null) ?? [],

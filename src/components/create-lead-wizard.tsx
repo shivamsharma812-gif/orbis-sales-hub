@@ -36,11 +36,15 @@ const CLIENT_CATEGORIES = [
   "Foreign Portfolio Investor (FPI)",
   "Foreign Direct Investment (FDI)",
   "Foreign Venture Capital Investor (FVCI)",
+  "Trading Member",
   "Family Office",
   "General Corporate",
   "Individual",
   "Other",
 ] as const;
+
+const PROBABILITY_VALUES: Record<string, number> = { high: 80, moderate: 50, low: 20 };
+const PROBABILITY_LABELS: Record<string, string> = { high: "High", moderate: "Moderate", low: "Low" };
 
 const SUB_CATEGORIES: Record<string, string[]> = {
   "Alternative Investment Fund (AIF)": ["Category I", "Category II", "Category III"],
@@ -143,7 +147,7 @@ interface FormState {
   expected_close_date: string;
   estimated_annual_revenue: string;
   revenue_unit: "cr" | "lakh";
-  probability: string;
+  probability: "high" | "moderate" | "low";
   internal_remarks: string;
   // Step 4
   services: string[];
@@ -172,7 +176,7 @@ const initialState: FormState = {
   expected_close_date: "",
   estimated_annual_revenue: "",
   revenue_unit: "cr",
-  probability: "20",
+  probability: "moderate",
   internal_remarks: "",
   services: [],
 };
@@ -224,8 +228,6 @@ export function CreateLeadWizard() {
 
     if (!form.assigned_rm) errs[2].push("Assign a Relationship Manager");
     if (!form.pipeline_stage) errs[2].push("Pipeline stage is required");
-    if (form.probability && (Number(form.probability) < 0 || Number(form.probability) > 100))
-      errs[2].push("Probability must be between 0 and 100");
 
     if (form.services.length === 0) errs[3].push("Select at least one service");
     return errs;
@@ -265,7 +267,7 @@ export function CreateLeadWizard() {
           estimated_deal_value: form.estimated_annual_revenue
             ? toCrores(form.estimated_annual_revenue, form.revenue_unit)
             : 0,
-          probability: form.probability ? Number(form.probability) : null,
+          probability: PROBABILITY_VALUES[form.probability] ?? null,
           notes: form.internal_remarks || null,
           services: form.services,
           owner_id: form.assigned_rm,
@@ -618,14 +620,18 @@ export function CreateLeadWizard() {
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label>Probability (%)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
+                <Label>Probability</Label>
+                <Select
                   value={form.probability}
-                  onChange={(e) => update("probability", e.target.value)}
-                />
+                  onValueChange={(v) => update("probability", v as FormState["probability"])}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="moderate">Moderate</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2 space-y-1.5">
                 <Label>Internal remarks</Label>
@@ -724,7 +730,7 @@ export function CreateLeadWizard() {
                   />
                   <ReviewItem
                     label="Probability"
-                    value={form.probability ? `${form.probability}%` : "—"}
+                    value={PROBABILITY_LABELS[form.probability] ?? "—"}
                   />
                 </dl>
               </div>
