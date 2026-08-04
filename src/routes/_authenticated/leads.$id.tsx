@@ -32,10 +32,18 @@ import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog
 
 const SERVICE_OPTIONS = [
   "Custody & Allied Services",
+  "PCM",
   "RTA",
   "Trusteeship",
   "Fund Accounting",
   "Fund Administration",
+] as const;
+
+const LOST_REASONS = [
+  "Requires bank custodian",
+  "Lack of follow ups",
+  "Inadequate Commercial quotations",
+  "Other",
 ] as const;
 import { toast } from "sonner";
 import {
