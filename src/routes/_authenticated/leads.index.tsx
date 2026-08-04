@@ -83,20 +83,33 @@ function LeadsPage() {
   const [view, setView] = useState<"list" | "kanban">("list");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<string>("all");
   const [q, setQ] = useState("");
+  const [convertLead, setConvertLead] = useState<ConvertibleLead | null>(null);
+  const [lostLead, setLostLead] = useState<Lead | null>(null);
+  const months = monthOptions();
 
   const { data: leads = [] } = useQuery({
-    queryKey: ["leads", { stageFilter, statusFilter, q }],
+    queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q }],
     queryFn: async () => {
       let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
       if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter as never);
       if (statusFilter !== "all") query = query.eq("status", statusFilter as never);
+      if (typeFilter !== "all") query = query.eq("client_type", typeFilter);
+      if (monthFilter !== "all") {
+        const [y, m] = monthFilter.split("-").map(Number);
+        const start = new Date(y, m - 1, 1);
+        const end = new Date(y, m, 1);
+        query = query.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+      }
       if (q.trim()) query = query.ilike("company_name", `%${q}%`);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as Lead[];
     },
   });
+
 
   const { data: users = [] } = useQuery({
     queryKey: ["users-lite"],
