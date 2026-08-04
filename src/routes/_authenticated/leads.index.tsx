@@ -22,11 +22,42 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { StageBadge, PIPELINE_STAGES, ACTIVE_STAGES } from "@/components/stage-badge";
-import { LayoutGrid, List, Filter } from "lucide-react";
+import { LayoutGrid, List, Filter, Check, X } from "lucide-react";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { CreateLeadWizard } from "@/components/create-lead-wizard";
+import {
+  ConvertLeadDialog,
+  MarkLostDialog,
+  type ConvertibleLead,
+} from "@/components/lead-outcome-dialogs";
 
+const CLIENT_TYPES = [
+  "AIF",
+  "PMS",
+  "FPI",
+  "Mutual Fund",
+  "REIT",
+  "InvIT",
+  "Corporate",
+  "Family Office",
+];
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function monthOptions() {
+  const out: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    out.push({ value, label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}` });
+  }
+  return out;
+}
 
 export const Route = createFileRoute("/_authenticated/leads/")({
   head: () => ({ meta: [{ title: "Leads — Orbis CRM" }] }),
@@ -44,26 +75,41 @@ interface Lead {
   status: string;
   owner_id: string;
   created_at: string;
+  services?: string[] | null;
 }
+
 
 function LeadsPage() {
   const [view, setView] = useState<"list" | "kanban">("list");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<string>("all");
   const [q, setQ] = useState("");
+  const [convertLead, setConvertLead] = useState<ConvertibleLead | null>(null);
+  const [lostLead, setLostLead] = useState<Lead | null>(null);
+  const months = monthOptions();
 
   const { data: leads = [] } = useQuery({
-    queryKey: ["leads", { stageFilter, statusFilter, q }],
+    queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q }],
     queryFn: async () => {
       let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
       if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter as never);
       if (statusFilter !== "all") query = query.eq("status", statusFilter as never);
+      if (typeFilter !== "all") query = query.eq("client_type", typeFilter);
+      if (monthFilter !== "all") {
+        const [y, m] = monthFilter.split("-").map(Number);
+        const start = new Date(y, m - 1, 1);
+        const end = new Date(y, m, 1);
+        query = query.gte("created_at", start.toISOString()).lt("created_at", end.toISOString());
+      }
       if (q.trim()) query = query.ilike("company_name", `%${q}%`);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as Lead[];
     },
   });
+
 
   const { data: users = [] } = useQuery({
     queryKey: ["users-lite"],
@@ -127,6 +173,33 @@ function LeadsPage() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-40 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All client types</SelectItem>
+              {CLIENT_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="w-40 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All time</SelectItem>
+              {months.map((m) => (
+                <SelectItem key={m.value} value={m.value}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-36 h-9">
               <SelectValue />
@@ -155,12 +228,13 @@ function LeadsPage() {
                   <TableHead>Industry</TableHead>
                   <TableHead className="text-right">Est. Value</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {leads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                       No leads match these filters.
                     </TableCell>
                   </TableRow>
@@ -185,20 +259,77 @@ function LeadsPage() {
                     <TableCell className="text-muted-foreground text-xs">
                       {formatDate(l.created_at)}
                     </TableCell>
+                    <TableCell className="text-right">
+                      {l.status === "active" ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-success hover:text-success"
+                            title="Convert to client"
+                            aria-label={`Convert ${l.company_name} to client`}
+                            onClick={() => setConvertLead(l)}
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            title="Mark lost"
+                            aria-label={`Mark ${l.company_name} lost`}
+                            onClick={() => setLostLead(l)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </Card>
         ) : (
-          <KanbanBoard leads={leads} ownerMap={ownerMap} />
+          <KanbanBoard
+            leads={leads}
+            ownerMap={ownerMap}
+            onConvert={(l) => setConvertLead(l)}
+            onMarkLost={(l) => setLostLead(l)}
+          />
         )}
       </div>
+
+      <ConvertLeadDialog
+        open={!!convertLead}
+        onOpenChange={(v) => !v && setConvertLead(null)}
+        lead={convertLead}
+      />
+      <MarkLostDialog
+        open={!!lostLead}
+        onOpenChange={(v) => !v && setLostLead(null)}
+        leadId={lostLead?.id ?? null}
+        leadName={lostLead?.company_name}
+      />
     </div>
+
   );
 }
 
-function KanbanBoard({ leads, ownerMap }: { leads: Lead[]; ownerMap: Map<string, string> }) {
+function KanbanBoard({
+  leads,
+  ownerMap,
+  onConvert,
+  onMarkLost,
+}: {
+  leads: Lead[];
+  ownerMap: Map<string, string>;
+  onConvert: (lead: Lead) => void;
+  onMarkLost: (lead: Lead) => void;
+}) {
+
   const qc = useQueryClient();
   const stages = ACTIVE_STAGES;
 
@@ -269,6 +400,31 @@ function KanbanBoard({ leads, ownerMap }: { leads: Lead[]; ownerMap: Map<string,
                     </SelectContent>
                   </Select>
                 </div>
+                {l.status === "active" && (
+                  <div className="mt-1.5 flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-success hover:text-success"
+                      title="Convert to client"
+                      aria-label={`Convert ${l.company_name} to client`}
+                      onClick={() => onConvert(l)}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive hover:text-destructive"
+                      title="Mark lost"
+                      aria-label={`Mark ${l.company_name} lost`}
+                      onClick={() => onMarkLost(l)}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
+
               </div>
             ))}
           </div>

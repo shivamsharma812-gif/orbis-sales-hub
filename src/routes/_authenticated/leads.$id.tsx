@@ -21,32 +21,18 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
 import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
+import {
+  ConvertLeadDialog,
+  MarkLostDialog,
+  SERVICE_OPTIONS,
+} from "@/components/lead-outcome-dialogs";
 
-const SERVICE_OPTIONS = [
-  "Custody & Allied Services",
-  "PCM",
-  "RTA",
-  "Trusteeship",
-  "Fund Accounting",
-  "Fund Administration",
-] as const;
-
-const LOST_REASONS = [
-  "Requires bank custodian",
-  "Lack of follow ups",
-  "Inadequate Commercial quotations",
-  "Other",
-] as const;
 import { toast } from "sonner";
 import {
   ContactsTab,
@@ -69,10 +55,8 @@ function LeadWorkspace() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [lostOpen, setLostOpen] = useState(false);
-  const [lostChoice, setLostChoice] = useState<string>("");
-  const [lostOther, setLostOther] = useState("");
   const [convertOpen, setConvertOpen] = useState(false);
-  const [mandateServices, setMandateServices] = useState<string[]>([]);
+
   const [shareTransferOpen, setShareTransferOpen] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
@@ -140,66 +124,8 @@ function LeadWorkspace() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const convert = useMutation({
-    mutationFn: async (services: string[]) => {
-      if (!lead) throw new Error("Lead missing");
-      const serviceType = services.length > 0 ? services.join(", ") : null;
-      const { data: client, error: cErr } = await supabase
-        .from("clients")
-        .insert({
-          company_name: lead.company_name,
-          client_type: lead.client_type,
-          industry: lead.industry,
-          owner_id: lead.owner_id,
-          originating_lead_id: lead.id,
-          annual_revenue: lead.estimated_deal_value,
-          service_type: serviceType,
-        })
-        .select()
-        .single();
-      if (cErr) throw cErr;
-      const { error: uErr } = await supabase
-        .from("leads")
-        .update({
-          status: "won" as never,
-          pipeline_stage: "Won" as never,
-          converted_client_id: client.id,
-        })
-        .eq("id", id);
-      if (uErr) throw uErr;
-      return client;
-    },
-    onSuccess: (client) => {
-      toast.success("Converted to client");
-      qc.invalidateQueries();
-      navigate({ to: "/clients/$id", params: { id: client.id } });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
-  const markLost = useMutation({
-    mutationFn: async (reason: string) => {
-      const { error } = await supabase
-        .from("leads")
-        .update({
-          status: "lost" as never,
-          pipeline_stage: "Lost" as never,
-          lost_reason: reason,
-          lost_at: new Date().toISOString(),
-        } as never)
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Marked lost");
-      setLostOpen(false);
-      setLostChoice("");
-      setLostOther("");
-      qc.invalidateQueries({ queryKey: ["lead", id] });
-      qc.invalidateQueries({ queryKey: ["leads"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const revive = useMutation({
     mutationFn: async () => {
@@ -253,16 +179,10 @@ function LeadWorkspace() {
                 <Button variant="outline" size="sm" onClick={() => setLostOpen(true)}>
                   <XCircle className="w-4 h-4" /> Mark lost
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setMandateServices(Array.isArray(lead.services) ? (lead.services as string[]).filter((s) => (SERVICE_OPTIONS as readonly string[]).includes(s)) : []);
-                    setConvertOpen(true);
-                  }}
-                  disabled={convert.isPending}
-                >
+                <Button size="sm" onClick={() => setConvertOpen(true)}>
                   <CheckCircle2 className="w-4 h-4" /> Convert to client
                 </Button>
+
               </>
             )}
             {lead.status === "lost" && (
@@ -334,82 +254,28 @@ function LeadWorkspace() {
 
 
 
-      <Dialog open={lostOpen} onOpenChange={(v) => { setLostOpen(v); if (!v) { setLostChoice(""); setLostOther(""); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Mark lead as lost</DialogTitle>
-            <DialogDescription>Select why this lead was lost. This helps track patterns and improve win rates.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <RadioGroup value={lostChoice} onValueChange={setLostChoice}>
-              {LOST_REASONS.map((r) => (
-                <div key={r} className="flex items-center gap-2 rounded-md border p-2.5">
-                  <RadioGroupItem value={r} id={`lost-${r}`} />
-                  <Label htmlFor={`lost-${r}`} className="font-normal cursor-pointer">{r}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-            {lostChoice === "Other" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="lost-other">Please specify</Label>
-                <Textarea
-                  id="lost-other"
-                  value={lostOther}
-                  onChange={(e) => setLostOther(e.target.value)}
-                  placeholder="e.g. Chose competitor on pricing, timing not right, budget cut…"
-                  rows={4}
-                />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setLostOpen(false)}>Cancel</Button>
-            <Button
-              variant="destructive"
-              onClick={() => markLost.mutate(lostChoice === "Other" ? lostOther.trim() : lostChoice)}
-              disabled={!lostChoice || (lostChoice === "Other" && !lostOther.trim()) || markLost.isPending}
-            >
-              Mark lost
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <MarkLostDialog
+        open={lostOpen}
+        onOpenChange={setLostOpen}
+        leadId={lead.id}
+        leadName={lead.company_name}
+      />
 
-      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Convert to client</DialogTitle>
-            <DialogDescription>
-              Select the services this mandate has been signed for. These will show on the client record.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            {SERVICE_OPTIONS.map((s) => (
-              <div key={s} className="flex items-center gap-2 rounded-md border p-2.5">
-                <Checkbox
-                  id={`mandate-${s}`}
-                  checked={mandateServices.includes(s)}
-                  onCheckedChange={(c) =>
-                    setMandateServices((prev) =>
-                      c ? [...prev, s] : prev.filter((x) => x !== s),
-                    )
-                  }
-                />
-                <Label htmlFor={`mandate-${s}`} className="font-normal cursor-pointer">{s}</Label>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setConvertOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => convert.mutate(mandateServices)}
-              disabled={mandateServices.length === 0 || convert.isPending}
-            >
-              Convert to client
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConvertLeadDialog
+        open={convertOpen}
+        onOpenChange={setConvertOpen}
+        lead={{
+          id: lead.id,
+          company_name: lead.company_name,
+          client_type: lead.client_type,
+          industry: lead.industry,
+          owner_id: lead.owner_id,
+          estimated_deal_value: lead.estimated_deal_value,
+          services: (lead.services as string[] | null) ?? [],
+        }}
+        onConverted={(clientId) => navigate({ to: "/clients/$id", params: { id: clientId } })}
+      />
+
 
 
       {/* Overview strip */}
