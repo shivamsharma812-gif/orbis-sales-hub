@@ -177,7 +177,7 @@ function DashboardPage() {
           <Card className="p-4 lg:col-span-2">
             <SectionTitle title="Today's meetings" count={todaysMeetings?.length} icon={CalendarClock} />
             <div className="mt-3 divide-y divide-border">
-              {todaysMeetings?.length === 0 && <EmptyRow>No meetings scheduled today.</EmptyRow>}
+              {todaysMeetings?.length === 0 && <EmptyRow>You have been sitting on your desk for long enough, Hustle up soldier :)</EmptyRow>}
               {todaysMeetings?.map((m) => (
                 <Link
                   key={m.id}
