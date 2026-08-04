@@ -193,7 +193,8 @@ function LeadWorkspace() {
     onSuccess: () => {
       toast.success("Marked lost");
       setLostOpen(false);
-      setLostReason("");
+      setLostChoice("");
+      setLostOther("");
       qc.invalidateQueries({ queryKey: ["lead", id] });
       qc.invalidateQueries({ queryKey: ["leads"] });
     },
