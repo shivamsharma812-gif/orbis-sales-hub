@@ -228,12 +228,13 @@ function LeadsPage() {
                   <TableHead>Industry</TableHead>
                   <TableHead className="text-right">Est. Value</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {leads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                       No leads match these filters.
                     </TableCell>
                   </TableRow>
@@ -258,16 +259,62 @@ function LeadsPage() {
                     <TableCell className="text-muted-foreground text-xs">
                       {formatDate(l.created_at)}
                     </TableCell>
+                    <TableCell className="text-right">
+                      {l.status === "active" ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-success hover:text-success"
+                            title="Convert to client"
+                            aria-label={`Convert ${l.company_name} to client`}
+                            onClick={() => setConvertLead(l)}
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            title="Mark lost"
+                            aria-label={`Mark ${l.company_name} lost`}
+                            onClick={() => setLostLead(l)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </Card>
         ) : (
-          <KanbanBoard leads={leads} ownerMap={ownerMap} />
+          <KanbanBoard
+            leads={leads}
+            ownerMap={ownerMap}
+            onConvert={(l) => setConvertLead(l)}
+            onMarkLost={(l) => setLostLead(l)}
+          />
         )}
       </div>
+
+      <ConvertLeadDialog
+        open={!!convertLead}
+        onOpenChange={(v) => !v && setConvertLead(null)}
+        lead={convertLead}
+      />
+      <MarkLostDialog
+        open={!!lostLead}
+        onOpenChange={(v) => !v && setLostLead(null)}
+        leadId={lostLead?.id ?? null}
+        leadName={lostLead?.company_name}
+      />
     </div>
+
   );
 }
 
