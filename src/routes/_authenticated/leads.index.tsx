@@ -328,7 +328,7 @@ function KanbanBoard({
   onConvert: (lead: Lead) => void;
   onMarkLost: (lead: Lead) => void;
 }) {
-
+  const navigate = useNavigate({ from: "/leads" });
   const qc = useQueryClient();
   const stages = ACTIVE_STAGES;
 
