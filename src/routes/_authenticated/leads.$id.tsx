@@ -126,66 +126,8 @@ function LeadWorkspace() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const convert = useMutation({
-    mutationFn: async (services: string[]) => {
-      if (!lead) throw new Error("Lead missing");
-      const serviceType = services.length > 0 ? services.join(", ") : null;
-      const { data: client, error: cErr } = await supabase
-        .from("clients")
-        .insert({
-          company_name: lead.company_name,
-          client_type: lead.client_type,
-          industry: lead.industry,
-          owner_id: lead.owner_id,
-          originating_lead_id: lead.id,
-          annual_revenue: lead.estimated_deal_value,
-          service_type: serviceType,
-        })
-        .select()
-        .single();
-      if (cErr) throw cErr;
-      const { error: uErr } = await supabase
-        .from("leads")
-        .update({
-          status: "won" as never,
-          pipeline_stage: "Won" as never,
-          converted_client_id: client.id,
-        })
-        .eq("id", id);
-      if (uErr) throw uErr;
-      return client;
-    },
-    onSuccess: (client) => {
-      toast.success("Converted to client");
-      qc.invalidateQueries();
-      navigate({ to: "/clients/$id", params: { id: client.id } });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
-  const markLost = useMutation({
-    mutationFn: async (reason: string) => {
-      const { error } = await supabase
-        .from("leads")
-        .update({
-          status: "lost" as never,
-          pipeline_stage: "Lost" as never,
-          lost_reason: reason,
-          lost_at: new Date().toISOString(),
-        } as never)
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Marked lost");
-      setLostOpen(false);
-      setLostChoice("");
-      setLostOther("");
-      qc.invalidateQueries({ queryKey: ["lead", id] });
-      qc.invalidateQueries({ queryKey: ["leads"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const revive = useMutation({
     mutationFn: async () => {
