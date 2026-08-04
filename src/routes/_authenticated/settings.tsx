@@ -53,7 +53,7 @@ function SettingsPage() {
             </Card>
           </TabsContent>
           <TabsContent value="categories">
-            <StaticList title="Client categories" values={["AIF","PMS","Mutual Fund","REIT","InvIT","Corporate","Family Office"]} />
+            <StaticList title="Client categories" values={["AIF","PMS","Mutual Fund","Trading Member","Corporate","Family Office"]} />
           </TabsContent>
           <TabsContent value="meetings">
             <StaticList title="Meeting types" values={["In-Person","Video Call","Phone Call"]} />

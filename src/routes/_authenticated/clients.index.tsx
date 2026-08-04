@@ -131,7 +131,7 @@ function ClientsPage() {
                       <Link to="/clients/$id" params={{ id: c.id }} className="hover:underline">
                         {c.company_name}
                       </Link>
-                      <div className="text-xs text-muted-foreground">{c.client_type} · {c.industry}</div>
+                      <div className="text-xs text-muted-foreground">{c.client_type}</div>
                     </TableCell>
                     <TableCell>{owner?.full_name ?? "—"}</TableCell>
                     <TableCell><Badge variant="outline">{c.service_type ?? "—"}</Badge></TableCell>
@@ -157,7 +157,6 @@ function CreateClientDialog() {
   const [form, setForm] = useState({
     company_name: "",
     client_type: "AIF",
-    industry: "Financial Services",
     service_type: "Custody & Allied Services",
     auc: "",
     annual_revenue: "",
@@ -177,7 +176,6 @@ function CreateClientDialog() {
       const { error } = await supabase.from("clients").insert({
         company_name: form.company_name,
         client_type: form.client_type,
-        industry: form.industry,
         service_type: form.service_type,
         auc: Number(form.auc) || 0,
         annual_revenue: Number(form.annual_revenue) || 0,
@@ -190,7 +188,7 @@ function CreateClientDialog() {
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Client created");
       setOpen(false);
-      setForm({ company_name: "", client_type: "AIF", industry: "Financial Services", service_type: "Custody & Allied Services", auc: "", annual_revenue: "" });
+      setForm({ company_name: "", client_type: "AIF", service_type: "Custody & Allied Services", auc: "", annual_revenue: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -209,7 +207,7 @@ function CreateClientDialog() {
             <Select value={form.client_type} onValueChange={(v) => setForm({ ...form, client_type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {["AIF","PMS","Mutual Fund","REIT","InvIT","Corporate","Family Office"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                {["AIF","PMS","Mutual Fund","Trading Member","Corporate","Family Office"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -222,7 +220,6 @@ function CreateClientDialog() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label>Industry</Label><Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} /></div>
           <div className="space-y-1.5"><Label>AUC (₹ Cr)</Label><Input type="number" step="0.01" value={form.auc} onChange={(e) => setForm({ ...form, auc: e.target.value })} /></div>
           <div className="col-span-2 space-y-1.5"><Label>Annual Revenue (₹ Cr)</Label><Input type="number" step="0.01" value={form.annual_revenue} onChange={(e) => setForm({ ...form, annual_revenue: e.target.value })} /></div>
         </div>

@@ -82,7 +82,6 @@ function ClientWorkspace() {
           .insert({
             company_name: client.company_name,
             client_type: client.client_type,
-            industry: client.industry,
             owner_id: client.owner_id,
             pipeline_stage: "Prospect" as never,
             status: "active" as never,

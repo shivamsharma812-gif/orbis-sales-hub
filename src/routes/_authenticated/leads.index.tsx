@@ -37,8 +37,7 @@ const CLIENT_TYPES = [
   "PMS",
   "FPI",
   "Mutual Fund",
-  "REIT",
-  "InvIT",
+  "Trading Member",
   "Corporate",
   "Family Office",
 ];
@@ -68,7 +67,6 @@ interface Lead {
   id: string;
   company_name: string;
   client_type: string | null;
-  industry: string | null;
   lead_source: string | null;
   pipeline_stage: string;
   estimated_deal_value: number;
@@ -225,7 +223,6 @@ function LeadsPage() {
                   <TableHead>Owner</TableHead>
                   <TableHead>Stage</TableHead>
                   <TableHead>Source</TableHead>
-                  <TableHead>Industry</TableHead>
                   <TableHead className="text-right">Est. Value</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -234,7 +231,7 @@ function LeadsPage() {
               <TableBody>
                 {leads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                       No leads match these filters.
                     </TableCell>
                   </TableRow>
@@ -252,7 +249,6 @@ function LeadsPage() {
                       <StageBadge stage={l.pipeline_stage} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">{l.lead_source}</TableCell>
-                    <TableCell className="text-muted-foreground">{l.industry}</TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrencyCr(l.estimated_deal_value)}
                     </TableCell>
