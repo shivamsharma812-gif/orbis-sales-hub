@@ -239,16 +239,10 @@ function LeadWorkspace() {
                 <Button variant="outline" size="sm" onClick={() => setLostOpen(true)}>
                   <XCircle className="w-4 h-4" /> Mark lost
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setMandateServices(Array.isArray(lead.services) ? (lead.services as string[]).filter((s) => (SERVICE_OPTIONS as readonly string[]).includes(s)) : []);
-                    setConvertOpen(true);
-                  }}
-                  disabled={convert.isPending}
-                >
+                <Button size="sm" onClick={() => setConvertOpen(true)}>
                   <CheckCircle2 className="w-4 h-4" /> Convert to client
                 </Button>
+
               </>
             )}
             {lead.status === "lost" && (
