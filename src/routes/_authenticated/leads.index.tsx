@@ -318,7 +318,18 @@ function LeadsPage() {
   );
 }
 
-function KanbanBoard({ leads, ownerMap }: { leads: Lead[]; ownerMap: Map<string, string> }) {
+function KanbanBoard({
+  leads,
+  ownerMap,
+  onConvert,
+  onMarkLost,
+}: {
+  leads: Lead[];
+  ownerMap: Map<string, string>;
+  onConvert: (lead: Lead) => void;
+  onMarkLost: (lead: Lead) => void;
+}) {
+
   const qc = useQueryClient();
   const stages = ACTIVE_STAGES;
 
