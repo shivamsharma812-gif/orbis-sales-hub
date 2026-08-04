@@ -55,10 +55,8 @@ function LeadWorkspace() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [lostOpen, setLostOpen] = useState(false);
-  const [lostChoice, setLostChoice] = useState<string>("");
-  const [lostOther, setLostOther] = useState("");
   const [convertOpen, setConvertOpen] = useState(false);
-  const [mandateServices, setMandateServices] = useState<string[]>([]);
+
   const [shareTransferOpen, setShareTransferOpen] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
