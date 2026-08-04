@@ -400,6 +400,31 @@ function KanbanBoard({
                     </SelectContent>
                   </Select>
                 </div>
+                {l.status === "active" && (
+                  <div className="mt-1.5 flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-success hover:text-success"
+                      title="Convert to client"
+                      aria-label={`Convert ${l.company_name} to client`}
+                      onClick={() => onConvert(l)}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive hover:text-destructive"
+                      title="Mark lost"
+                      aria-label={`Mark ${l.company_name} lost`}
+                      onClick={() => onMarkLost(l)}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
+
               </div>
             ))}
           </div>
