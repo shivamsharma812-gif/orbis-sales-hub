@@ -1,21 +1,41 @@
-## Goal
-Prevent the NIFTY / SENSEX / USD-INR / Gold / Silver ticker pills from wrapping to a second row on the dashboard.
+# Structured "Mark lost" reasons, mandate services on conversion, and PCM
 
-## Current state
-- `src/components/layout/market-ticker.tsx` renders pills in `flex flex-wrap items-center gap-2`, so they wrap when horizontal space is tight.
-- The ticker sits inside a `Card` at the top of `src/routes/_authenticated/dashboard.tsx`.
+## 1. Mark lost — pick a reason
 
-## Changes
-1. **MarketTicker component**
-   - Change the root container from `flex flex-wrap` to `flex flex-nowrap items-center gap-2`.
-   - Add `overflow-x-auto` and a subtle scrollbar-hide utility so the row scrolls horizontally on very narrow viewports instead of wrapping.
-   - Slightly reduce pill horizontal padding (`px-2` instead of `px-2.5`) to help everything fit on a typical desktop screen.
+Clicking "Mark lost" on a lead opens a popup with a required single-choice list:
 
-2. **Dashboard card**
-   - Ensure the parent `Card` does not constrain the ticker width in a way that forces wrapping; keep it full-width inside the `p-6` content area.
+- Requires bank custodian
+- Lack of follow ups
+- Inadequate Commercial quotations
+- Other — reveals a text box where the reason is typed manually
 
-## Verification
-- Open `/dashboard` and confirm all five ticker items sit on one line.
-- Resize to a narrow viewport and confirm horizontal scroll behavior (no wrap).
+The saved lost reason stays a single text value, so lost-lead cards, the lost list, and reporting keep working unchanged. Picking "Other" saves the typed text; the other options save their label. The "Mark lost" button stays disabled until a choice (and, for Other, some text) is provided.
 
-No backend or data changes are required.
+## 2. Convert to client — choose mandate services
+
+"Convert to client" no longer converts immediately. It opens a popup listing all services as checkboxes, pre-ticked with the services already marked as interested on the lead:
+
+- Custody & Allied Services
+- PCM
+- RTA
+- Trusteeship
+- Fund Accounting
+- Fund Administration
+
+At least one must be ticked. Only the ticked services become the new client's services, so the client list and client record show exactly what the mandate was signed for. The lead's own "services interested in" stays as it was.
+
+## 3. Add PCM everywhere
+
+PCM is added as a selectable service in:
+
+- Create Lead wizard (Services step)
+- Lead workspace "Services interested in" chips
+- The new convert-to-client mandate popup
+- Clients list service filter and the add-client form service dropdown
+- The Services tab copy on the client record
+
+## Technical notes
+
+- `src/routes/_authenticated/leads.$id.tsx`: replace the free-text lost dialog with a radio group + conditional textarea; add a convert dialog holding a checkbox state seeded from `lead.services`, and pass the selected list into the existing `convert` mutation (which joins them into `clients.service_type`).
+- Extend `SERVICE_OPTIONS` in `leads.$id.tsx` and `SERVICES` in `src/components/create-lead-wizard.tsx` with `"PCM"`; add PCM to the hardcoded service arrays in `src/routes/_authenticated/clients.index.tsx` and the copy in `clients.$id.tsx`.
+- No database changes: `lost_reason` remains text, `clients.service_type` remains a joined string.
