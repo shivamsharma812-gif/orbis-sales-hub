@@ -91,7 +91,7 @@ function ClientsPage() {
           <SelectTrigger className="w-44 h-9"><Filter className="w-3.5 h-3.5 mr-1 text-muted-foreground" /><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All services</SelectItem>
-            {["Custody & Allied Services","Fund Accounting","Trusteeship","RTA"].map((s) => (
+            {["Custody & Allied Services","PCM","Fund Accounting","Trusteeship","RTA"].map((s) => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
           </SelectContent>
@@ -218,7 +218,7 @@ function CreateClientDialog() {
             <Select value={form.service_type} onValueChange={(v) => setForm({ ...form, service_type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {["Custody & Allied Services","Fund Accounting","Trusteeship","RTA"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {["Custody & Allied Services","PCM","Fund Accounting","Trusteeship","RTA"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
