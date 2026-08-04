@@ -373,21 +373,18 @@ function KanbanBoard({
               <div
                 key={l.id}
                 className="bg-card border border-border rounded p-2.5 cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => navigate({ to: "/leads/$id", params: { id: l.id } })}
               >
-                <Link
-                  to="/leads/$id"
-                  params={{ id: l.id }}
-                  className="text-sm font-medium block truncate"
-                >
+                <div className="text-sm font-medium block truncate">
                   {l.company_name}
-                </Link>
+                </div>
                 <div className="text-xs text-muted-foreground truncate">
                   {ownerMap.get(l.owner_id) ?? "—"}
                 </div>
                 <div className="mt-1.5 flex items-center justify-between">
                   <div className="text-xs font-mono">{formatCurrencyCr(l.estimated_deal_value)}</div>
                   <Select value={l.pipeline_stage} onValueChange={(v) => moveTo(l.id, v)}>
-                    <SelectTrigger className="h-6 text-[10px] px-1.5 w-auto border-0 hover:bg-accent">
+                    <SelectTrigger className="h-6 text-[10px] px-1.5 w-auto border-0 hover:bg-accent" onClick={(e) => e.stopPropagation()}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -407,7 +404,7 @@ function KanbanBoard({
                       className="h-6 w-6 text-success hover:text-success"
                       title="Convert to client"
                       aria-label={`Convert ${l.company_name} to client`}
-                      onClick={() => onConvert(l)}
+                      onClick={(e) => { e.stopPropagation(); onConvert(l); }}
                     >
                       <Check className="w-3.5 h-3.5" />
                     </Button>
@@ -417,7 +414,7 @@ function KanbanBoard({
                       className="h-6 w-6 text-destructive hover:text-destructive"
                       title="Mark lost"
                       aria-label={`Mark ${l.company_name} lost`}
-                      onClick={() => onMarkLost(l)}
+                      onClick={(e) => { e.stopPropagation(); onMarkLost(l); }}
                     >
                       <X className="w-3.5 h-3.5" />
                     </Button>
