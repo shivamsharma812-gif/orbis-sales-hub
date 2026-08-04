@@ -22,11 +22,42 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { StageBadge, PIPELINE_STAGES, ACTIVE_STAGES } from "@/components/stage-badge";
-import { LayoutGrid, List, Filter } from "lucide-react";
+import { LayoutGrid, List, Filter, Check, X } from "lucide-react";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { CreateLeadWizard } from "@/components/create-lead-wizard";
+import {
+  ConvertLeadDialog,
+  MarkLostDialog,
+  type ConvertibleLead,
+} from "@/components/lead-outcome-dialogs";
 
+const CLIENT_TYPES = [
+  "AIF",
+  "PMS",
+  "FPI",
+  "Mutual Fund",
+  "REIT",
+  "InvIT",
+  "Corporate",
+  "Family Office",
+];
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function monthOptions() {
+  const out: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    out.push({ value, label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}` });
+  }
+  return out;
+}
 
 export const Route = createFileRoute("/_authenticated/leads/")({
   head: () => ({ meta: [{ title: "Leads — Orbis CRM" }] }),
@@ -44,7 +75,9 @@ interface Lead {
   status: string;
   owner_id: string;
   created_at: string;
+  services?: string[] | null;
 }
+
 
 function LeadsPage() {
   const [view, setView] = useState<"list" | "kanban">("list");
