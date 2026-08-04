@@ -21,32 +21,18 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
 import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
+import {
+  ConvertLeadDialog,
+  MarkLostDialog,
+  SERVICE_OPTIONS,
+} from "@/components/lead-outcome-dialogs";
 
-const SERVICE_OPTIONS = [
-  "Custody & Allied Services",
-  "PCM",
-  "RTA",
-  "Trusteeship",
-  "Fund Accounting",
-  "Fund Administration",
-] as const;
-
-const LOST_REASONS = [
-  "Requires bank custodian",
-  "Lack of follow ups",
-  "Inadequate Commercial quotations",
-  "Other",
-] as const;
 import { toast } from "sonner";
 import {
   ContactsTab,
