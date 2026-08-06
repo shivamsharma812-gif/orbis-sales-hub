@@ -144,6 +144,7 @@ function DashboardPage() {
 
   return (
     <div>
+      <DailyMeetingsDialog />
       <PageHeader
         title="Dashboard"
         description="Live view of your work and pipeline."
