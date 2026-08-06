@@ -170,11 +170,11 @@ function OutlookSettings() {
           )}
         </div>
         {status?.connected ? (
-          <Button variant="outline" size="sm" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>
+          <Button variant="outline" size="sm" onClick={() => disconnect.mutate({})} disabled={disconnect.isPending}>
             Disconnect
           </Button>
         ) : (
-          <Button size="sm" onClick={() => connect.mutate()} disabled={connect.isPending || connecting}>
+          <Button size="sm" onClick={() => connect.mutate({})} disabled={connect.isPending || connecting}>
             {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Connect"}
           </Button>
         )}
