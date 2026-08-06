@@ -32,7 +32,7 @@ Outlook-to-CRM updates will land within 15 minutes. Real-time webhooks were cons
 
 **Storage (migration).**
 - `app_user_connections` — server-only table (`user_id`, `connector_id`, encrypted connection key, unique per pair). Service-role grants only, RLS on, no anon/authenticated access. Key encrypted with `APP_USER_CONNECTION_KEY_SECRET` (AES-256-GCM).
-- `outlook_subscriptions` — server-only table (`user_id`, `subscription_id`, `client_state`, `expires_at`, `last_error`). Service-role only.
+
 - `meetings` new columns: `duration_minutes int default 30`, `attendees jsonb default '[]'`, `outlook_event_id text`, `outlook_ical_uid text`, `outlook_last_synced_at timestamptz`, `outlook_sync_error text`, `outlook_change_key text`.
 - Index on `outlook_event_id`.
 
