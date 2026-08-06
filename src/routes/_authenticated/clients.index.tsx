@@ -44,7 +44,7 @@ function ClientsPage() {
   const [serviceFilter, setServiceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
   const [q, setQ] = useState("");
-  const navigate = useNavigate({ from: "/clients" });
+  const navigate = useNavigate();
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients", { serviceFilter, statusFilter, q }],
