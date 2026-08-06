@@ -279,7 +279,7 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
           parent_type: parentType as never,
           parent_id: parentId,
           owner_id: ownerId,
-          meeting_date: form.meeting_date,
+          meeting_date: fromLocalInputValue(form.meeting_date),
           meeting_type: form.meeting_type,
           agenda: form.agenda,
           duration_minutes: Number(form.duration_minutes) || 30,
