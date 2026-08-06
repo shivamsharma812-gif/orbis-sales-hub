@@ -90,10 +90,19 @@ function DashboardPage() {
         .select("id, parent_type, parent_id, due_date, description, priority")
         .eq("status", "pending")
         .lte("due_date", today)
-        .order("due_date", { ascending: true })
-        .limit(8);
-      return data ?? [];
+        .order("due_date", { ascending: false })
+        .limit(50);
+      const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
+      return (data ?? [])
+        .slice()
+        .sort(
+          (a, b) =>
+            (rank[a.priority] ?? 3) - (rank[b.priority] ?? 3) ||
+            b.due_date.localeCompare(a.due_date),
+        )
+        .slice(0, 8);
     },
+
   });
 
   const { data: recentActivity } = useQuery({
