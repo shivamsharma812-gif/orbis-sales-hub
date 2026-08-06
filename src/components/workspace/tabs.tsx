@@ -568,32 +568,33 @@ function EditMeetingDialog({
   isPending: boolean;
 }) {
   const [form, setForm] = useState({
-    meeting_date: meeting.meeting_date.slice(0, 16),
+    meeting_date: toLocalInputValue(meeting.meeting_date),
     meeting_type: meeting.meeting_type,
     agenda: meeting.agenda ?? "",
     duration_minutes: String(meeting.duration_minutes ?? 30),
-    attendees: ((meeting.attendees ?? []) as { email: string; name?: string }[]).map((a) => a.email),
+    attendees: ((meeting.attendees ?? []) as Participant[]).map((a) => ({
+      email: a.email,
+      name: a.name,
+    })),
     discussion_summary: meeting.discussion_summary ?? "",
     action_items: meeting.action_items ?? "",
   });
 
-  const toggleAttendee = (email: string) => {
-    if (form.attendees.includes(email)) {
-      setForm({ ...form, attendees: form.attendees.filter((e) => e !== email) });
+  const toggleAttendee = (email: string, name?: string | null) => {
+    if (form.attendees.some((a) => a.email === email)) {
+      setForm({ ...form, attendees: form.attendees.filter((a) => a.email !== email) });
     } else {
-      setForm({ ...form, attendees: [...form.attendees, email] });
+      setForm({ ...form, attendees: [...form.attendees, { email, name: name ?? undefined }] });
     }
   };
 
   const handleSave = () => {
     onSave({
-      meeting_date: form.meeting_date,
+      meeting_date: fromLocalInputValue(form.meeting_date),
       meeting_type: form.meeting_type,
       agenda: form.agenda,
       duration_minutes: Number(form.duration_minutes) || 30,
-      attendees: contacts
-        .filter((c) => form.attendees.includes(c.email))
-        .map((c) => ({ email: c.email, name: c.name ?? undefined })) as any,
+      attendees: form.attendees as any,
       discussion_summary: form.discussion_summary,
       action_items: form.action_items,
     });
