@@ -233,7 +233,7 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
     duration_minutes: "30",
     attendees: [] as { email: string; name?: string }[],
   });
-  const [editing, setEditing] = useState<MeetingRow | null>(null);
+  const [editing, setEditing] = useState<MeetingRowType | null>(null);
 
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts", parentType, parentId],
@@ -303,7 +303,7 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
   });
 
   const update = useMutation({
-    mutationFn: async (values: Partial<MeetingRow>) => {
+    mutationFn: async (values: Partial<MeetingRowType>) => {
       if (!editing) return;
       const { error } = await supabase.from("meetings").update(values).eq("id", editing.id);
       if (error) throw error;
