@@ -572,7 +572,7 @@ function EditMeetingDialog({
     meeting_type: meeting.meeting_type,
     agenda: meeting.agenda ?? "",
     duration_minutes: String(meeting.duration_minutes ?? 30),
-    attendees: ((meeting.attendees ?? []) as Participant[]).map((a) => ({
+    attendees: ((meeting.attendees ?? []) as unknown as Participant[]).map((a) => ({
       email: a.email,
       name: a.name,
     })),
