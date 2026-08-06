@@ -39,16 +39,13 @@ Outlook-to-CRM updates will land within 15 minutes. Real-time webhooks were cons
 **Server code (TanStack server fns, no edge functions).**
 - `src/lib/outlook.functions.ts` — `startOutlookConnect`, `completeOutlookConnect`, `getOutlookStatus`, `disconnectOutlook`, `pushMeetingToOutlook(meetingId)`, `syncMeetingFromOutlook(meetingId)`. All behind `requireSupabaseAuth`, keyed on the signed-in user's id.
 - `src/server/appUserConnections.server.ts` + `connectionKeyCrypto.ts` — save/load/decrypt the per-user connection key.
-- `src/server/outlookGraph.server.ts` — thin Graph wrapper over `callAsAppUser`: `POST /me/events`, `PATCH /me/events/{id}`, `DELETE /me/events/{id}`, `GET /me/events/{id}`, plus `POST/PATCH/DELETE /subscriptions`.
+- `src/server/outlookGraph.server.ts` — thin Graph wrapper over `callAsAppUser`: `POST /me/events`, `PATCH /me/events/{id}`, `DELETE /me/events/{id}`, `GET /me/events/{id}`.
 
 **Write path.** Meeting create/update/delete mutations in `src/components/workspace/tabs.tsx` call the push server fn after the Supabase write. Failures are non-fatal: the CRM row is saved, `outlook_sync_error` is set, and the UI shows a retry. Meeting notes and action items are included in the event body.
 
-**Read path (webhooks + backstop).**
-- `src/routes/api/public/hooks/outlook-notify.ts` — handles the Graph validation handshake (echo `validationToken`), verifies `clientState` against the stored secret, then fetches each changed event as its owner and updates `meeting_date`, `duration_minutes`, `agenda`, and marks cancelled/deleted events cancelled in the CRM. Responds 202 immediately.
-- `src/routes/api/public/hooks/outlook-maintenance.ts` — `pg_cron` + `pg_net` hourly: renews subscriptions nearing expiry, recreates missing ones, and reconciles any CRM meeting whose `outlook_last_synced_at` is stale.
-- Conflicts resolve last-writer-wins by comparing Outlook's `lastModifiedDateTime` against the CRM `updated_at`.
+**Read path (polling).** `src/routes/api/public/hooks/outlook-sync.ts`, scheduled by `pg_cron` + `pg_net` every 15 minutes with the anon `apikey` header. It iterates `meetings` rows with a non-null `outlook_event_id`, fetches the event as its owner via the stored connection key, and updates `meeting_date`, `duration_minutes`, `agenda`, marking the CRM meeting cancelled when the Outlook event is cancelled or deleted. Conflicts resolve last-writer-wins by comparing Outlook's `lastModifiedDateTime` against the CRM `updated_at`.
 
-**Conflict/safety notes.** Sync writes use the service-role client inside the hook after resolving the owner, so RLS is not bypassed for anything other than this system job. Both hooks are idempotent and skip users whose connection is missing or revoked, flagging them for reconnect in the UI.
+**Conflict/safety notes.** Sync writes use the service-role client inside the hook after resolving the owner, so RLS is not bypassed for anything other than this system job. The hook is idempotent and skips users whose connection is missing or revoked, flagging them for reconnect in the UI.
 
 ## Out of scope for this pass
 
