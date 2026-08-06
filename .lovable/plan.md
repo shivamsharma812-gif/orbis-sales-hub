@@ -19,18 +19,11 @@ Today notes can only be captured when a meeting is marked complete. The edit dia
 - The meeting form gains an optional **Invite attendees** field (pre-filled with the lead/client contacts that have an email) and a duration field, since Outlook events need an end time.
 - Meetings created before the integration are not back-filled; they sync on next edit only if the user opts in.
 
-## Webhooks vs 15-minute polling — the trade-offs
+## Why polling, not webhooks (for now)
 
-Real-time is possible, but Microsoft Graph webhooks come with conditions:
+Outlook-to-CRM updates will land within 15 minutes. Real-time webhooks were considered and deferred because they require: a published public endpoint (they cannot be tested in preview), per-mailbox subscriptions that expire every ~3 days and need a renewal cron anyway, a reconciliation poll as a backstop since delivery is not guaranteed, and extra failure modes that look like "nothing changed". Webhooks can be layered on later using the same read path.
 
-- **Only works on the published site.** Graph must reach a public HTTPS URL and complete a validation handshake at subscription time. Preview builds do not receive notifications, so this part cannot be fully tested until the app is published.
-- **Subscriptions expire.** Calendar subscriptions live at most ~3 days, so a scheduled renewal job is still required — the cron job does not go away, it just renews instead of polls.
-- **One subscription per connected mailbox.** Each user's subscription is created on connect, renewed on schedule, and recreated if the user reconnects or revokes access.
-- **Notifications carry no data.** Graph sends "event X changed"; the app still calls Graph to fetch the event, so the same read path is used either way.
-- **Delivery is not guaranteed.** Missed or dropped notifications are normal, so a low-frequency reconciliation poll (e.g. hourly) must stay as a backstop.
-- **More moving parts to fail quietly.** An expired subscription or a failed renewal looks exactly like "nothing changed", so the UI needs a per-user "last synced" indicator and a reconnect prompt.
 
-Recommendation: build webhooks for near-instant updates, keep an hourly reconciliation sweep, and validate every notification against a secret `clientState` value.
 
 
 ## Technical section
