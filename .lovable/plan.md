@@ -39,22 +39,26 @@ Recommendation: build webhooks for near-instant updates, keep an hourly reconcil
 
 **Storage (migration).**
 - `app_user_connections` — server-only table (`user_id`, `connector_id`, encrypted connection key, unique per pair). Service-role grants only, RLS on, no anon/authenticated access. Key encrypted with `APP_USER_CONNECTION_KEY_SECRET` (AES-256-GCM).
+- `outlook_subscriptions` — server-only table (`user_id`, `subscription_id`, `client_state`, `expires_at`, `last_error`). Service-role only.
 - `meetings` new columns: `duration_minutes int default 30`, `attendees jsonb default '[]'`, `outlook_event_id text`, `outlook_ical_uid text`, `outlook_last_synced_at timestamptz`, `outlook_sync_error text`, `outlook_change_key text`.
 - Index on `outlook_event_id`.
 
 **Server code (TanStack server fns, no edge functions).**
 - `src/lib/outlook.functions.ts` — `startOutlookConnect`, `completeOutlookConnect`, `getOutlookStatus`, `disconnectOutlook`, `pushMeetingToOutlook(meetingId)`, `syncMeetingFromOutlook(meetingId)`. All behind `requireSupabaseAuth`, keyed on the signed-in user's id.
 - `src/server/appUserConnections.server.ts` + `connectionKeyCrypto.ts` — save/load/decrypt the per-user connection key.
-- `src/server/outlookGraph.server.ts` — thin Graph wrapper over `callAsAppUser`: `POST /me/events`, `PATCH /me/events/{id}`, `DELETE /me/events/{id}`, `GET /me/events/{id}`.
+- `src/server/outlookGraph.server.ts` — thin Graph wrapper over `callAsAppUser`: `POST /me/events`, `PATCH /me/events/{id}`, `DELETE /me/events/{id}`, `GET /me/events/{id}`, plus `POST/PATCH/DELETE /subscriptions`.
 
-**Write path.** Meeting create/update/delete mutations in `src/components/workspace/tabs.tsx` call the push server fn after the Supabase write. Failures are non-fatal: the CRM row is saved, `outlook_sync_error` is set, and the UI shows a retry.
+**Write path.** Meeting create/update/delete mutations in `src/components/workspace/tabs.tsx` call the push server fn after the Supabase write. Failures are non-fatal: the CRM row is saved, `outlook_sync_error` is set, and the UI shows a retry. Meeting notes and action items are included in the event body.
 
-**Read path (polling).** `src/routes/api/public/hooks/outlook-sync.ts`, scheduled by `pg_cron` + `pg_net` every 15 minutes with the anon `apikey` header. It iterates rows in `meetings` with a non-null `outlook_event_id`, fetches the event as its owner via the stored connection key, and updates `meeting_date`, `duration_minutes`, `agenda`, and sets `status = 'cancelled'`-equivalent when the Outlook event is cancelled/deleted. Conflicts resolve last-writer-wins by comparing Outlook's `lastModifiedDateTime` against the CRM `updated_at`.
+**Read path (webhooks + backstop).**
+- `src/routes/api/public/hooks/outlook-notify.ts` — handles the Graph validation handshake (echo `validationToken`), verifies `clientState` against the stored secret, then fetches each changed event as its owner and updates `meeting_date`, `duration_minutes`, `agenda`, and marks cancelled/deleted events cancelled in the CRM. Responds 202 immediately.
+- `src/routes/api/public/hooks/outlook-maintenance.ts` — `pg_cron` + `pg_net` hourly: renews subscriptions nearing expiry, recreates missing ones, and reconciles any CRM meeting whose `outlook_last_synced_at` is stale.
+- Conflicts resolve last-writer-wins by comparing Outlook's `lastModifiedDateTime` against the CRM `updated_at`.
 
-**Conflict/safety notes.** Sync writes use the service-role client inside the hook after resolving the owner, so RLS is not bypassed for anything other than this system job. The hook is idempotent and skips users whose connection is missing or revoked, flagging them for reconnect in the UI.
+**Conflict/safety notes.** Sync writes use the service-role client inside the hook after resolving the owner, so RLS is not bypassed for anything other than this system job. Both hooks are idempotent and skip users whose connection is missing or revoked, flagging them for reconnect in the UI.
 
 ## Out of scope for this pass
 
 - Creating CRM meetings from Outlook events that have no CRM origin.
 - Teams meeting links, recurring events, and room booking.
-- Real-time webhooks (can be added later on top of the same push/pull functions).
+
