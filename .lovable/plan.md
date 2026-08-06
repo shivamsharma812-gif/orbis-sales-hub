@@ -49,6 +49,6 @@ Outlook-to-CRM updates will land within 15 minutes. Real-time webhooks were cons
 
 ## Out of scope for this pass
 
-- Creating CRM meetings from Outlook events that have no CRM origin.
-- Teams meeting links, recurring events, and room booking.
+- Creating CRM meetings from Outlook events that have no CRM origin. There is no reliable link from an arbitrary calendar event back to a lead or client, so matching risks importing personal/non-sales events as CRM records; it is a calendar-import feature, not the outbound sync this pass delivers.
+- Teams meeting links, recurring events, and room booking. These are Outlook-specific event features (online-meeting URLs, recurrence rules, room resources) that add Graph complexity and per-feature edge cases for little CRM value; they can be layered on after the core create/update/cancel sync works.
 
