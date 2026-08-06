@@ -20,6 +20,7 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
+import { Route as OauthMicrosoft_outlookReturnRouteImport } from './routes/oauth/microsoft_outlook/return'
 import { Route as ApiPublicBootstrapDemoUsersRouteImport } from './routes/api/public/bootstrap-demo-users'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
@@ -79,6 +80,12 @@ const AuthenticatedClientsIndexRoute =
     path: '/clients/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const OauthMicrosoft_outlookReturnRoute =
+  OauthMicrosoft_outlookReturnRouteImport.update({
+    id: '/oauth/microsoft_outlook/return',
+    path: '/oauth/microsoft_outlook/return',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBootstrapDemoUsersRoute =
   ApiPublicBootstrapDemoUsersRouteImport.update({
     id: '/api/public/bootstrap-demo-users',
@@ -108,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/bootstrap-demo-users': typeof ApiPublicBootstrapDemoUsersRoute
+  '/oauth/microsoft_outlook/return': typeof OauthMicrosoft_outlookReturnRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
 }
@@ -123,6 +131,7 @@ export interface FileRoutesByTo {
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/bootstrap-demo-users': typeof ApiPublicBootstrapDemoUsersRoute
+  '/oauth/microsoft_outlook/return': typeof OauthMicrosoft_outlookReturnRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
 }
@@ -140,6 +149,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/bootstrap-demo-users': typeof ApiPublicBootstrapDemoUsersRoute
+  '/oauth/microsoft_outlook/return': typeof OauthMicrosoft_outlookReturnRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
 }
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/leads/$id'
     | '/api/public/bootstrap-demo-users'
+    | '/oauth/microsoft_outlook/return'
     | '/clients/'
     | '/leads/'
   fileRoutesByTo: FileRoutesByTo
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/leads/$id'
     | '/api/public/bootstrap-demo-users'
+    | '/oauth/microsoft_outlook/return'
     | '/clients'
     | '/leads'
   id:
@@ -188,6 +200,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/$id'
     | '/_authenticated/leads/$id'
     | '/api/public/bootstrap-demo-users'
+    | '/oauth/microsoft_outlook/return'
     | '/_authenticated/clients/'
     | '/_authenticated/leads/'
   fileRoutesById: FileRoutesById
@@ -198,6 +211,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   ApiMarketQuotesRoute: typeof ApiMarketQuotesRoute
   ApiPublicBootstrapDemoUsersRoute: typeof ApiPublicBootstrapDemoUsersRoute
+  OauthMicrosoft_outlookReturnRoute: typeof OauthMicrosoft_outlookReturnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -279,6 +293,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/oauth/microsoft_outlook/return': {
+      id: '/oauth/microsoft_outlook/return'
+      path: '/oauth/microsoft_outlook/return'
+      fullPath: '/oauth/microsoft_outlook/return'
+      preLoaderRoute: typeof OauthMicrosoft_outlookReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bootstrap-demo-users': {
       id: '/api/public/bootstrap-demo-users'
       path: '/api/public/bootstrap-demo-users'
@@ -344,6 +365,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   ApiMarketQuotesRoute: ApiMarketQuotesRoute,
   ApiPublicBootstrapDemoUsersRoute: ApiPublicBootstrapDemoUsersRoute,
+  OauthMicrosoft_outlookReturnRoute: OauthMicrosoft_outlookReturnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
