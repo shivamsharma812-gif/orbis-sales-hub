@@ -29,13 +29,14 @@ function SettingsPage() {
     <div>
       <PageHeader title="Settings" description="Configure CRM defaults and dictionaries." />
       <div className="p-6">
-        <Tabs defaultValue="pipeline">
+          <Tabs defaultValue="pipeline">
           <TabsList>
             <TabsTrigger value="pipeline">Pipeline stages</TabsTrigger>
             <TabsTrigger value="categories">Client categories</TabsTrigger>
             <TabsTrigger value="meetings">Meeting types</TabsTrigger>
             <TabsTrigger value="followups">Follow-up priorities</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="outlook">Outlook</TabsTrigger>
             <TabsTrigger value="preferences">System</TabsTrigger>
           </TabsList>
           <TabsContent value="pipeline">
