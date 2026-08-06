@@ -106,8 +106,8 @@ function OutlookSettings() {
   });
 
   const connect = useMutation({
-    mutationFn: async () => {
-      const { authorizationUrl } = await startOutlookConnect();
+    mutationFn: async (_?: unknown) => {
+      const { authorizationUrl } = await startOutlookConnect({} as never);
       return authorizationUrl;
     },
     onSuccess: (url) => {
@@ -145,7 +145,7 @@ function OutlookSettings() {
   });
 
   const disconnect = useMutation({
-    mutationFn: disconnectOutlook,
+    mutationFn: async (_?: unknown) => disconnectOutlook({} as never),
     onSuccess: () => {
       toast.success("Outlook disconnected");
       qc.invalidateQueries({ queryKey: ["outlook-connection"] });
