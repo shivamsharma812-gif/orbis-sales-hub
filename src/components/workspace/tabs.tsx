@@ -32,7 +32,14 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import { toast } from "sonner";
-import { formatDate, formatDateTime, relativeDay } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  relativeDay,
+  toLocalInputValue,
+  fromLocalInputValue,
+} from "@/lib/format";
+import { ParticipantPicker, type Participant } from "@/components/participant-picker";
 import {
   Plus,
   User,
