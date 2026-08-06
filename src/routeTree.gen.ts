@@ -24,6 +24,7 @@ import { Route as OauthMicrosoft_outlookReturnRouteImport } from './routes/oauth
 import { Route as ApiPublicBootstrapDemoUsersRouteImport } from './routes/api/public/bootstrap-demo-users'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
+import { Route as ApiPublicHooksOutlookSyncRouteImport } from './routes/api/public/hooks/outlook-sync'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -102,6 +103,12 @@ const AuthenticatedClientsIdRoute = AuthenticatedClientsIdRouteImport.update({
   path: '/clients/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksOutlookSyncRoute =
+  ApiPublicHooksOutlookSyncRouteImport.update({
+    id: '/api/public/hooks/outlook-sync',
+    path: '/api/public/hooks/outlook-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/oauth/microsoft_outlook/return': typeof OauthMicrosoft_outlookReturnRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
+  '/api/public/hooks/outlook-sync': typeof ApiPublicHooksOutlookSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/oauth/microsoft_outlook/return': typeof OauthMicrosoft_outlookReturnRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
+  '/api/public/hooks/outlook-sync': typeof ApiPublicHooksOutlookSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +161,7 @@ export interface FileRoutesById {
   '/oauth/microsoft_outlook/return': typeof OauthMicrosoft_outlookReturnRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
+  '/api/public/hooks/outlook-sync': typeof ApiPublicHooksOutlookSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/oauth/microsoft_outlook/return'
     | '/clients/'
     | '/leads/'
+    | '/api/public/hooks/outlook-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/oauth/microsoft_outlook/return'
     | '/clients'
     | '/leads'
+    | '/api/public/hooks/outlook-sync'
   id:
     | '__root__'
     | '/'
@@ -203,6 +215,7 @@ export interface FileRouteTypes {
     | '/oauth/microsoft_outlook/return'
     | '/_authenticated/clients/'
     | '/_authenticated/leads/'
+    | '/api/public/hooks/outlook-sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -212,6 +225,7 @@ export interface RootRouteChildren {
   ApiMarketQuotesRoute: typeof ApiMarketQuotesRoute
   ApiPublicBootstrapDemoUsersRoute: typeof ApiPublicBootstrapDemoUsersRoute
   OauthMicrosoft_outlookReturnRoute: typeof OauthMicrosoft_outlookReturnRoute
+  ApiPublicHooksOutlookSyncRoute: typeof ApiPublicHooksOutlookSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -321,6 +335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/outlook-sync': {
+      id: '/api/public/hooks/outlook-sync'
+      path: '/api/public/hooks/outlook-sync'
+      fullPath: '/api/public/hooks/outlook-sync'
+      preLoaderRoute: typeof ApiPublicHooksOutlookSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -366,6 +387,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMarketQuotesRoute: ApiMarketQuotesRoute,
   ApiPublicBootstrapDemoUsersRoute: ApiPublicBootstrapDemoUsersRoute,
   OauthMicrosoft_outlookReturnRoute: OauthMicrosoft_outlookReturnRoute,
+  ApiPublicHooksOutlookSyncRoute: ApiPublicHooksOutlookSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
