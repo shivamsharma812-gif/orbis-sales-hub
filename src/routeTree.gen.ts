@@ -25,6 +25,7 @@ import { Route as ApiPublicBootstrapDemoUsersRouteImport } from './routes/api/pu
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 import { Route as ApiPublicHooksOutlookSyncRouteImport } from './routes/api/public/hooks/outlook-sync'
+import { Route as ApiPublicHooksInactivityMonitorRouteImport } from './routes/api/public/hooks/inactivity-monitor'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -109,6 +110,12 @@ const ApiPublicHooksOutlookSyncRoute =
     path: '/api/public/hooks/outlook-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksInactivityMonitorRoute =
+  ApiPublicHooksInactivityMonitorRouteImport.update({
+    id: '/api/public/hooks/inactivity-monitor',
+    path: '/api/public/hooks/inactivity-monitor',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/oauth/microsoft_outlook/return': typeof OauthMicrosoft_outlookReturnRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
+  '/api/public/hooks/inactivity-monitor': typeof ApiPublicHooksInactivityMonitorRoute
   '/api/public/hooks/outlook-sync': typeof ApiPublicHooksOutlookSyncRoute
 }
 export interface FileRoutesByTo {
@@ -142,6 +150,7 @@ export interface FileRoutesByTo {
   '/oauth/microsoft_outlook/return': typeof OauthMicrosoft_outlookReturnRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
+  '/api/public/hooks/inactivity-monitor': typeof ApiPublicHooksInactivityMonitorRoute
   '/api/public/hooks/outlook-sync': typeof ApiPublicHooksOutlookSyncRoute
 }
 export interface FileRoutesById {
@@ -161,6 +170,7 @@ export interface FileRoutesById {
   '/oauth/microsoft_outlook/return': typeof OauthMicrosoft_outlookReturnRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
+  '/api/public/hooks/inactivity-monitor': typeof ApiPublicHooksInactivityMonitorRoute
   '/api/public/hooks/outlook-sync': typeof ApiPublicHooksOutlookSyncRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/oauth/microsoft_outlook/return'
     | '/clients/'
     | '/leads/'
+    | '/api/public/hooks/inactivity-monitor'
     | '/api/public/hooks/outlook-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/oauth/microsoft_outlook/return'
     | '/clients'
     | '/leads'
+    | '/api/public/hooks/inactivity-monitor'
     | '/api/public/hooks/outlook-sync'
   id:
     | '__root__'
@@ -215,6 +227,7 @@ export interface FileRouteTypes {
     | '/oauth/microsoft_outlook/return'
     | '/_authenticated/clients/'
     | '/_authenticated/leads/'
+    | '/api/public/hooks/inactivity-monitor'
     | '/api/public/hooks/outlook-sync'
   fileRoutesById: FileRoutesById
 }
@@ -225,6 +238,7 @@ export interface RootRouteChildren {
   ApiMarketQuotesRoute: typeof ApiMarketQuotesRoute
   ApiPublicBootstrapDemoUsersRoute: typeof ApiPublicBootstrapDemoUsersRoute
   OauthMicrosoft_outlookReturnRoute: typeof OauthMicrosoft_outlookReturnRoute
+  ApiPublicHooksInactivityMonitorRoute: typeof ApiPublicHooksInactivityMonitorRoute
   ApiPublicHooksOutlookSyncRoute: typeof ApiPublicHooksOutlookSyncRoute
 }
 
@@ -342,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksOutlookSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/inactivity-monitor': {
+      id: '/api/public/hooks/inactivity-monitor'
+      path: '/api/public/hooks/inactivity-monitor'
+      fullPath: '/api/public/hooks/inactivity-monitor'
+      preLoaderRoute: typeof ApiPublicHooksInactivityMonitorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -387,18 +408,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMarketQuotesRoute: ApiMarketQuotesRoute,
   ApiPublicBootstrapDemoUsersRoute: ApiPublicBootstrapDemoUsersRoute,
   OauthMicrosoft_outlookReturnRoute: OauthMicrosoft_outlookReturnRoute,
+  ApiPublicHooksInactivityMonitorRoute: ApiPublicHooksInactivityMonitorRoute,
   ApiPublicHooksOutlookSyncRoute: ApiPublicHooksOutlookSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

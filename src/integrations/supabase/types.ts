@@ -640,6 +640,9 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          inactivity_email_sent_at: string | null
+          last_active_at: string | null
+          last_login_at: string | null
           phone: string | null
           reports_to_user_id: string | null
           status: Database["public"]["Enums"]["user_status"]
@@ -653,6 +656,9 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          inactivity_email_sent_at?: string | null
+          last_active_at?: string | null
+          last_login_at?: string | null
           phone?: string | null
           reports_to_user_id?: string | null
           status?: Database["public"]["Enums"]["user_status"]
@@ -666,6 +672,9 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          inactivity_email_sent_at?: string | null
+          last_active_at?: string | null
+          last_login_at?: string | null
           phone?: string | null
           reports_to_user_id?: string | null
           status?: Database["public"]["Enums"]["user_status"]
@@ -707,6 +716,7 @@ export type Database = {
         Returns: boolean
       }
       is_top_of_tree: { Args: never; Returns: boolean }
+      record_user_login: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "system_admin"

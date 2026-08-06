@@ -32,7 +32,14 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import { toast } from "sonner";
-import { formatDate, formatDateTime, relativeDay } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  relativeDay,
+  toLocalInputValue,
+  fromLocalInputValue,
+} from "@/lib/format";
+import { ParticipantPicker, type Participant } from "@/components/participant-picker";
 import {
   Plus,
   User,
@@ -272,7 +279,7 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
           parent_type: parentType as never,
           parent_id: parentId,
           owner_id: ownerId,
-          meeting_date: form.meeting_date,
+          meeting_date: fromLocalInputValue(form.meeting_date),
           meeting_type: form.meeting_type,
           agenda: form.agenda,
           duration_minutes: Number(form.duration_minutes) || 30,
@@ -374,7 +381,7 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
           <DialogTrigger asChild>
             <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Schedule</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Schedule meeting</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -409,6 +416,10 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
                   </div>
                 </div>
               )}
+              <ParticipantPicker
+                value={form.attendees as Participant[]}
+                onChange={(next) => setForm({ ...form, attendees: next })}
+              />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -557,32 +568,33 @@ function EditMeetingDialog({
   isPending: boolean;
 }) {
   const [form, setForm] = useState({
-    meeting_date: meeting.meeting_date.slice(0, 16),
+    meeting_date: toLocalInputValue(meeting.meeting_date),
     meeting_type: meeting.meeting_type,
     agenda: meeting.agenda ?? "",
     duration_minutes: String(meeting.duration_minutes ?? 30),
-    attendees: ((meeting.attendees ?? []) as { email: string; name?: string }[]).map((a) => a.email),
+    attendees: ((meeting.attendees ?? []) as unknown as Participant[]).map((a): Participant => ({
+      email: a.email,
+      name: a.name,
+    })),
     discussion_summary: meeting.discussion_summary ?? "",
     action_items: meeting.action_items ?? "",
   });
 
-  const toggleAttendee = (email: string) => {
-    if (form.attendees.includes(email)) {
-      setForm({ ...form, attendees: form.attendees.filter((e) => e !== email) });
+  const toggleAttendee = (email: string, name?: string | null) => {
+    if (form.attendees.some((a) => a.email === email)) {
+      setForm({ ...form, attendees: form.attendees.filter((a) => a.email !== email) });
     } else {
-      setForm({ ...form, attendees: [...form.attendees, email] });
+      setForm({ ...form, attendees: [...form.attendees, { email, name: name ?? undefined }] });
     }
   };
 
   const handleSave = () => {
     onSave({
-      meeting_date: form.meeting_date,
+      meeting_date: fromLocalInputValue(form.meeting_date),
       meeting_type: form.meeting_type,
       agenda: form.agenda,
       duration_minutes: Number(form.duration_minutes) || 30,
-      attendees: contacts
-        .filter((c) => form.attendees.includes(c.email))
-        .map((c) => ({ email: c.email, name: c.name ?? undefined })) as any,
+      attendees: form.attendees as any,
       discussion_summary: form.discussion_summary,
       action_items: form.action_items,
     });
@@ -590,7 +602,7 @@ function EditMeetingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Edit meeting</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -613,7 +625,7 @@ function EditMeetingDialog({
               <div className="border rounded-md p-2 space-y-1 max-h-32 overflow-y-auto">
                 {contacts.map((c) => (
                   <label key={c.email} className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={form.attendees.includes(c.email)} onChange={() => toggleAttendee(c.email)} />
+                    <input type="checkbox" checked={form.attendees.some((a) => a.email === c.email)} onChange={() => toggleAttendee(c.email, c.name)} />
                     <span>{c.name ?? c.email}</span>
                     <span className="text-muted-foreground text-xs">{c.email}</span>
                   </label>
@@ -621,6 +633,10 @@ function EditMeetingDialog({
               </div>
             </div>
           )}
+          <ParticipantPicker
+            value={form.attendees}
+            onChange={(next) => setForm({ ...form, attendees: next })}
+          />
           <div className="space-y-1.5"><Label>Meeting notes</Label><Textarea rows={3} value={form.discussion_summary} onChange={(e) => setForm({ ...form, discussion_summary: e.target.value })} /></div>
           <div className="space-y-1.5"><Label>Action items</Label><Textarea rows={2} value={form.action_items} onChange={(e) => setForm({ ...form, action_items: e.target.value })} /></div>
         </div>
