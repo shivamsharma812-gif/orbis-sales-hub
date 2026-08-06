@@ -416,6 +416,10 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
                   </div>
                 </div>
               )}
+              <ParticipantPicker
+                value={form.attendees as Participant[]}
+                onChange={(next) => setForm({ ...form, attendees: next })}
+              />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
