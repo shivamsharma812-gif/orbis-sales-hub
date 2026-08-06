@@ -59,3 +59,23 @@ export function relativeDay(dateStr: string | null | undefined): string {
   if (diff < 0) return `${-diff} days ago`;
   return `In ${diff} days`;
 }
+
+/**
+ * `<input type="datetime-local">` works in the browser's local time, but the
+ * database column is timestamptz. These two helpers keep the round-trip honest
+ * so a 3:30pm entry is stored as 3:30pm local, not 3:30pm UTC.
+ */
+export function toLocalInputValue(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function fromLocalInputValue(value: string): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString();
+}
