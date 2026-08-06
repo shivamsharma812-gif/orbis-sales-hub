@@ -6,7 +6,7 @@ Two-way sync between CRM meetings and each user's own Outlook calendar, using Mi
 
 1. Each CRM user connects their own Microsoft account once, from a "Connect Outlook" card on Settings. Consent happens in a popup; nothing is shared between users.
 2. When a meeting is created in the CRM, it is also created as a calendar event in the organiser's Outlook, with the lead/client contacts invited by email. Edits (date, agenda, notes, attendees) and deletions/cancellations propagate to Outlook.
-3. Outlook changes flow back into the CRM through Microsoft change notifications (webhooks), with a safety-net poll behind it. Only events that came from a CRM meeting are read back; unrelated personal events are ignored.
+3. Every 15 minutes a background job pulls the linked Outlook events and updates the matching CRM meeting — reschedules and cancellations. Only events that came from a CRM meeting are read back; unrelated personal events are ignored.
 4. The meeting row shows sync status: Synced / Not connected / Sync failed, with a manual "Sync now" action.
 
 ## Meeting notes on the edit tab
