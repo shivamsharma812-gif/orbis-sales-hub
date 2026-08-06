@@ -1,19 +1,37 @@
 # Outlook calendar sync for CRM meetings
 
-Two-way sync between CRM meetings and each user's own Outlook calendar, using Microsoft Graph.
+Two-way sync between CRM meetings and each user's own Outlook calendar, using Microsoft Graph, plus editable meeting notes.
 
 ## How it will work
 
 1. Each CRM user connects their own Microsoft account once, from a "Connect Outlook" card on Settings. Consent happens in a popup; nothing is shared between users.
-2. When a meeting is created in the CRM, it is also created as a calendar event in the organiser's Outlook, with the lead/client contacts invited by email. Edits (date, agenda, attendees) and deletions/cancellations propagate to Outlook.
-3. Every 15 minutes a background job pulls each connected user's calendar and updates the matching CRM meeting when the Outlook copy changed — reschedules, cancellations, and accepted/declined responses. Only events that came from a CRM meeting are read back; unrelated personal events are ignored.
+2. When a meeting is created in the CRM, it is also created as a calendar event in the organiser's Outlook, with the lead/client contacts invited by email. Edits (date, agenda, notes, attendees) and deletions/cancellations propagate to Outlook.
+3. Outlook changes flow back into the CRM through Microsoft change notifications (webhooks), with a safety-net poll behind it. Only events that came from a CRM meeting are read back; unrelated personal events are ignored.
 4. The meeting row shows sync status: Synced / Not connected / Sync failed, with a manual "Sync now" action.
+
+## Meeting notes on the edit tab
+
+Today notes can only be captured when a meeting is marked complete. The edit dialog will gain **Meeting notes** and **Action items** textareas, editable at any time (before or after the meeting), saved to the existing `discussion_summary` and `action_items` fields. The notes are also written into the Outlook event body so both sides show the same context.
 
 ## What changes for the user
 
 - Settings gains an **Outlook** tab: connect, show connected account, disconnect.
 - The meeting form gains an optional **Invite attendees** field (pre-filled with the lead/client contacts that have an email) and a duration field, since Outlook events need an end time.
 - Meetings created before the integration are not back-filled; they sync on next edit only if the user opts in.
+
+## Webhooks vs 15-minute polling — the trade-offs
+
+Real-time is possible, but Microsoft Graph webhooks come with conditions:
+
+- **Only works on the published site.** Graph must reach a public HTTPS URL and complete a validation handshake at subscription time. Preview builds do not receive notifications, so this part cannot be fully tested until the app is published.
+- **Subscriptions expire.** Calendar subscriptions live at most ~3 days, so a scheduled renewal job is still required — the cron job does not go away, it just renews instead of polls.
+- **One subscription per connected mailbox.** Each user's subscription is created on connect, renewed on schedule, and recreated if the user reconnects or revokes access.
+- **Notifications carry no data.** Graph sends "event X changed"; the app still calls Graph to fetch the event, so the same read path is used either way.
+- **Delivery is not guaranteed.** Missed or dropped notifications are normal, so a low-frequency reconciliation poll (e.g. hourly) must stay as a backstop.
+- **More moving parts to fail quietly.** An expired subscription or a failed renewal looks exactly like "nothing changed", so the UI needs a per-user "last synced" indicator and a reconnect prompt.
+
+Recommendation: build webhooks for near-instant updates, keep an hourly reconciliation sweep, and validate every notification against a secret `clientState` value.
+
 
 ## Technical section
 
