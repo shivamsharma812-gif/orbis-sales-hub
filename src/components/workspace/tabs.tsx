@@ -625,7 +625,7 @@ function EditMeetingDialog({
               <div className="border rounded-md p-2 space-y-1 max-h-32 overflow-y-auto">
                 {contacts.map((c) => (
                   <label key={c.email} className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={form.attendees.includes(c.email)} onChange={() => toggleAttendee(c.email)} />
+                    <input type="checkbox" checked={form.attendees.some((a) => a.email === c.email)} onChange={() => toggleAttendee(c.email, c.name)} />
                     <span>{c.name ?? c.email}</span>
                     <span className="text-muted-foreground text-xs">{c.email}</span>
                   </label>
@@ -633,6 +633,10 @@ function EditMeetingDialog({
               </div>
             </div>
           )}
+          <ParticipantPicker
+            value={form.attendees}
+            onChange={(next) => setForm({ ...form, attendees: next })}
+          />
           <div className="space-y-1.5"><Label>Meeting notes</Label><Textarea rows={3} value={form.discussion_summary} onChange={(e) => setForm({ ...form, discussion_summary: e.target.value })} /></div>
           <div className="space-y-1.5"><Label>Action items</Label><Textarea rows={2} value={form.action_items} onChange={(e) => setForm({ ...form, action_items: e.target.value })} /></div>
         </div>
