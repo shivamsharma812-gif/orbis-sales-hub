@@ -223,6 +223,7 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
 }
 
 /* ---------------- Meetings ---------------- */
+type MeetingRowType = Database["public"]["Tables"]["meetings"]["Row"];
 export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
