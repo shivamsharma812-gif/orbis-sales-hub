@@ -87,7 +87,7 @@ function LeadsPage() {
   const [convertLead, setConvertLead] = useState<ConvertibleLead | null>(null);
   const [lostLead, setLostLead] = useState<Lead | null>(null);
   const months = monthOptions();
-  const navigate = useNavigate({ from: "/leads" });
+  const navigate = useNavigate();
 
   const { data: leads = [] } = useQuery({
     queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q }],
@@ -328,7 +328,7 @@ function KanbanBoard({
   onConvert: (lead: Lead) => void;
   onMarkLost: (lead: Lead) => void;
 }) {
-  const navigate = useNavigate({ from: "/leads" });
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const stages = ACTIVE_STAGES;
 

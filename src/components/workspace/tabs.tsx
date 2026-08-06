@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -229,6 +230,22 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
     meeting_date: "",
     meeting_type: "In-Person",
     agenda: "",
+    duration_minutes: "30",
+    attendees: [] as { email: string; name?: string }[],
+  });
+  const [editing, setEditing] = useState<MeetingRowType | null>(null);
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts", parentType, parentId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contacts")
+        .select("name, email")
+        .eq("parent_type", parentType as never)
+        .eq("parent_id", parentId)
+        .order("is_primary", { ascending: false });
+      return (data ?? []).filter((c) => c.email) as { name: string | null; email: string }[];
+    },
   });
 
   const { data: meetings = [] } = useQuery({
@@ -244,28 +261,63 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
     },
   });
 
+  const resetForm = () =>
+    setForm({ meeting_date: "", meeting_type: "In-Person", agenda: "", duration_minutes: "30", attendees: [] });
+
   const create = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("meetings").insert({
-        parent_type: parentType as never,
-        parent_id: parentId,
-        owner_id: ownerId,
-        meeting_date: form.meeting_date,
-        meeting_type: form.meeting_type,
-        agenda: form.agenda,
-        status: "scheduled" as never,
-      });
+      const { data: inserted, error } = await supabase
+        .from("meetings")
+        .insert({
+          parent_type: parentType as never,
+          parent_id: parentId,
+          owner_id: ownerId,
+          meeting_date: form.meeting_date,
+          meeting_type: form.meeting_type,
+          agenda: form.agenda,
+          duration_minutes: Number(form.duration_minutes) || 30,
+          attendees: form.attendees as any,
+          status: "scheduled" as never,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
       if (parentType === "lead") await advanceLeadStage(parentId, "Meeting Scheduled");
+      return inserted.id as string;
     },
-    onSuccess: () => {
+    onSuccess: async (id) => {
       qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["lead", parentId] });
       qc.invalidateQueries({ queryKey: ["leads"] });
       setOpen(false);
-      setForm({ meeting_date: "", meeting_type: "In-Person", agenda: "" });
+      resetForm();
       toast.success("Meeting scheduled");
+      const { pushMeetingToOutlook } = await import("@/lib/outlook.functions");
+      const result = await pushMeetingToOutlook({ data: { meetingId: id } });
+      if (!result.ok && result.error) toast.error(`Outlook: ${result.error}`);
+      else if (result.ok) toast.success("Synced to Outlook");
+      qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const update = useMutation({
+    mutationFn: async (values: Partial<MeetingRowType>) => {
+      if (!editing) return;
+      const { error } = await supabase.from("meetings").update(values).eq("id", editing.id);
+      if (error) throw error;
+      return editing.id;
+    },
+    onSuccess: async (id) => {
+      if (!id) return;
+      qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
+      setEditing(null);
+      toast.success("Meeting updated");
+      const { pushMeetingToOutlook } = await import("@/lib/outlook.functions");
+      const result = await pushMeetingToOutlook({ data: { meetingId: id } });
+      if (!result.ok && result.error) toast.error(`Outlook: ${result.error}`);
+      qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -278,16 +330,21 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
         .eq("id", id);
       if (error) throw error;
       if (parentType === "lead") await advanceLeadStage(parentId, "Meeting Completed");
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: async (id) => {
       qc.invalidateQueries({ queryKey: ["meetings", parentType, parentId] });
       qc.invalidateQueries({ queryKey: ["lead", parentId] });
       qc.invalidateQueries({ queryKey: ["leads"] });
+      const { pushMeetingToOutlook } = await import("@/lib/outlook.functions");
+      await pushMeetingToOutlook({ data: { meetingId: id } });
     },
   });
 
   const del = useMutation({
     mutationFn: async (id: string) => {
+      const { deleteOutlookMeeting } = await import("@/lib/outlook.functions");
+      await deleteOutlookMeeting({ data: { meetingId: id } });
       const { error } = await supabase.from("meetings").delete().eq("id", id);
       if (error) throw error;
     },
@@ -297,6 +354,15 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const toggleAttendee = (email: string, name?: string | null) => {
+    const exists = form.attendees.some((a) => a.email === email);
+    if (exists) {
+      setForm({ ...form, attendees: form.attendees.filter((a) => a.email !== email) });
+    } else {
+      setForm({ ...form, attendees: [...form.attendees, { email, name: name ?? undefined }] });
+    }
+  };
 
   return (
     <Card className="p-0 overflow-hidden">
@@ -308,10 +374,13 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
           <DialogTrigger asChild>
             <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Schedule</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Schedule meeting</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div className="space-y-1.5"><Label>Date &amp; time</Label><Input type="datetime-local" value={form.meeting_date} onChange={(e) => setForm({ ...form, meeting_date: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label>Date &amp; time</Label><Input type="datetime-local" value={form.meeting_date} onChange={(e) => setForm({ ...form, meeting_date: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label>Duration (min)</Label><Input type="number" min={5} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} /></div>
+              </div>
               <div className="space-y-1.5">
                 <Label>Type</Label>
                 <Select value={form.meeting_type} onValueChange={(v) => setForm({ ...form, meeting_type: v })}>
@@ -321,7 +390,25 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5"><Label>Agenda</Label><Textarea rows={3} value={form.agenda} onChange={(e) => setForm({ ...form, agenda: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Agenda</Label><Textarea rows={2} value={form.agenda} onChange={(e) => setForm({ ...form, agenda: e.target.value })} /></div>
+              {contacts.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>Invite attendees</Label>
+                  <div className="border rounded-md p-2 space-y-1 max-h-32 overflow-y-auto">
+                    {contacts.map((c) => (
+                      <label key={c.email} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={form.attendees.some((a) => a.email === c.email)}
+                          onChange={() => toggleAttendee(c.email, c.name)}
+                        />
+                        <span>{c.name ?? c.email}</span>
+                        <span className="text-muted-foreground text-xs">{c.email}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -335,25 +422,65 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
           <div className="text-center text-sm text-muted-foreground py-8">You have been sitting on your desk for long enough, Hustle up soldier :)</div>
         )}
         {meetings.map((m) => (
-          <MeetingRow key={m.id} m={m} onComplete={(summary, actions) => complete.mutate({ id: m.id, summary, actions })} onDelete={() => { if (confirm("Delete this meeting?")) del.mutate(m.id); }} />
+          <MeetingRow
+            key={m.id}
+            m={m}
+            contacts={contacts}
+            onComplete={(summary, actions) => complete.mutate({ id: m.id, summary, actions })}
+            onDelete={() => { if (confirm("Delete this meeting?")) del.mutate(m.id); }}
+            onEdit={() => setEditing(m)}
+          />
         ))}
       </div>
+      {editing && (
+        <EditMeetingDialog
+          meeting={editing}
+          contacts={contacts}
+          open={!!editing}
+          onOpenChange={(open) => { if (!open) setEditing(null); }}
+          onSave={(values) => update.mutate(values)}
+          isPending={update.isPending}
+        />
+      )}
     </Card>
   );
 }
 
+type MeetingRowType = Database["public"]["Tables"]["meetings"]["Row"];
+
 function MeetingRow({
   m,
+  contacts,
   onComplete,
   onDelete,
+  onEdit,
 }: {
-  m: { id: string; meeting_date: string; meeting_type: string; status: string; agenda: string | null; discussion_summary: string | null; action_items: string | null };
+  m: MeetingRowType;
+  contacts: { name: string | null; email: string }[];
   onComplete: (summary: string, actions: string) => void;
   onDelete: () => void;
+  onEdit: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [summary, setSummary] = useState("");
-  const [actions, setActions] = useState("");
+  const qc = useQueryClient();
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [summary, setSummary] = useState(m.discussion_summary ?? "");
+  const [actions, setActions] = useState(m.action_items ?? "");
+  const attendees = ((m.attendees ?? []) as { email: string; name?: string }[]).length;
+
+  const syncNow = async () => {
+    const { syncMeetingFromOutlook } = await import("@/lib/outlook.functions");
+    const result = await syncMeetingFromOutlook({ data: { meetingId: m.id } });
+    if (!result.ok && result.error) toast.error(`Sync failed: ${result.error}`);
+    else toast.success("Synced from Outlook");
+    qc.invalidateQueries({ queryKey: ["meetings", m.parent_type, m.parent_id] });
+  };
+
+  const syncStatus = m.outlook_event_id
+    ? m.outlook_sync_error
+      ? "Sync failed"
+      : "Synced"
+    : "Not connected";
+
   return (
     <div className="p-4">
       <div className="flex items-start justify-between gap-3">
@@ -361,10 +488,15 @@ function MeetingRow({
           <div className="text-sm font-medium">{m.agenda ?? "Meeting"}</div>
           <div className="text-xs text-muted-foreground">
             {formatDateTime(m.meeting_date)} · {m.meeting_type}
+            {m.duration_minutes ? ` · ${m.duration_minutes} min` : ""}
+            {attendees > 0 ? ` · ${attendees} invitee${attendees > 1 ? "s" : ""}` : ""}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={m.status === "completed" ? "secondary" : "outline"}>{m.status}</Badge>
+          <Button size="sm" variant="ghost" onClick={onEdit}>
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
           <Button size="sm" variant="ghost" onClick={onDelete}>
             <Trash2 className="w-3.5 h-3.5 text-destructive" />
           </Button>
@@ -379,25 +511,125 @@ function MeetingRow({
           <span className="text-muted-foreground">{m.action_items}</span>
         </div>
       )}
+      <div className="mt-2 flex items-center gap-2">
+        <Badge variant={syncStatus === "Synced" ? "secondary" : syncStatus === "Sync failed" ? "destructive" : "outline"} className="text-xs">
+          {syncStatus}
+        </Badge>
+        {m.outlook_event_id && (
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={syncNow}>Sync now</Button>
+        )}
+      </div>
       {m.status !== "completed" && (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
           <DialogTrigger asChild>
             <Button size="sm" variant="ghost" className="mt-2 h-7">Mark completed</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Complete meeting</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div className="space-y-1.5"><Label>Discussion summary</Label><Textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Meeting notes</Label><Textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} /></div>
               <div className="space-y-1.5"><Label>Action items</Label><Textarea rows={2} value={actions} onChange={(e) => setActions(e.target.value)} /></div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={() => { onComplete(summary, actions); setOpen(false); }}>Save</Button>
+              <Button variant="outline" onClick={() => setCompleteOpen(false)}>Cancel</Button>
+              <Button onClick={() => { onComplete(summary, actions); setCompleteOpen(false); }}>Save</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
     </div>
+  );
+}
+
+function EditMeetingDialog({
+  meeting,
+  contacts,
+  open,
+  onOpenChange,
+  onSave,
+  isPending,
+}: {
+  meeting: MeetingRowType;
+  contacts: { name: string | null; email: string }[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (values: Partial<MeetingRowType>) => void;
+  isPending: boolean;
+}) {
+  const [form, setForm] = useState({
+    meeting_date: meeting.meeting_date.slice(0, 16),
+    meeting_type: meeting.meeting_type,
+    agenda: meeting.agenda ?? "",
+    duration_minutes: String(meeting.duration_minutes ?? 30),
+    attendees: ((meeting.attendees ?? []) as { email: string; name?: string }[]).map((a) => a.email),
+    discussion_summary: meeting.discussion_summary ?? "",
+    action_items: meeting.action_items ?? "",
+  });
+
+  const toggleAttendee = (email: string) => {
+    if (form.attendees.includes(email)) {
+      setForm({ ...form, attendees: form.attendees.filter((e) => e !== email) });
+    } else {
+      setForm({ ...form, attendees: [...form.attendees, email] });
+    }
+  };
+
+  const handleSave = () => {
+    onSave({
+      meeting_date: form.meeting_date,
+      meeting_type: form.meeting_type,
+      agenda: form.agenda,
+      duration_minutes: Number(form.duration_minutes) || 30,
+      attendees: contacts
+        .filter((c) => form.attendees.includes(c.email))
+        .map((c) => ({ email: c.email, name: c.name ?? undefined })) as any,
+      discussion_summary: form.discussion_summary,
+      action_items: form.action_items,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Edit meeting</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Date &amp; time</Label><Input type="datetime-local" value={form.meeting_date} onChange={(e) => setForm({ ...form, meeting_date: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Duration (min)</Label><Input type="number" min={5} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} /></div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Type</Label>
+            <Select value={form.meeting_type} onValueChange={(v) => setForm({ ...form, meeting_type: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["In-Person","Video Call","Phone Call"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Agenda</Label><Textarea rows={2} value={form.agenda} onChange={(e) => setForm({ ...form, agenda: e.target.value })} /></div>
+          {contacts.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Invite attendees</Label>
+              <div className="border rounded-md p-2 space-y-1 max-h-32 overflow-y-auto">
+                {contacts.map((c) => (
+                  <label key={c.email} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={form.attendees.includes(c.email)} onChange={() => toggleAttendee(c.email)} />
+                    <span>{c.name ?? c.email}</span>
+                    <span className="text-muted-foreground text-xs">{c.email}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="space-y-1.5"><Label>Meeting notes</Label><Textarea rows={3} value={form.discussion_summary} onChange={(e) => setForm({ ...form, discussion_summary: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label>Action items</Label><Textarea rows={2} value={form.action_items} onChange={(e) => setForm({ ...form, action_items: e.target.value })} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={isPending}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

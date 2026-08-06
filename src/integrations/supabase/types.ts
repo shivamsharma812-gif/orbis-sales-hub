@@ -52,6 +52,33 @@ export type Database = {
           },
         ]
       }
+      app_user_connections: {
+        Row: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_key_ciphertext?: string
+          connector_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -388,12 +415,19 @@ export type Database = {
         Row: {
           action_items: string | null
           agenda: string | null
+          attendees: Json | null
           created_at: string
           discussion_summary: string | null
+          duration_minutes: number | null
           id: string
           meeting_date: string
           meeting_type: string
           next_followup_date: string | null
+          outlook_change_key: string | null
+          outlook_event_id: string | null
+          outlook_ical_uid: string | null
+          outlook_last_synced_at: string | null
+          outlook_sync_error: string | null
           owner_id: string
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
@@ -404,12 +438,19 @@ export type Database = {
         Insert: {
           action_items?: string | null
           agenda?: string | null
+          attendees?: Json | null
           created_at?: string
           discussion_summary?: string | null
+          duration_minutes?: number | null
           id?: string
           meeting_date: string
           meeting_type?: string
           next_followup_date?: string | null
+          outlook_change_key?: string | null
+          outlook_event_id?: string | null
+          outlook_ical_uid?: string | null
+          outlook_last_synced_at?: string | null
+          outlook_sync_error?: string | null
           owner_id: string
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
@@ -420,12 +461,19 @@ export type Database = {
         Update: {
           action_items?: string | null
           agenda?: string | null
+          attendees?: Json | null
           created_at?: string
           discussion_summary?: string | null
+          duration_minutes?: number | null
           id?: string
           meeting_date?: string
           meeting_type?: string
           next_followup_date?: string | null
+          outlook_change_key?: string | null
+          outlook_event_id?: string | null
+          outlook_ical_uid?: string | null
+          outlook_last_synced_at?: string | null
+          outlook_sync_error?: string | null
           owner_id?: string
           parent_id?: string
           parent_type?: Database["public"]["Enums"]["parent_kind"]
