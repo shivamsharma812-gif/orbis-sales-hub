@@ -72,6 +72,9 @@ function SettingsPage() {
               In-app notifications only for MVP. Email &amp; WhatsApp delivery are planned for a future release.
             </Card>
           </TabsContent>
+          <TabsContent value="outlook">
+            <OutlookSettings />
+          </TabsContent>
           <TabsContent value="preferences">
             <Card className="p-4 text-sm text-muted-foreground">
               System preferences will be added here as the platform grows.
