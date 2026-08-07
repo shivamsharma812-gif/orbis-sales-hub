@@ -88,6 +88,7 @@ function LeadsPage() {
   const [q, setQ] = useState("");
   const [convertLead, setConvertLead] = useState<ConvertibleLead | null>(null);
   const [lostLead, setLostLead] = useState<Lead | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const months = monthOptions();
   const navigate = useNavigate();
 
