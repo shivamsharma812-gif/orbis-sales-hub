@@ -177,12 +177,18 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       const missing: string[] = [];
       if (!fields.includes("company_name")) missing.push("Company Name");
       if (!fields.includes("client_type")) missing.push("Category");
-      if (!fields.includes("owner")) missing.push("Owner");
       if (missing.length > 0) {
-        toast.error(`Missing required columns: ${missing.join(", ")}`);
+        toast.error(`Import Error: Missing required columns for ${missing.join(" / ")}. Please check your file headers.`);
         setProcessing(false);
         return;
       }
+      const hasOwnerColumn = fields.includes("owner");
+      if (!hasOwnerColumn && !currentUser) {
+        toast.error("Could not determine a default owner. Add an Owner column and try again.");
+        setProcessing(false);
+        return;
+      }
+
 
       // Email-based owner lookups
       const ownerEmails = new Set<string>();
