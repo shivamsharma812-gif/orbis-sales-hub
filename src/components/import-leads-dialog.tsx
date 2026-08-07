@@ -61,6 +61,10 @@ const HEADER_ALIASES: Record<string, string> = {
   owner: "owner", "owner name": "owner", "owner email": "owner", "deal owner": "owner",
   "account owner": "owner", assignee: "owner", "assigned to": "owner",
   "sales rep": "owner", rep: "owner", agent: "owner",
+  rm: "owner", "rm name": "owner", "relationship manager": "owner",
+  "relationship manager name": "owner", "rel manager": "owner", "rel manager name": "owner",
+  "rm owner": "owner",
+
   // Stage
   stage: "pipeline_stage", "pipeline stage": "pipeline_stage", "deal stage": "pipeline_stage",
   status: "pipeline_stage", "lead status": "pipeline_stage", phase: "pipeline_stage",
@@ -122,8 +126,13 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   }
 
   function normalizeHeader(h: string): string {
-    return h.trim().toLowerCase().replace(/[\s_\-.]+/g, " ").trim();
+    return h
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
   }
+
 
   function isJunkString(v: unknown): boolean {
     if (v === null || v === undefined) return true;
