@@ -126,8 +126,13 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   }
 
   function normalizeHeader(h: string): string {
-    return h.trim().toLowerCase().replace(/[\s_\-.]+/g, " ").trim();
+    return h
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
   }
+
 
   function isJunkString(v: unknown): boolean {
     if (v === null || v === undefined) return true;
