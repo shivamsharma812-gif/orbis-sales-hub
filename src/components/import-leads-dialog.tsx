@@ -14,6 +14,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAssignableUsers } from "@/hooks/use-assignable-users";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -44,16 +45,41 @@ const SOURCE_SYNONYMS: Record<string, string> = {
 };
 
 const HEADER_ALIASES: Record<string, string> = {
-  "company name": "company_name", company: "company_name", companyname: "company_name", company_name: "company_name",
-  category: "client_type", "client type": "client_type", client_type: "client_type", clienttype: "client_type",
-  owner: "owner", "owner name": "owner", "owner email": "owner", "assigned to": "owner",
-  stage: "pipeline_stage", "pipeline stage": "pipeline_stage", pipeline_stage: "pipeline_stage", status: "pipeline_stage",
-  source: "lead_source", "lead source": "lead_source", lead_source: "lead_source",
-  "est. value": "estimated_deal_value", "estimated value": "estimated_deal_value", "deal value": "estimated_deal_value",
-  estimated_deal_value: "estimated_deal_value", value: "estimated_deal_value",
-  created: "created_at", "created date": "created_at", created_at: "created_at",
-  actions: "actions",
+  // Company name
+  "company name": "company_name", company: "company_name", companyname: "company_name",
+  client: "company_name", "client name": "company_name", account: "company_name",
+  "account name": "company_name", organization: "company_name", organisation: "company_name",
+  "business name": "company_name", customer: "company_name", name: "company_name",
+  // Category
+  category: "client_type", "client category": "client_type", "company category": "client_type",
+  "client type": "client_type", clienttype: "client_type", industry: "client_type",
+  sector: "client_type", type: "client_type", "account type": "client_type",
+  // Sub-category
+  "sub category": "sub_category", subcategory: "sub_category",
+  "secondary category": "sub_category", "child category": "sub_category",
+  // Owner
+  owner: "owner", "owner name": "owner", "owner email": "owner", "deal owner": "owner",
+  "account owner": "owner", assignee: "owner", "assigned to": "owner",
+  "sales rep": "owner", rep: "owner", agent: "owner",
+  // Stage
+  stage: "pipeline_stage", "pipeline stage": "pipeline_stage", "deal stage": "pipeline_stage",
+  status: "pipeline_stage", "lead status": "pipeline_stage", phase: "pipeline_stage",
+  progress: "pipeline_stage",
+  // Source
+  source: "lead_source", "lead source": "lead_source", "deal source": "lead_source",
+  origin: "lead_source", channel: "lead_source", "acquisition channel": "lead_source",
+  // Estimated value
+  "est value": "estimated_deal_value", "est. value": "estimated_deal_value",
+  "estimated value": "estimated_deal_value", "estimated deal value": "estimated_deal_value",
+  "deal value": "estimated_deal_value", "opportunity value": "estimated_deal_value",
+  value: "estimated_deal_value", amount: "estimated_deal_value", revenue: "estimated_deal_value",
+  // Created
+  created: "created_at", "created date": "created_at", "created at": "created_at",
+  date: "created_at", "entry date": "created_at", "addition date": "created_at",
+  // Ignored
+  actions: "actions", action: "actions", "is active": "actions", active: "actions",
 };
+
 
 interface Props {
   open: boolean;
