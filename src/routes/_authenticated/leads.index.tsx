@@ -129,7 +129,14 @@ function LeadsPage() {
       <PageHeader
         title="Pipeline"
         description="Prospective clients moving through the sales pipeline."
-        actions={<CreateLeadWizard />}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <UploadCloud className="w-4 h-4 mr-1.5" /> Import Excel
+            </Button>
+            <CreateLeadWizard />
+          </div>
+        }
       />
 
       <div className="px-6 pt-4 flex items-center gap-2 flex-wrap">
