@@ -241,77 +241,90 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         const company = String(getVal("company_name") ?? "").trim();
         const category = String(getVal("client_type") ?? "").trim();
         const ownerRaw = getVal("owner");
+        const notes: string[] = [];
 
         if (isJunkString(getVal("company_name")) || isJunkString(getVal("client_type"))) {
           results.push({ row: rowNum, company: company || "(empty)", status: "skipped", reason: "Company name or category is empty/invalid" });
           return;
         }
-        if (isJunkString(ownerRaw)) {
-          results.push({ row: rowNum, company, status: "skipped", reason: "Owner is empty/invalid" });
-          return;
-        }
 
-        const ownerStr = String(ownerRaw).trim();
+        // Owner — falls back to the signed-in user when the column is absent or blank
         let ownerId: string | null = null;
-        if (ownerStr.includes("@")) {
-          ownerId = emailMap.get(ownerStr.toLowerCase()) ?? null;
-          if (!ownerId) {
-            results.push({ row: rowNum, company, status: "skipped", reason: `No user with email "${ownerStr}"` });
-            return;
-          }
+        if (!hasOwnerColumn || isJunkString(ownerRaw)) {
+          ownerId = currentUser?.id ?? null;
+          notes.push("Owner defaulted to you");
         } else {
-          const matches = ownerLookup.byName.get(ownerStr.toLowerCase());
-          if (!matches || matches.length === 0) {
-            results.push({ row: rowNum, company, status: "skipped", reason: `No user named "${ownerStr}"` });
-            return;
+          const ownerStr = String(ownerRaw).trim();
+          if (ownerStr.includes("@")) {
+            ownerId = emailMap.get(ownerStr.toLowerCase()) ?? null;
+            if (!ownerId) {
+              results.push({ row: rowNum, company, status: "skipped", reason: `No user with email "${ownerStr}"` });
+              return;
+            }
+          } else {
+            const matches = ownerLookup.byName.get(ownerStr.toLowerCase());
+            if (!matches || matches.length === 0) {
+              results.push({ row: rowNum, company, status: "skipped", reason: `No user named "${ownerStr}"` });
+              return;
+            }
+            if (matches.length > 1) {
+              results.push({ row: rowNum, company, status: "skipped", reason: `Multiple users named "${ownerStr}"` });
+              return;
+            }
+            ownerId = matches[0];
           }
-          if (matches.length > 1) {
-            results.push({ row: rowNum, company, status: "skipped", reason: `Multiple users named "${ownerStr}"` });
-            return;
-          }
-          ownerId = matches[0];
         }
         if (!ownerId || !assignableIds.has(ownerId)) {
           results.push({ row: rowNum, company, status: "skipped", reason: "Owner is outside your reporting team" });
           return;
         }
 
+        // Stage — unrecognized values fall back to the default stage
         let stage = "Prospect";
         const stageRaw = getVal("pipeline_stage");
         if (stageRaw && String(stageRaw).trim()) {
-          const stageNorm = String(stageRaw).trim().toLowerCase();
-          const mapped = STAGE_SYNONYMS[stageNorm];
+          const raw = String(stageRaw).trim();
+          const mapped = STAGE_SYNONYMS[raw.toLowerCase()];
           if (mapped) stage = mapped;
-          else if ((PIPELINE_STAGES as readonly string[]).includes(String(stageRaw).trim())) stage = String(stageRaw).trim();
-          else {
-            results.push({ row: rowNum, company, status: "skipped", reason: `Unrecognized stage "${stageRaw}"` });
-            return;
-          }
+          else if ((PIPELINE_STAGES as readonly string[]).includes(raw)) stage = raw;
+          else notes.push(`Unrecognized stage "${raw}" — set to Prospect`);
         }
 
-        let source: string | null = null;
+        // Source — defaults to "Excel Import"
+        let source = "Excel Import";
         const sourceRaw = getVal("lead_source");
-        if (sourceRaw && String(sourceRaw).trim()) {
-          const sourceNorm = String(sourceRaw).trim().toLowerCase();
-          source = SOURCE_SYNONYMS[sourceNorm] ?? String(sourceRaw).trim();
+        if (sourceRaw && String(sourceRaw).trim() && !isJunkString(sourceRaw)) {
+          const raw = String(sourceRaw).trim();
+          source = SOURCE_SYNONYMS[raw.toLowerCase()] ?? raw;
         }
 
+        // Est. value — unparseable falls back to 0 with a warning
         let dealValue = 0;
         const valueRaw = getVal("estimated_deal_value");
         if (valueRaw !== "" && valueRaw !== null && valueRaw !== undefined) {
           const parsed = parseCurrency(valueRaw);
-          if (parsed === null) {
-            results.push({ row: rowNum, company, status: "skipped", reason: `Invalid deal value "${valueRaw}"` });
-            return;
-          }
-          dealValue = parsed;
+          if (parsed === null) notes.push(`Unparseable value "${valueRaw}" — set to 0`);
+          else dealValue = parsed;
         }
 
-        const created = parseDate(getVal("created_at"));
+        // Created — invalid falls back to now
+        const createdRaw = getVal("created_at");
+        let created = parseDate(createdRaw);
+        if (!created) {
+          created = new Date().toISOString();
+          notes.push(`Invalid date "${createdRaw}" — set to today`);
+        }
+
+        const subCategoryRaw = getVal("sub_category");
+        const subCategory = isJunkString(subCategoryRaw) ? null : String(subCategoryRaw).trim();
 
         const dupKey = `${company.toLowerCase()}|${category.toLowerCase()}`;
-        const existingLeadId = existing.get(dupKey) ?? (seenInFile.has(dupKey) ? undefined : undefined);
+        if (seenInFile.has(dupKey)) {
+          results.push({ row: rowNum, company, status: "skipped", reason: "Duplicate of an earlier row in this file" });
+          return;
+        }
         seenInFile.add(dupKey);
+        const existingLeadId = existing.get(dupKey);
 
         const base: LeadUpdate = {
           company_name: company,
@@ -319,13 +332,14 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           owner_id: ownerId,
           pipeline_stage: stage as LeadUpdate["pipeline_stage"],
           estimated_deal_value: dealValue,
+          lead_source: source,
+          created_at: created,
         };
-        if (source !== null) base.lead_source = source;
-        if (created) base.created_at = created;
+        if (subCategory) base.sub_category = subCategory;
 
         if (existingLeadId) {
           toUpdate.push({ id: existingLeadId, patch: base });
-          results.push({ row: rowNum, company, status: "updated" });
+          results.push({ row: rowNum, company, status: "updated", reason: notes.join("; ") || undefined });
         } else {
           toInsert.push({
             ...base,
@@ -333,9 +347,10 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             priority: "medium",
             services: [],
           } as LeadInsert);
-          results.push({ row: rowNum, company, status: "imported" });
+          results.push({ row: rowNum, company, status: "imported", reason: notes.join("; ") || undefined });
         }
       });
+
 
       let insertedCount = 0;
       if (toInsert.length > 0) {
