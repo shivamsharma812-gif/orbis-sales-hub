@@ -322,6 +322,7 @@ function LeadsPage() {
         leadId={lostLead?.id ?? null}
         leadName={lostLead?.company_name}
       />
+      <ImportLeadsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
 
   );
