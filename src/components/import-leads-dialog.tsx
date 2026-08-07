@@ -385,6 +385,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const importedCount = report?.filter((r) => r.status === "imported").length ?? 0;
   const updatedCount = report?.filter((r) => r.status === "updated").length ?? 0;
   const skippedRows = report?.filter((r) => r.status === "skipped") ?? [];
+  const warningRows = report?.filter((r) => r.status !== "skipped" && r.reason) ?? [];
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
