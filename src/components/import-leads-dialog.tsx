@@ -8,89 +8,50 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useAssignableUsers } from "@/hooks/use-assignable-users";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
+type LeadUpdate = Database["public"]["Tables"]["leads"]["Update"];
+
 const PIPELINE_STAGES = [
-  "Prospect",
-  "Contacted",
-  "Meeting Scheduled",
-  "Meeting Completed",
-  "Proposal Sent",
-  "Negotiation",
-  "Mandate Signed",
-  "Onboarding",
-  "Won",
-  "Lost",
+  "Prospect", "Contacted", "Meeting Scheduled", "Meeting Completed",
+  "Proposal Sent", "Negotiation", "Mandate Signed", "Onboarding", "Won", "Lost",
 ] as const;
 
 const STAGE_SYNONYMS: Record<string, string> = {
-  closed: "Won",
-  close: "Won",
-  won: "Won",
-  lead: "Prospect",
-  new: "Prospect",
-  prospect: "Prospect",
-  contacted: "Contacted",
-  "reached out": "Contacted",
-  meeting: "Meeting Scheduled",
-  "meeting scheduled": "Meeting Scheduled",
-  "meeting completed": "Meeting Completed",
-  "met": "Meeting Completed",
-  proposal: "Proposal Sent",
-  "proposal sent": "Proposal Sent",
-  negotiating: "Negotiation",
-  negotiation: "Negotiation",
-  mandate: "Mandate Signed",
-  "mandate signed": "Mandate Signed",
+  closed: "Won", close: "Won", won: "Won",
+  lead: "Prospect", new: "Prospect", prospect: "Prospect",
+  contacted: "Contacted", "reached out": "Contacted",
+  meeting: "Meeting Scheduled", "meeting scheduled": "Meeting Scheduled",
+  "meeting completed": "Meeting Completed", met: "Meeting Completed",
+  proposal: "Proposal Sent", "proposal sent": "Proposal Sent",
+  negotiating: "Negotiation", negotiation: "Negotiation",
+  mandate: "Mandate Signed", "mandate signed": "Mandate Signed",
   onboarding: "Onboarding",
   lost: "Lost",
 };
 
 const SOURCE_SYNONYMS: Record<string, string> = {
-  inbound: "Inbound Email",
-  outbound: "Cold Outreach",
-  referral: "Referral",
-  event: "Event",
-  website: "Website",
-  regulatory: "Regulatory Filing",
-  partner: "Partner",
+  inbound: "Inbound Email", outbound: "Cold Outreach", referral: "Referral",
+  event: "Event", website: "Website", regulatory: "Regulatory Filing", partner: "Partner",
 };
 
 const HEADER_ALIASES: Record<string, string> = {
-  "company name": "company_name",
-  company: "company_name",
-  companyname: "company_name",
-  company_name: "company_name",
-  category: "client_type",
-  "client type": "client_type",
-  client_type: "client_type",
-  clienttype: "client_type",
-  owner: "owner",
-  "owner name": "owner",
-  "owner email": "owner",
-  "assigned to": "owner",
-  stage: "pipeline_stage",
-  "pipeline stage": "pipeline_stage",
-  pipeline_stage: "pipeline_stage",
-  status: "pipeline_stage",
-  source: "lead_source",
-  "lead source": "lead_source",
-  lead_source: "lead_source",
-  "est. value": "estimated_deal_value",
-  "estimated value": "estimated_deal_value",
-  "deal value": "estimated_deal_value",
-  estimated_deal_value: "estimated_deal_value",
-  value: "estimated_deal_value",
-  created: "created_at",
-  "created date": "created_at",
-  created_at: "created_at",
+  "company name": "company_name", company: "company_name", companyname: "company_name", company_name: "company_name",
+  category: "client_type", "client type": "client_type", client_type: "client_type", clienttype: "client_type",
+  owner: "owner", "owner name": "owner", "owner email": "owner", "assigned to": "owner",
+  stage: "pipeline_stage", "pipeline stage": "pipeline_stage", pipeline_stage: "pipeline_stage", status: "pipeline_stage",
+  source: "lead_source", "lead source": "lead_source", lead_source: "lead_source",
+  "est. value": "estimated_deal_value", "estimated value": "estimated_deal_value", "deal value": "estimated_deal_value",
+  estimated_deal_value: "estimated_deal_value", value: "estimated_deal_value",
+  created: "created_at", "created date": "created_at", created_at: "created_at",
   actions: "actions",
 };
 
@@ -115,16 +76,13 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const { data: assignableUsers = [] } = useAssignableUsers();
   const qc = useQueryClient();
 
-  // Build lookup maps for owner resolution (email-first, then name)
   const ownerLookup = useMemo(() => {
-    const byEmail = new Map<string, string>();
     const byName = new Map<string, string[]>();
     for (const u of assignableUsers) {
-      const key = u.id;
-      byName.set(u.full_name.toLowerCase(), (byName.get(u.full_name.toLowerCase()) ?? []).concat(key));
+      const key = u.full_name.toLowerCase();
+      byName.set(key, (byName.get(key) ?? []).concat(u.id));
     }
-    // Fetch email via users table select — assignable users don't carry email
-    return { byName, byEmail };
+    return { byName };
   }, [assignableUsers]);
 
   const assignableIds = useMemo(() => new Set(assignableUsers.map((u) => u.id)), [assignableUsers]);
@@ -144,7 +102,6 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     if (v === null || v === undefined) return true;
     const s = String(v).trim();
     if (s === "") return true;
-    // pure number or date serial → junk for a name field
     if (/^-?\d+(\.\d+)?$/.test(s)) return true;
     if (v instanceof Date) return true;
     return false;
@@ -154,11 +111,8 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     if (v === null || v === undefined || v === "") return null;
     if (typeof v === "number" && isFinite(v)) return v;
     let s = String(v).trim().toLowerCase();
-    // strip currency symbols and units
     s = s.replace(/[₹$,\s]/g, "");
-    s = s.replace(/\bcr\b/g, "");
-    s = s.replace(/\blakh(s)?\b/g, "");
-    s = s.replace(/\bcrore(s)?\b/g, "");
+    s = s.replace(/\bcr\b/g, "").replace(/\blakh(s)?\b/g, "").replace(/\bcrore(s)?\b/g, "");
     s = s.replace(/[^0-9.\-]/g, "");
     const n = parseFloat(s);
     return isFinite(n) ? n : null;
@@ -167,32 +121,12 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   function parseDate(v: unknown): string | null {
     if (v === null || v === undefined || v === "") return new Date().toISOString();
     if (v instanceof Date && isFinite(v.getTime())) return v.toISOString();
-    // Excel serial number
     if (typeof v === "number" && v > 25569 && v < 100000) {
-      const d = XLSX.SSF ? new Date(Math.round((v - 25569) * 86400 * 1000)) : null;
-      if (d && isFinite(d.getTime())) return d.toISOString();
+      const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+      if (isFinite(d.getTime())) return d.toISOString();
     }
     const d = new Date(String(v));
-    if (isFinite(d.getTime())) return d.toISOString();
-    return null;
-  }
-
-  function resolveOwner(raw: unknown): { id: string } | { error: string } {
-    const s = String(raw ?? "").trim();
-    if (!s) return { error: "Owner is empty" };
-    const lower = s.toLowerCase();
-    // email-first: does it look like an email?
-    if (/@/.test(lower)) {
-      // We need emails — fetch via a separate lookup. For now match against
-      // assignable users by fetching the users table with email. Since
-      // assignableUsers doesn't carry email, we do a quick fetch.
-      // But to keep this synchronous, we resolve email in the async path.
-      return { error: "EMAIL_LOOKUP" };
-    }
-    const matches = ownerLookup.byName.get(lower);
-    if (!matches || matches.length === 0) return { error: `No user named "${s}"` };
-    if (matches.length > 1) return { error: `Multiple users named "${s}"` };
-    return { id: matches[0] };
+    return isFinite(d.getTime()) ? d.toISOString() : null;
   }
 
   async function processFile() {
@@ -203,29 +137,15 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array", cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      if (!ws) {
-        toast.error("The workbook has no sheets.");
-        setProcessing(false);
-        return;
-      }
+      if (!ws) { toast.error("The workbook has no sheets."); setProcessing(false); return; }
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", raw: true });
-      if (rows.length === 0) {
-        toast.error("The first sheet has no data rows.");
-        setProcessing(false);
-        return;
-      }
+      if (rows.length === 0) { toast.error("The first sheet has no data rows."); setProcessing(false); return; }
 
-      // map headers
       const rawHeaders = Object.keys(rows[0]);
       const mapping: Record<string, string> = {};
-      for (const h of rawHeaders) {
-        const norm = normalizeHeader(h);
-        mapping[h] = HEADER_ALIASES[norm] ?? "unknown";
-      }
-      const mapped = rawHeaders.map((h) => `${h} → ${mapping[h]}`);
-      setMappedHeaders(mapped);
+      for (const h of rawHeaders) mapping[h] = HEADER_ALIASES[normalizeHeader(h)] ?? "unknown";
+      setMappedHeaders(rawHeaders.map((h) => `${h} → ${mapping[h]}`));
 
-      // mandatory headers check
       const fields = Object.values(mapping);
       const missing: string[] = [];
       if (!fields.includes("company_name")) missing.push("Company Name");
@@ -237,83 +157,59 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         return;
       }
 
-      // Pre-fetch users with email for email-based owner resolution
-      const ownerValues = new Set<string>();
+      // Email-based owner lookups
+      const ownerEmails = new Set<string>();
       for (const r of rows) {
         const col = rawHeaders.find((h) => mapping[h] === "owner");
-        if (col) ownerValues.add(String(r[col] ?? "").trim().toLowerCase());
+        if (col) {
+          const val = String(r[col] ?? "").trim().toLowerCase();
+          if (val.includes("@")) ownerEmails.add(val);
+        }
       }
-      const emailLookups = [...ownerValues].filter((v) => v.includes("@"));
       const emailMap = new Map<string, string>();
-      if (emailLookups.length > 0) {
+      if (ownerEmails.size > 0) {
         const { data: emailUsers } = await supabase
-          .from("users")
-          .select("id, email")
-          .in("email", emailLookups)
-          .eq("status", "active");
+          .from("users").select("id, email").in("email", [...ownerEmails]).eq("status", "active");
         for (const u of (emailUsers ?? []) as { id: string; email: string }[]) {
           if (u.email) emailMap.set(u.email.toLowerCase(), u.id);
         }
       }
 
-      // dedupe detection: fetch existing active leads matching company names
+      // Duplicate detection — fetch existing active leads matching company names
       const companyNames = new Set<string>();
       for (const r of rows) {
         const col = rawHeaders.find((h) => mapping[h] === "company_name");
-        if (col) companyNames.add(String(r[col] ?? "").trim());
+        if (col) { const c = String(r[col] ?? "").trim(); if (c) companyNames.add(c); }
       }
-      const existing = new Map<string, { id: string; client_type: string | null }>();
-      if (companyNames.size > 0) {
-        const { data: existingLeads } = await supabase
-          .from("leads")
-          .select("id, company_name, client_type")
-          .eq("status", "active")
-          .ilike("company_name", "")
-          .in("company_name", [...companyNames].slice(0, 50));
-        // ilike won't work with .in; do a direct fetch of active leads and filter in memory
-      }
-      // Simpler: fetch all active leads whose company_name is in our set via OR ilikes
-      const companyArr = [...companyNames].filter(Boolean);
+      const existing = new Map<string, string>();
+      const companyArr = [...companyNames];
       if (companyArr.length > 0) {
-        const orFilter = companyArr.map((c) => `company_name.ilike.${c}`).join(",");
+        const orFilter = companyArr.slice(0, 100).map((c) => `company_name.ilike.${c}`).join(",");
         const { data: matched } = await supabase
-          .from("leads")
-          .select("id, company_name, client_type")
-          .eq("status", "active")
-          .or(orFilter);
+          .from("leads").select("id, company_name, client_type")
+          .eq("status", "active").or(orFilter);
         for (const m of (matched ?? []) as { id: string; company_name: string; client_type: string | null }[]) {
-          existing.set(`${m.company_name.trim().toLowerCase()}|${(m.client_type ?? "").trim().toLowerCase()}`, {
-            id: m.id,
-            client_type: m.client_type,
-          });
+          existing.set(`${m.company_name.trim().toLowerCase()}|${(m.client_type ?? "").trim().toLowerCase()}`, m.id);
         }
       }
 
-      const toInsert: Record<string, unknown>[] = [];
-      const toUpdate: { id: string; patch: Record<string, unknown> }[] = [];
-      const skipped: ReportRow[] = [];
+      const toInsert: LeadInsert[] = [];
+      const toUpdate: { id: string; patch: LeadUpdate }[] = [];
       const results: ReportRow[] = [];
       const seenInFile = new Set<string>();
 
       rows.forEach((r, idx) => {
-        const rowNum = idx + 2; // header is row 1
+        const rowNum = idx + 2;
         const getVal = (field: string): unknown => {
           const col = rawHeaders.find((h) => mapping[h] === field);
           return col ? r[col] : "";
         };
 
-        const companyRaw = getVal("company_name");
-        const categoryRaw = getVal("client_type");
+        const company = String(getVal("company_name") ?? "").trim();
+        const category = String(getVal("client_type") ?? "").trim();
         const ownerRaw = getVal("owner");
-        const stageRaw = getVal("pipeline_stage");
-        const sourceRaw = getVal("lead_source");
-        const valueRaw = getVal("estimated_deal_value");
-        const createdRaw = getVal("created_at");
 
-        const company = String(companyRaw ?? "").trim();
-        const category = String(categoryRaw ?? "").trim();
-
-        if (isJunkString(companyRaw) || isJunkString(categoryRaw)) {
+        if (isJunkString(getVal("company_name")) || isJunkString(getVal("client_type"))) {
           results.push({ row: rowNum, company: company || "(empty)", status: "skipped", reason: "Company name or category is empty/invalid" });
           return;
         }
@@ -322,7 +218,6 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           return;
         }
 
-        // owner resolution
         const ownerStr = String(ownerRaw).trim();
         let ownerId: string | null = null;
         if (ownerStr.includes("@")) {
@@ -343,36 +238,33 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           }
           ownerId = matches[0];
         }
-
         if (!ownerId || !assignableIds.has(ownerId)) {
           results.push({ row: rowNum, company, status: "skipped", reason: "Owner is outside your reporting team" });
           return;
         }
 
-        // stage normalization
         let stage = "Prospect";
+        const stageRaw = getVal("pipeline_stage");
         if (stageRaw && String(stageRaw).trim()) {
           const stageNorm = String(stageRaw).trim().toLowerCase();
           const mapped = STAGE_SYNONYMS[stageNorm];
-          if (!mapped && (PIPELINE_STAGES as readonly string[]).includes(String(stageRaw).trim())) {
-            stage = String(stageRaw).trim();
-          } else if (mapped) {
-            stage = mapped;
-          } else {
+          if (mapped) stage = mapped;
+          else if ((PIPELINE_STAGES as readonly string[]).includes(String(stageRaw).trim())) stage = String(stageRaw).trim();
+          else {
             results.push({ row: rowNum, company, status: "skipped", reason: `Unrecognized stage "${stageRaw}"` });
             return;
           }
         }
 
-        // source normalization
         let source: string | null = null;
+        const sourceRaw = getVal("lead_source");
         if (sourceRaw && String(sourceRaw).trim()) {
           const sourceNorm = String(sourceRaw).trim().toLowerCase();
           source = SOURCE_SYNONYMS[sourceNorm] ?? String(sourceRaw).trim();
         }
 
-        // value
         let dealValue = 0;
+        const valueRaw = getVal("estimated_deal_value");
         if (valueRaw !== "" && valueRaw !== null && valueRaw !== undefined) {
           const parsed = parseCurrency(valueRaw);
           if (parsed === null) {
@@ -382,45 +274,43 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           dealValue = parsed;
         }
 
-        // created
-        const created = parseDate(createdRaw);
+        const created = parseDate(getVal("created_at"));
 
         const dupKey = `${company.toLowerCase()}|${category.toLowerCase()}`;
-        const existingLead = existing.get(dupKey) ?? (seenInFile.has(dupKey) ? undefined : undefined);
+        const existingLeadId = existing.get(dupKey) ?? (seenInFile.has(dupKey) ? undefined : undefined);
         seenInFile.add(dupKey);
 
-        const patch: Record<string, unknown> = {
+        const base: LeadUpdate = {
           company_name: company,
           client_type: category,
           owner_id: ownerId,
-          pipeline_stage: stage,
+          pipeline_stage: stage as LeadUpdate["pipeline_stage"],
           estimated_deal_value: dealValue,
         };
-        if (source !== null) patch.lead_source = source;
-        if (created) patch.created_at = created;
+        if (source !== null) base.lead_source = source;
+        if (created) base.created_at = created;
 
-        if (existingLead) {
-          toUpdate.push({ id: existingLead.id, patch });
+        if (existingLeadId) {
+          toUpdate.push({ id: existingLeadId, patch: base });
           results.push({ row: rowNum, company, status: "updated" });
         } else {
-          toInsert.push({ ...patch, status: "active", priority: "medium", services: [] });
+          toInsert.push({
+            ...base,
+            status: "active",
+            priority: "medium",
+            services: [],
+          } as LeadInsert);
           results.push({ row: rowNum, company, status: "imported" });
         }
       });
 
-      // Execute inserts
       let insertedCount = 0;
       if (toInsert.length > 0) {
         const { error } = await supabase.from("leads").insert(toInsert);
-        if (error) {
-          toast.error(`Insert failed: ${error.message}`);
-          setProcessing(false);
-          return;
-        }
+        if (error) { toast.error(`Insert failed: ${error.message}`); setProcessing(false); return; }
         insertedCount = toInsert.length;
       }
 
-      // Execute updates
       let updatedCount = 0;
       for (const u of toUpdate) {
         const { error } = await supabase.from("leads").update(u.patch).eq("id", u.id);
@@ -431,7 +321,6 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       toast.success(`Imported ${insertedCount}, updated ${updatedCount}, skipped ${skippedCount} row(s).`);
       setReport(results);
       qc.invalidateQueries({ queryKey: ["leads"] });
-      if (skippedCount === 0 && toInsert.length > 0) setFile(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Import failed");
     } finally {
