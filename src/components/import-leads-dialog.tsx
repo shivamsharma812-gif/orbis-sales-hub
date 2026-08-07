@@ -14,6 +14,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAssignableUsers } from "@/hooks/use-assignable-users";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -44,16 +45,41 @@ const SOURCE_SYNONYMS: Record<string, string> = {
 };
 
 const HEADER_ALIASES: Record<string, string> = {
-  "company name": "company_name", company: "company_name", companyname: "company_name", company_name: "company_name",
-  category: "client_type", "client type": "client_type", client_type: "client_type", clienttype: "client_type",
-  owner: "owner", "owner name": "owner", "owner email": "owner", "assigned to": "owner",
-  stage: "pipeline_stage", "pipeline stage": "pipeline_stage", pipeline_stage: "pipeline_stage", status: "pipeline_stage",
-  source: "lead_source", "lead source": "lead_source", lead_source: "lead_source",
-  "est. value": "estimated_deal_value", "estimated value": "estimated_deal_value", "deal value": "estimated_deal_value",
-  estimated_deal_value: "estimated_deal_value", value: "estimated_deal_value",
-  created: "created_at", "created date": "created_at", created_at: "created_at",
-  actions: "actions",
+  // Company name
+  "company name": "company_name", company: "company_name", companyname: "company_name",
+  client: "company_name", "client name": "company_name", account: "company_name",
+  "account name": "company_name", organization: "company_name", organisation: "company_name",
+  "business name": "company_name", customer: "company_name", name: "company_name",
+  // Category
+  category: "client_type", "client category": "client_type", "company category": "client_type",
+  "client type": "client_type", clienttype: "client_type", industry: "client_type",
+  sector: "client_type", type: "client_type", "account type": "client_type",
+  // Sub-category
+  "sub category": "sub_category", subcategory: "sub_category",
+  "secondary category": "sub_category", "child category": "sub_category",
+  // Owner
+  owner: "owner", "owner name": "owner", "owner email": "owner", "deal owner": "owner",
+  "account owner": "owner", assignee: "owner", "assigned to": "owner",
+  "sales rep": "owner", rep: "owner", agent: "owner",
+  // Stage
+  stage: "pipeline_stage", "pipeline stage": "pipeline_stage", "deal stage": "pipeline_stage",
+  status: "pipeline_stage", "lead status": "pipeline_stage", phase: "pipeline_stage",
+  progress: "pipeline_stage",
+  // Source
+  source: "lead_source", "lead source": "lead_source", "deal source": "lead_source",
+  origin: "lead_source", channel: "lead_source", "acquisition channel": "lead_source",
+  // Estimated value
+  "est value": "estimated_deal_value", "est. value": "estimated_deal_value",
+  "estimated value": "estimated_deal_value", "estimated deal value": "estimated_deal_value",
+  "deal value": "estimated_deal_value", "opportunity value": "estimated_deal_value",
+  value: "estimated_deal_value", amount: "estimated_deal_value", revenue: "estimated_deal_value",
+  // Created
+  created: "created_at", "created date": "created_at", "created at": "created_at",
+  date: "created_at", "entry date": "created_at", "addition date": "created_at",
+  // Ignored
+  actions: "actions", action: "actions", "is active": "actions", active: "actions",
 };
+
 
 interface Props {
   open: boolean;
@@ -74,6 +100,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const [mappedHeaders, setMappedHeaders] = useState<string[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const { data: assignableUsers = [] } = useAssignableUsers();
+  const { data: currentUser } = useCurrentUser();
   const qc = useQueryClient();
 
   const ownerLookup = useMemo(() => {
@@ -95,7 +122,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   }
 
   function normalizeHeader(h: string): string {
-    return h.trim().toLowerCase().replace(/[\s_]+/g, " ").replace(/^[\s_]+|[\s_]+$/g, "");
+    return h.trim().toLowerCase().replace(/[\s_\-.]+/g, " ").trim();
   }
 
   function isJunkString(v: unknown): boolean {
@@ -150,12 +177,18 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       const missing: string[] = [];
       if (!fields.includes("company_name")) missing.push("Company Name");
       if (!fields.includes("client_type")) missing.push("Category");
-      if (!fields.includes("owner")) missing.push("Owner");
       if (missing.length > 0) {
-        toast.error(`Missing required columns: ${missing.join(", ")}`);
+        toast.error(`Import Error: Missing required columns for ${missing.join(" / ")}. Please check your file headers.`);
         setProcessing(false);
         return;
       }
+      const hasOwnerColumn = fields.includes("owner");
+      if (!hasOwnerColumn && !currentUser) {
+        toast.error("Could not determine a default owner. Add an Owner column and try again.");
+        setProcessing(false);
+        return;
+      }
+
 
       // Email-based owner lookups
       const ownerEmails = new Set<string>();
@@ -208,77 +241,90 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         const company = String(getVal("company_name") ?? "").trim();
         const category = String(getVal("client_type") ?? "").trim();
         const ownerRaw = getVal("owner");
+        const notes: string[] = [];
 
         if (isJunkString(getVal("company_name")) || isJunkString(getVal("client_type"))) {
           results.push({ row: rowNum, company: company || "(empty)", status: "skipped", reason: "Company name or category is empty/invalid" });
           return;
         }
-        if (isJunkString(ownerRaw)) {
-          results.push({ row: rowNum, company, status: "skipped", reason: "Owner is empty/invalid" });
-          return;
-        }
 
-        const ownerStr = String(ownerRaw).trim();
+        // Owner — falls back to the signed-in user when the column is absent or blank
         let ownerId: string | null = null;
-        if (ownerStr.includes("@")) {
-          ownerId = emailMap.get(ownerStr.toLowerCase()) ?? null;
-          if (!ownerId) {
-            results.push({ row: rowNum, company, status: "skipped", reason: `No user with email "${ownerStr}"` });
-            return;
-          }
+        if (!hasOwnerColumn || isJunkString(ownerRaw)) {
+          ownerId = currentUser?.id ?? null;
+          notes.push("Owner defaulted to you");
         } else {
-          const matches = ownerLookup.byName.get(ownerStr.toLowerCase());
-          if (!matches || matches.length === 0) {
-            results.push({ row: rowNum, company, status: "skipped", reason: `No user named "${ownerStr}"` });
-            return;
+          const ownerStr = String(ownerRaw).trim();
+          if (ownerStr.includes("@")) {
+            ownerId = emailMap.get(ownerStr.toLowerCase()) ?? null;
+            if (!ownerId) {
+              results.push({ row: rowNum, company, status: "skipped", reason: `No user with email "${ownerStr}"` });
+              return;
+            }
+          } else {
+            const matches = ownerLookup.byName.get(ownerStr.toLowerCase());
+            if (!matches || matches.length === 0) {
+              results.push({ row: rowNum, company, status: "skipped", reason: `No user named "${ownerStr}"` });
+              return;
+            }
+            if (matches.length > 1) {
+              results.push({ row: rowNum, company, status: "skipped", reason: `Multiple users named "${ownerStr}"` });
+              return;
+            }
+            ownerId = matches[0];
           }
-          if (matches.length > 1) {
-            results.push({ row: rowNum, company, status: "skipped", reason: `Multiple users named "${ownerStr}"` });
-            return;
-          }
-          ownerId = matches[0];
         }
         if (!ownerId || !assignableIds.has(ownerId)) {
           results.push({ row: rowNum, company, status: "skipped", reason: "Owner is outside your reporting team" });
           return;
         }
 
+        // Stage — unrecognized values fall back to the default stage
         let stage = "Prospect";
         const stageRaw = getVal("pipeline_stage");
         if (stageRaw && String(stageRaw).trim()) {
-          const stageNorm = String(stageRaw).trim().toLowerCase();
-          const mapped = STAGE_SYNONYMS[stageNorm];
+          const raw = String(stageRaw).trim();
+          const mapped = STAGE_SYNONYMS[raw.toLowerCase()];
           if (mapped) stage = mapped;
-          else if ((PIPELINE_STAGES as readonly string[]).includes(String(stageRaw).trim())) stage = String(stageRaw).trim();
-          else {
-            results.push({ row: rowNum, company, status: "skipped", reason: `Unrecognized stage "${stageRaw}"` });
-            return;
-          }
+          else if ((PIPELINE_STAGES as readonly string[]).includes(raw)) stage = raw;
+          else notes.push(`Unrecognized stage "${raw}" — set to Prospect`);
         }
 
-        let source: string | null = null;
+        // Source — defaults to "Excel Import"
+        let source = "Excel Import";
         const sourceRaw = getVal("lead_source");
-        if (sourceRaw && String(sourceRaw).trim()) {
-          const sourceNorm = String(sourceRaw).trim().toLowerCase();
-          source = SOURCE_SYNONYMS[sourceNorm] ?? String(sourceRaw).trim();
+        if (sourceRaw && String(sourceRaw).trim() && !isJunkString(sourceRaw)) {
+          const raw = String(sourceRaw).trim();
+          source = SOURCE_SYNONYMS[raw.toLowerCase()] ?? raw;
         }
 
+        // Est. value — unparseable falls back to 0 with a warning
         let dealValue = 0;
         const valueRaw = getVal("estimated_deal_value");
         if (valueRaw !== "" && valueRaw !== null && valueRaw !== undefined) {
           const parsed = parseCurrency(valueRaw);
-          if (parsed === null) {
-            results.push({ row: rowNum, company, status: "skipped", reason: `Invalid deal value "${valueRaw}"` });
-            return;
-          }
-          dealValue = parsed;
+          if (parsed === null) notes.push(`Unparseable value "${valueRaw}" — set to 0`);
+          else dealValue = parsed;
         }
 
-        const created = parseDate(getVal("created_at"));
+        // Created — invalid falls back to now
+        const createdRaw = getVal("created_at");
+        let created = parseDate(createdRaw);
+        if (!created) {
+          created = new Date().toISOString();
+          notes.push(`Invalid date "${createdRaw}" — set to today`);
+        }
+
+        const subCategoryRaw = getVal("sub_category");
+        const subCategory = isJunkString(subCategoryRaw) ? null : String(subCategoryRaw).trim();
 
         const dupKey = `${company.toLowerCase()}|${category.toLowerCase()}`;
-        const existingLeadId = existing.get(dupKey) ?? (seenInFile.has(dupKey) ? undefined : undefined);
+        if (seenInFile.has(dupKey)) {
+          results.push({ row: rowNum, company, status: "skipped", reason: "Duplicate of an earlier row in this file" });
+          return;
+        }
         seenInFile.add(dupKey);
+        const existingLeadId = existing.get(dupKey);
 
         const base: LeadUpdate = {
           company_name: company,
@@ -286,13 +332,14 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           owner_id: ownerId,
           pipeline_stage: stage as LeadUpdate["pipeline_stage"],
           estimated_deal_value: dealValue,
+          lead_source: source,
+          created_at: created,
         };
-        if (source !== null) base.lead_source = source;
-        if (created) base.created_at = created;
+        if (subCategory) base.sub_category = subCategory;
 
         if (existingLeadId) {
           toUpdate.push({ id: existingLeadId, patch: base });
-          results.push({ row: rowNum, company, status: "updated" });
+          results.push({ row: rowNum, company, status: "updated", reason: notes.join("; ") || undefined });
         } else {
           toInsert.push({
             ...base,
@@ -300,9 +347,10 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
             priority: "medium",
             services: [],
           } as LeadInsert);
-          results.push({ row: rowNum, company, status: "imported" });
+          results.push({ row: rowNum, company, status: "imported", reason: notes.join("; ") || undefined });
         }
       });
+
 
       let insertedCount = 0;
       if (toInsert.length > 0) {
@@ -318,7 +366,13 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       }
 
       const skippedCount = results.filter((r) => r.status === "skipped").length;
-      toast.success(`Imported ${insertedCount}, updated ${updatedCount}, skipped ${skippedCount} row(s).`);
+      if (skippedCount === 0) {
+        toast.success(`Successfully imported ${insertedCount} records${updatedCount ? `, updated ${updatedCount}` : ""}.`);
+      } else {
+        toast.warning(
+          `Imported ${insertedCount} records${updatedCount ? `, updated ${updatedCount}` : ""}. Skipped ${skippedCount} rows due to data formatting issues or duplicate companies.`,
+        );
+      }
       setReport(results);
       qc.invalidateQueries({ queryKey: ["leads"] });
     } catch (e) {
@@ -331,6 +385,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const importedCount = report?.filter((r) => r.status === "imported").length ?? 0;
   const updatedCount = report?.filter((r) => r.status === "updated").length ?? 0;
   const skippedRows = report?.filter((r) => r.status === "skipped") ?? [];
+  const warningRows = report?.filter((r) => r.status !== "skipped" && r.reason) ?? [];
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
@@ -419,7 +474,24 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
               </div>
             )}
 
-            {skippedRows.length === 0 && (
+            {warningRows.length > 0 && (
+              <div className="border border-border rounded-md overflow-hidden">
+                <div className="bg-surface-2 px-3 py-2 text-xs font-medium text-muted-foreground">
+                  Imported with adjustments
+                </div>
+                <div className="divide-y divide-border">
+                  {warningRows.map((r) => (
+                    <div key={`w-${r.row}`} className="px-3 py-2 text-xs flex items-start gap-2">
+                      <span className="text-muted-foreground font-mono w-8 shrink-0">R{r.row}</span>
+                      <span className="font-medium shrink-0">{r.company}</span>
+                      <span className="text-warning">{r.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {skippedRows.length === 0 && warningRows.length === 0 && (
               <p className="text-sm text-muted-foreground">All rows processed successfully.</p>
             )}
           </div>
