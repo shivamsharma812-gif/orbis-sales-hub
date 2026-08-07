@@ -145,26 +145,34 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     return isFinite(n) ? n : null;
   }
 
-  // Build an ISO timestamp anchored at noon UTC so the calendar date can never
-  // shift a day when converted between the sheet's local time and UTC.
+  // Sheet dates are written in IST. Store them at 12:00 IST (06:30 UTC) so the
+  // calendar day is identical whether it's later read in IST or UTC.
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
   function isoFromParts(y: number, m: number, d: number): string | null {
     if (!isFinite(y) || !isFinite(m) || !isFinite(d)) return null;
     if (y < 1900 || y > 2200 || m < 1 || m > 12 || d < 1 || d > 31) return null;
-    return new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).toISOString();
+    return new Date(Date.UTC(y, m - 1, d, 6, 30, 0)).toISOString();
+  }
+
+  // Calendar parts of an instant as seen on an IST wall clock.
+  function istParts(ms: number): [number, number, number] {
+    const t = new Date(ms + IST_OFFSET_MS);
+    return [t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()];
   }
 
   function parseDate(v: unknown): string | null {
     if (v === null || v === undefined || v === "") return new Date().toISOString();
 
-    // SheetJS returns real Date objects (cellDates) built in local time.
+    // SheetJS returns real Date objects (cellDates) built in local time; the
+    // underlying UTC instant carries the sheet's IST wall-clock date.
     if (v instanceof Date && isFinite(v.getTime())) {
-      return isoFromParts(v.getFullYear(), v.getMonth() + 1, v.getDate());
+      return isoFromParts(...istParts(v.getTime()));
     }
 
     // Excel serial number → calendar date (serial 1 = 1900-01-01, 1900 leap bug).
     if (typeof v === "number" && isFinite(v) && v > 0 && v < 100000) {
-      const utc = new Date(Math.round((v - 25569) * 86400 * 1000));
-      return isoFromParts(utc.getUTCFullYear(), utc.getUTCMonth() + 1, utc.getUTCDate());
+      return isoFromParts(...istParts(Math.round((v - 25569) * 86400 * 1000)));
     }
 
     const s = String(v).trim();
@@ -187,11 +195,12 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       return isoFromParts(year, month, day);
     }
 
-    // Textual dates ("12 Mar 2024", "Mar 12, 2024") — parsed in local time.
+    // Textual dates ("12 Mar 2024", "Mar 12, 2024") — read as IST wall clock.
     const d = new Date(s);
     if (!isFinite(d.getTime())) return null;
-    return isoFromParts(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    return isoFromParts(...istParts(d.getTime()));
   }
+
 
 
   async function processFile() {
