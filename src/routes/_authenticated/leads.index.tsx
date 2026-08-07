@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { UploadCloud } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ import { LayoutGrid, List, Filter, Check, X } from "lucide-react";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { CreateLeadWizard } from "@/components/create-lead-wizard";
+import { ImportLeadsDialog } from "@/components/import-leads-dialog";
 import {
   ConvertLeadDialog,
   MarkLostDialog,
@@ -86,6 +88,7 @@ function LeadsPage() {
   const [q, setQ] = useState("");
   const [convertLead, setConvertLead] = useState<ConvertibleLead | null>(null);
   const [lostLead, setLostLead] = useState<Lead | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const months = monthOptions();
   const navigate = useNavigate();
 
@@ -126,7 +129,14 @@ function LeadsPage() {
       <PageHeader
         title="Pipeline"
         description="Prospective clients moving through the sales pipeline."
-        actions={<CreateLeadWizard />}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <UploadCloud className="w-4 h-4 mr-1.5" /> Import Excel
+            </Button>
+            <CreateLeadWizard />
+          </div>
+        }
       />
 
       <div className="px-6 pt-4 flex items-center gap-2 flex-wrap">
@@ -312,6 +322,7 @@ function LeadsPage() {
         leadId={lostLead?.id ?? null}
         leadName={lostLead?.company_name}
       />
+      <ImportLeadsDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
 
   );
