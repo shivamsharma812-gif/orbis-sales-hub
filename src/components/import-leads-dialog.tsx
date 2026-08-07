@@ -100,6 +100,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const [mappedHeaders, setMappedHeaders] = useState<string[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const { data: assignableUsers = [] } = useAssignableUsers();
+  const { data: currentUser } = useCurrentUser();
   const qc = useQueryClient();
 
   const ownerLookup = useMemo(() => {
@@ -121,7 +122,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   }
 
   function normalizeHeader(h: string): string {
-    return h.trim().toLowerCase().replace(/[\s_]+/g, " ").replace(/^[\s_]+|[\s_]+$/g, "");
+    return h.trim().toLowerCase().replace(/[\s_\-.]+/g, " ").trim();
   }
 
   function isJunkString(v: unknown): boolean {
