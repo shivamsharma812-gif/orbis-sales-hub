@@ -145,34 +145,27 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     return isFinite(n) ? n : null;
   }
 
-  // Sheet dates are written in IST. Store them at 12:00 IST (06:30 UTC) so the
-  // calendar day is identical whether it's later read in IST or UTC.
-  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-
+  // Sheet dates carry no timezone — they are plain calendar days written in IST.
+  // Store them at 12:00 IST (06:30 UTC) so the calendar day is identical whether
+  // it's later read in IST or UTC.
   function isoFromParts(y: number, m: number, d: number): string | null {
     if (!isFinite(y) || !isFinite(m) || !isFinite(d)) return null;
     if (y < 1900 || y > 2200 || m < 1 || m > 12 || d < 1 || d > 31) return null;
     return new Date(Date.UTC(y, m - 1, d, 6, 30, 0)).toISOString();
   }
 
-  // Calendar parts of an instant as seen on an IST wall clock.
-  function istParts(ms: number): [number, number, number] {
-    const t = new Date(ms + IST_OFFSET_MS);
-    return [t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()];
-  }
-
   function parseDate(v: unknown): string | null {
     if (v === null || v === undefined || v === "") return new Date().toISOString();
 
-    // SheetJS returns real Date objects (cellDates) built in local time; the
-    // underlying UTC instant carries the sheet's IST wall-clock date.
-    if (v instanceof Date && isFinite(v.getTime())) {
-      return isoFromParts(...istParts(v.getTime()));
+    // Excel serial number → calendar parts via SheetJS's own date codec (no timezone involved).
+    if (typeof v === "number" && isFinite(v) && v > 0 && v < 100000) {
+      const p = XLSX.SSF.parse_date_code(v);
+      return p ? isoFromParts(p.y, p.m, p.d) : null;
     }
 
-    // Excel serial number → calendar date (serial 1 = 1900-01-01, 1900 leap bug).
-    if (typeof v === "number" && isFinite(v) && v > 0 && v < 100000) {
-      return isoFromParts(...istParts(Math.round((v - 25569) * 86400 * 1000)));
+    // Defensive: if a Date object ever reaches here, read its UTC calendar parts.
+    if (v instanceof Date && isFinite(v.getTime())) {
+      return isoFromParts(v.getUTCFullYear(), v.getUTCMonth() + 1, v.getUTCDate());
     }
 
     const s = String(v).trim();
@@ -189,17 +182,21 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       let month = +m[2];
       let year = +m[3];
       if (year < 100) year += year < 70 ? 2000 : 1900;
-      // Ambiguous values where the first part cannot be a day → treat as US order.
       if (day > 12 && month > 12) return null;
       if (day <= 12 && month > 12) [day, month] = [month, day];
       return isoFromParts(year, month, day);
     }
 
-    // Textual dates ("12 Mar 2024", "Mar 12, 2024") — read as IST wall clock.
-    const d = new Date(s);
-    if (!isFinite(d.getTime())) return null;
-    return isoFromParts(...istParts(d.getTime()));
+    // Textual dates ("12 Mar 2024", "Mar 12, 2024") — parsed as a plain calendar day.
+    const d = new Date(`${s} 00:00:00Z`);
+    if (isFinite(d.getTime())) {
+      return isoFromParts(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+    }
+    const d2 = new Date(s);
+    if (!isFinite(d2.getTime())) return null;
+    return isoFromParts(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
   }
+
 
 
 
@@ -209,7 +206,8 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     setReport(null);
     try {
       const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array", cellDates: true });
+      // No cellDates: keep dates as raw Excel serials so no timezone conversion happens.
+      const wb = XLSX.read(buf, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
       if (!ws) { toast.error("The workbook has no sheets."); setProcessing(false); return; }
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", raw: true });
