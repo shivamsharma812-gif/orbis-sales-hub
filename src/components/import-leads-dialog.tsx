@@ -145,16 +145,54 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     return isFinite(n) ? n : null;
   }
 
+  // Build an ISO timestamp anchored at noon UTC so the calendar date can never
+  // shift a day when converted between the sheet's local time and UTC.
+  function isoFromParts(y: number, m: number, d: number): string | null {
+    if (!isFinite(y) || !isFinite(m) || !isFinite(d)) return null;
+    if (y < 1900 || y > 2200 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+    return new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).toISOString();
+  }
+
   function parseDate(v: unknown): string | null {
     if (v === null || v === undefined || v === "") return new Date().toISOString();
-    if (v instanceof Date && isFinite(v.getTime())) return v.toISOString();
-    if (typeof v === "number" && v > 25569 && v < 100000) {
-      const d = new Date(Math.round((v - 25569) * 86400 * 1000));
-      if (isFinite(d.getTime())) return d.toISOString();
+
+    // SheetJS returns real Date objects (cellDates) built in local time.
+    if (v instanceof Date && isFinite(v.getTime())) {
+      return isoFromParts(v.getFullYear(), v.getMonth() + 1, v.getDate());
     }
-    const d = new Date(String(v));
-    return isFinite(d.getTime()) ? d.toISOString() : null;
+
+    // Excel serial number → calendar date (serial 1 = 1900-01-01, 1900 leap bug).
+    if (typeof v === "number" && isFinite(v) && v > 0 && v < 100000) {
+      const utc = new Date(Math.round((v - 25569) * 86400 * 1000));
+      return isoFromParts(utc.getUTCFullYear(), utc.getUTCMonth() + 1, utc.getUTCDate());
+    }
+
+    const s = String(v).trim();
+    if (!s) return null;
+
+    // ISO-ish: YYYY-MM-DD or YYYY/MM/DD
+    let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (m) return isoFromParts(+m[1], +m[2], +m[3]);
+
+    // Day-first: DD/MM/YYYY or DD-MM-YY (Excel exports in India are day-first).
+    m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
+    if (m) {
+      let day = +m[1];
+      let month = +m[2];
+      let year = +m[3];
+      if (year < 100) year += year < 70 ? 2000 : 1900;
+      // Ambiguous values where the first part cannot be a day → treat as US order.
+      if (day > 12 && month > 12) return null;
+      if (day <= 12 && month > 12) [day, month] = [month, day];
+      return isoFromParts(year, month, day);
+    }
+
+    // Textual dates ("12 Mar 2024", "Mar 12, 2024") — parsed in local time.
+    const d = new Date(s);
+    if (!isFinite(d.getTime())) return null;
+    return isoFromParts(d.getFullYear(), d.getMonth() + 1, d.getDate());
   }
+
 
   async function processFile() {
     if (!file) return;
