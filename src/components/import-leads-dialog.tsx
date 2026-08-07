@@ -474,7 +474,24 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
               </div>
             )}
 
-            {skippedRows.length === 0 && (
+            {warningRows.length > 0 && (
+              <div className="border border-border rounded-md overflow-hidden">
+                <div className="bg-surface-2 px-3 py-2 text-xs font-medium text-muted-foreground">
+                  Imported with adjustments
+                </div>
+                <div className="divide-y divide-border">
+                  {warningRows.map((r) => (
+                    <div key={`w-${r.row}`} className="px-3 py-2 text-xs flex items-start gap-2">
+                      <span className="text-muted-foreground font-mono w-8 shrink-0">R{r.row}</span>
+                      <span className="font-medium shrink-0">{r.company}</span>
+                      <span className="text-warning">{r.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {skippedRows.length === 0 && warningRows.length === 0 && (
               <p className="text-sm text-muted-foreground">All rows processed successfully.</p>
             )}
           </div>
