@@ -366,7 +366,13 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       }
 
       const skippedCount = results.filter((r) => r.status === "skipped").length;
-      toast.success(`Imported ${insertedCount}, updated ${updatedCount}, skipped ${skippedCount} row(s).`);
+      if (skippedCount === 0) {
+        toast.success(`Successfully imported ${insertedCount} records${updatedCount ? `, updated ${updatedCount}` : ""}.`);
+      } else {
+        toast.warning(
+          `Imported ${insertedCount} records${updatedCount ? `, updated ${updatedCount}` : ""}. Skipped ${skippedCount} rows due to data formatting issues or duplicate companies.`,
+        );
+      }
       setReport(results);
       qc.invalidateQueries({ queryKey: ["leads"] });
     } catch (e) {
