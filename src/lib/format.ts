@@ -11,6 +11,30 @@ export function formatCurrencyCr(value: number | null | undefined): string {
   return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Cr`;
 }
 
+/**
+ * Compact crore formatter for very large aggregates (e.g. pipeline totals).
+ * Values are stored in crores. This collapses the magnitude using Indian
+ * grouping so a number like 2,45,04,60,839.58 Cr becomes "₹245.05 Cr Cr".
+ *
+ * Tiers (value in crores):
+ *   >= 1,00,00,000  →  crore crore  ("Cr Cr")   1 crore crore = 10^14 rupees
+ *   >= 1,00,000     →  lakh crore   ("L Cr")    1 lakh crore  = 10^12 rupees
+ *   >= 1,000        →  thousand crore ("K Cr")
+ *   else            →  plain crores ("Cr")
+ */
+export function formatCurrencyCrCompact(value: number | null | undefined): string {
+  if (value == null) return "—";
+  const n = Number(value);
+  if (Number.isNaN(n)) return "—";
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  const fmt = (v: number) => v.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  if (abs >= 1_00_00_000) return `₹${sign}${fmt(n / 1_00_00_000)} Cr Cr`;
+  if (abs >= 1_00_000) return `₹${sign}${fmt(n / 1_00_000)} L Cr`;
+  if (abs >= 1_000) return `₹${sign}${fmt(n / 1_000)} K Cr`;
+  return `₹${sign}${fmt(n)} Cr`;
+}
+
 export function formatNumber(value: number | null | undefined): string {
   if (value == null) return "—";
   return Number(value).toLocaleString("en-IN");

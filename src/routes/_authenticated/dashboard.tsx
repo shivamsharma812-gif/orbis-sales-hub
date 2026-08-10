@@ -16,7 +16,7 @@ import {
   ArrowRight,
   AlertTriangle,
 } from "lucide-react";
-import { formatCurrencyCr, formatDate, relativeDay } from "@/lib/format";
+import { formatCurrencyCr, formatCurrencyCrCompact, formatDate, relativeDay } from "@/lib/format";
 import type { LucideIcon } from "lucide-react";
 import { MarketTicker } from "@/components/layout/market-ticker";
 import { DailyMeetingsDialog } from "@/components/daily-meetings-dialog";
@@ -177,7 +177,7 @@ function DashboardPage() {
           <KpiCard label="Open Tasks" value={metrics?.openTasks} icon={ClipboardList} loading={isLoading} />
           <KpiCard
             label="Pipeline Value"
-            value={metrics ? formatCurrencyCr(metrics.pipelineValue) : undefined}
+            value={metrics ? formatCurrencyCrCompact(metrics.pipelineValue) : undefined}
             icon={Wallet}
             loading={isLoading}
           />
