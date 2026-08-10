@@ -86,6 +86,7 @@ function LeadsPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [q, setQ] = useState("");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [convertLead, setConvertLead] = useState<ConvertibleLead | null>(null);
   const [lostLead, setLostLead] = useState<Lead | null>(null);
   const [importOpen, setImportOpen] = useState(false);
