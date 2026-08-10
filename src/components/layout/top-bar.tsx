@@ -13,6 +13,7 @@ import {
 import { LogOut, ChevronDown } from "lucide-react";
 import { initials } from "@/lib/format";
 import { GlobalSearch } from "./global-search";
+import { QuickActionsMenu } from "@/components/quick-actions/quick-actions-menu";
 
 import { useQueryClient } from "@tanstack/react-query";
 
