@@ -751,37 +751,45 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
   const pending = followups.filter((f) => f.status === "pending");
   const completed = followups.filter((f) => f.status === "completed");
 
+  const createDialog = (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {!formOnly && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New follow-up</Button>
+        </DialogTrigger>
+      )}
+      <DialogContent>
+        <DialogHeader><DialogTitle>{"Create follow-up" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5"><Label>Due date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+          <div className="space-y-1.5">
+            <Label>Priority</Label>
+            <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["low","medium","high"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => create.mutate()} disabled={!form.due_date || create.isPending}>Create</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (formOnly) return createDialog;
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="text-sm font-semibold flex items-center gap-2">
           <BellRing className="w-4 h-4" /> Follow-ups ({followups.length})
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New follow-up</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create follow-up</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1.5"><Label>Due date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-              <div className="space-y-1.5">
-                <Label>Priority</Label>
-                <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["low","medium","high"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={() => create.mutate()} disabled={!form.due_date || create.isPending}>Create</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {createDialog}
       </div>
       <div className="divide-y divide-border">
         {pending.length === 0 && completed.length === 0 && (
