@@ -109,6 +109,8 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const [processing, setProcessing] = useState(false);
   const [report, setReport] = useState<ReportRow[] | null>(null);
   const [mappedHeaders, setMappedHeaders] = useState<string[] | null>(null);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
   const { data: assignableUsers = [] } = useAssignableUsers();
   const { data: currentUser } = useCurrentUser();
@@ -129,7 +131,29 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     setFile(null);
     setReport(null);
     setMappedHeaders(null);
+    setSheetNames([]);
+    setSelectedSheet("");
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  // Scan the workbook for sheet names when a file is picked so the user can
+  // choose which sheet to import (single-sheet files are auto-selected).
+  async function pickFile(f: File | null) {
+    setFile(f);
+    setReport(null);
+    setMappedHeaders(null);
+    setSheetNames([]);
+    setSelectedSheet("");
+    if (!f) return;
+    try {
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const names = wb.SheetNames ?? [];
+      setSheetNames(names);
+      setSelectedSheet(names[0] ?? "");
+    } catch {
+      setSheetNames([]);
+    }
   }
 
   function normalizeHeader(h: string): string {
