@@ -248,10 +248,13 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       const buf = await file.arrayBuffer();
       // No cellDates: keep dates as raw Excel serials so no timezone conversion happens.
       const wb = XLSX.read(buf, { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
+      const sheetName = selectedSheet && wb.SheetNames.includes(selectedSheet)
+        ? selectedSheet
+        : wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
       if (!ws) { toast.error("The workbook has no sheets."); setProcessing(false); return; }
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", raw: true });
-      if (rows.length === 0) { toast.error("The first sheet has no data rows."); setProcessing(false); return; }
+      if (rows.length === 0) { toast.error(`The sheet "${sheetName}" has no data rows.`); setProcessing(false); return; }
 
       const rawHeaders = Object.keys(rows[0]);
       const mapping: Record<string, string> = {};
