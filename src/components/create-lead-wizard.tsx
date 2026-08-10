@@ -311,11 +311,13 @@ export function CreateLeadWizard({
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="w-4 h-4" /> New lead
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm">
+            <Plus className="w-4 h-4" /> New lead
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Create new lead</DialogTitle>
