@@ -57,10 +57,14 @@ const HEADER_ALIASES: Record<string, string> = {
   client: "company_name", "client name": "company_name", account: "company_name",
   "account name": "company_name", organization: "company_name", organisation: "company_name",
   "business name": "company_name", customer: "company_name", name: "company_name",
+  prospect: "company_name", "prospect name": "company_name",
+  "prospect client name": "company_name", "client prospect name": "company_name",
+  "entity name": "company_name", "fund name": "company_name",
   // Category
   category: "client_type", "client category": "client_type", "company category": "client_type",
   "client type": "client_type", clienttype: "client_type", industry: "client_type",
   sector: "client_type", type: "client_type", "account type": "client_type",
+  "business type": "client_type", "entity type": "client_type", "type of client": "client_type",
   // Sub-category
   "sub category": "sub_category", subcategory: "sub_category",
   "secondary category": "sub_category", "child category": "sub_category",
@@ -84,12 +88,82 @@ const HEADER_ALIASES: Record<string, string> = {
   "estimated value": "estimated_deal_value", "estimated deal value": "estimated_deal_value",
   "deal value": "estimated_deal_value", "opportunity value": "estimated_deal_value",
   value: "estimated_deal_value", amount: "estimated_deal_value", revenue: "estimated_deal_value",
+  "total revenue": "estimated_deal_value",
+  "total revenue direct indirect": "estimated_deal_value",
+  "expected revenue": "estimated_deal_value",
+  "expected revenue direct": "revenue_direct",
+  "expected revenue indirect": "revenue_indirect",
+  "direct revenue": "revenue_direct", "indirect revenue": "revenue_indirect",
+  // Annual revenue / AUM
+  "estimated annual revenue": "estimated_annual_revenue",
+  "annual revenue": "estimated_annual_revenue",
+  "approx auc aum in inr crore": "auc_aum", "approx auc aum": "auc_aum",
+  "auc aum": "auc_aum", auc: "auc_aum", aum: "auc_aum",
+  "assets under custody": "auc_aum", "assets under management": "auc_aum",
+  // Jurisdiction / geography
+  jurisdiction: "city", city: "city", location: "city", "place": "city",
+  state: "state", country: "country", region: "country",
+  // Probability / heat
+  probability: "probability", "probability of closure": "probability",
+  "win probability": "probability", confidence: "probability",
+  "heat map": "heat", heat: "heat", temperature: "heat", "heat map status": "heat",
+  // Expected close
+  "expected date for deal closure": "expected_close_date",
+  "expected closure date": "expected_close_date",
+  "expected close date": "expected_close_date",
+  "expected date of closure": "expected_close_date",
+  "closure date": "expected_close_date", "close date": "expected_close_date",
+  "target close date": "expected_close_date",
+  // Remarks / notes
+  remarks: "notes", remark: "notes", notes: "notes", note: "notes",
+  comments: "notes", comment: "notes", description: "notes",
+  // Referral / website
+  "referral by": "referral_by", "referred by": "referral_by", referral: "referral_by",
+  website: "website", url: "website", "web site": "website",
   // Created
   created: "created_at", "created date": "created_at", "created at": "created_at",
   date: "created_at", "entry date": "created_at", "addition date": "created_at",
   // Ignored
   actions: "actions", action: "actions", "is active": "actions", active: "actions",
 };
+
+// Tick-mark style columns (e.g. "Services Engaged" sub-headers) → service names.
+const SERVICE_COLUMNS: Record<string, string> = {
+  trust: "Trusteeship", trusteeship: "Trusteeship",
+  custo: "Custody & Allied Services", custody: "Custody & Allied Services",
+  "custody allied services": "Custody & Allied Services",
+  fa: "Fund Accounting", "fund accounting": "Fund Accounting",
+  "fund administration": "Fund Administration",
+  rt: "RTA", rta: "RTA", "registrar transfer agent": "RTA",
+  pcm: "PCM",
+};
+
+const HEAT_TO_PRIORITY: Record<string, "high" | "medium" | "low"> = {
+  hot: "high", warm: "medium", cold: "low",
+  high: "high", medium: "medium", moderate: "medium", low: "low",
+};
+
+function isTicked(v: unknown): boolean {
+  if (v === null || v === undefined) return false;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v > 0;
+  const s = String(v).trim().toLowerCase();
+  if (!s || s === "-" || s === "0" || s === "no" || s === "n" || s === "false" || s === "na" || s === "n a") return false;
+  return true;
+}
+
+function parsePercent(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number" && isFinite(v)) {
+    // Excel percent cells arrive as fractions (0.4) unless typed as plain numbers.
+    return Math.round(v <= 1 ? v * 100 : v);
+  }
+  const s = String(v).replace(/[^0-9.]/g, "");
+  const n = parseFloat(s);
+  if (!isFinite(n)) return null;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
 
 
 interface Props {
@@ -253,13 +327,68 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         : wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
       if (!ws) { toast.error("The workbook has no sheets."); setProcessing(false); return; }
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", raw: true });
+      // Sheets often have a title row and/or a two-row header (e.g. "Services Engaged"
+      // spanning Trust / Custo / FA / RT). Find the row that looks most like a header,
+      // optionally merging it with the row below it.
+      const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, {
+        header: 1, defval: "", raw: true, blankrows: false,
+      });
+      if (aoa.length === 0) { toast.error(`The sheet "${sheetName}" is empty.`); setProcessing(false); return; }
+
+      const cellText = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
+      const recognize = (h: string) => {
+        const n = normalizeHeader(h);
+        return !!n && (!!HEADER_ALIASES[n] || !!SERVICE_COLUMNS[n]);
+      };
+      const scoreOf = (hs: string[]) => hs.filter(recognize).length;
+
+      let headerIdx = 0;
+      let headerRows = 1;
+      let bestScore = -1;
+      const limit = Math.min(aoa.length, 12);
+      for (let i = 0; i < limit; i++) {
+        const main = (aoa[i] ?? []).map(cellText);
+        const next = (aoa[i + 1] ?? []).map(cellText);
+        const merged = main.map((m, c) => next[c] || m);
+        const s1 = scoreOf(main);
+        const s2 = aoa[i + 1] ? scoreOf(merged) : -1;
+        if (s1 > bestScore) { bestScore = s1; headerIdx = i; headerRows = 1; }
+        if (s2 > bestScore) { bestScore = s2; headerIdx = i; headerRows = 2; }
+      }
+
+      const mainRow = (aoa[headerIdx] ?? []).map(cellText);
+      const subRow = (aoa[headerIdx + 1] ?? []).map(cellText);
+      const width = Math.max(mainRow.length, headerRows === 2 ? subRow.length : 0);
+      const headerCells: string[] = [];
+      for (let c = 0; c < width; c++) {
+        const main = mainRow[c] ?? "";
+        const sub = headerRows === 2 ? (subRow[c] ?? "") : "";
+        headerCells.push((sub || main || `Column ${c + 1}`).replace(/\s+/g, " ").trim());
+      }
+      // Ensure unique keys
+      const seenHeader = new Map<string, number>();
+      const rawHeaders = headerCells.map((h) => {
+        const count = (seenHeader.get(h) ?? 0) + 1;
+        seenHeader.set(h, count);
+        return count === 1 ? h : `${h} (${count})`;
+      });
+
+      const rows: Record<string, unknown>[] = [];
+      for (let i = headerIdx + headerRows; i < aoa.length; i++) {
+        const arr = aoa[i] ?? [];
+        const obj: Record<string, unknown> = {};
+        rawHeaders.forEach((h, c) => { obj[h] = arr[c] ?? ""; });
+        if (rawHeaders.some((h) => cellText(obj[h]) !== "")) rows.push(obj);
+      }
       if (rows.length === 0) { toast.error(`The sheet "${sheetName}" has no data rows.`); setProcessing(false); return; }
 
-      const rawHeaders = Object.keys(rows[0]);
       const mapping: Record<string, string> = {};
-      for (const h of rawHeaders) mapping[h] = HEADER_ALIASES[normalizeHeader(h)] ?? "unknown";
+      for (const h of rawHeaders) {
+        const n = normalizeHeader(h);
+        mapping[h] = HEADER_ALIASES[n] ?? (SERVICE_COLUMNS[n] ? `service:${SERVICE_COLUMNS[n]}` : "unknown");
+      }
       setMappedHeaders(rawHeaders.map((h) => `${h} → ${mapping[h]}`));
+
 
       const fields = Object.values(mapping);
       const missing: string[] = [];
@@ -386,14 +515,33 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           source = SOURCE_SYNONYMS[raw.toLowerCase()] ?? raw;
         }
 
-        // Est. value — unparseable falls back to 0 with a warning
-        let dealValue = 0;
-        const valueRaw = getVal("estimated_deal_value");
-        if (valueRaw !== "" && valueRaw !== null && valueRaw !== undefined) {
-          const parsed = parseCurrency(valueRaw);
-          if (parsed === null) notes.push(`Unparseable value "${valueRaw}" — set to 0`);
-          else dealValue = parsed;
+        // Currency columns are normalised to crores, using the unit hinted in the header
+        // ("in INR crore", "lakh") and falling back to a rupee-magnitude heuristic.
+        const colFor = (field: string) => rawHeaders.find((h) => mapping[h] === field);
+        const toCrores = (field: string): number | null => {
+          const raw = getVal(field);
+          if (raw === "" || raw === null || raw === undefined) return null;
+          const parsed = parseCurrency(raw);
+          if (parsed === null) { notes.push(`Unparseable value "${raw}" — ignored`); return null; }
+          const header = normalizeHeader(colFor(field) ?? "");
+          const cellText = String(raw).toLowerCase();
+          if (/\bcr\b|crore/.test(header) || /\bcr\b|crore/.test(cellText)) return parsed;
+          if (/lakh|lac/.test(header) || /lakh|lac/.test(cellText)) return parsed / 100;
+          if (Math.abs(parsed) >= 100000) {
+            notes.push(`"${raw}" read as rupees → ${(parsed / 1e7).toFixed(2)} Cr`);
+            return parsed / 1e7;
+          }
+          return parsed;
+        };
+
+        // Est. value — total revenue, or direct + indirect when only those are present
+        let dealValue = toCrores("estimated_deal_value");
+        if (dealValue === null) {
+          const direct = toCrores("revenue_direct");
+          const indirect = toCrores("revenue_indirect");
+          if (direct !== null || indirect !== null) dealValue = (direct ?? 0) + (indirect ?? 0);
         }
+        if (dealValue === null) dealValue = 0;
 
         // Created — invalid falls back to now
         const createdRaw = getVal("created_at");
@@ -403,8 +551,38 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           notes.push(`Invalid date "${createdRaw}" — set to today`);
         }
 
-        const subCategoryRaw = getVal("sub_category");
-        const subCategory = isJunkString(subCategoryRaw) ? null : String(subCategoryRaw).trim();
+        const text = (field: string): string | null => {
+          const v = getVal(field);
+          if (v === null || v === undefined) return null;
+          const s = String(v).trim();
+          return s && s !== "-" ? s : null;
+        };
+
+        const subCategory = isJunkString(getVal("sub_category")) ? null : String(getVal("sub_category")).trim();
+
+        // Services engaged — tick-mark columns
+        const services: string[] = [];
+        for (const h of rawHeaders) {
+          const field = mapping[h];
+          if (field.startsWith("service:") && isTicked(r[h])) {
+            const svc = field.slice("service:".length);
+            if (!services.includes(svc)) services.push(svc);
+          }
+        }
+
+        const probability = parsePercent(getVal("probability"));
+        const heat = text("heat");
+        const priority = (heat && HEAT_TO_PRIORITY[heat.toLowerCase()]) ?? "medium";
+        const closeIso = parseDate(getVal("expected_close_date"));
+        const expectedClose = getVal("expected_close_date") === "" ? null : closeIso ? closeIso.slice(0, 10) : null;
+        const annualRevenue = toCrores("estimated_annual_revenue");
+        const aucAum = toCrores("auc_aum");
+
+        const noteParts: string[] = [];
+        const remarks = text("notes");
+        if (remarks) noteParts.push(remarks);
+        if (aucAum !== null) noteParts.push(`Approx AUC/AUM: ₹${aucAum} Cr`);
+        if (heat) noteParts.push(`Heat map: ${heat}`);
 
         const dupKey = `${company.toLowerCase()}|${category.toLowerCase()}`;
         if (seenInFile.has(dupKey)) {
@@ -422,8 +600,24 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           estimated_deal_value: dealValue,
           lead_source: source,
           created_at: created,
+          priority: priority as LeadUpdate["priority"],
         };
         if (subCategory) base.sub_category = subCategory;
+        if (services.length > 0) base.services = services;
+        if (probability !== null) base.probability = probability;
+        if (expectedClose) base.expected_close_date = expectedClose;
+        if (annualRevenue !== null) base.estimated_annual_revenue = annualRevenue;
+        if (noteParts.length > 0) base.notes = noteParts.join("\n");
+        const city = text("city");
+        if (city) base.city = city;
+        const state = text("state");
+        if (state) base.state = state;
+        const country = text("country");
+        if (country) base.country = country;
+        const website = text("website");
+        if (website) base.website = website;
+        const referral = text("referral_by");
+        if (referral) base.referral_by = referral;
 
         if (existingLeadId) {
           toUpdate.push({ id: existingLeadId, patch: base });
@@ -432,11 +626,11 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           toInsert.push({
             ...base,
             status: "active",
-            priority: "medium",
-            services: [],
+            services: services,
           } as LeadInsert);
           results.push({ row: rowNum, company, status: "imported", reason: notes.join("; ") || undefined });
         }
+
       });
 
 
