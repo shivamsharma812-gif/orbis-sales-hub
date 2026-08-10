@@ -57,6 +57,7 @@ const HEADER_ALIASES: Record<string, string> = {
   client: "company_name", "client name": "company_name", account: "company_name",
   "account name": "company_name", organization: "company_name", organisation: "company_name",
   "business name": "company_name", customer: "company_name", name: "company_name",
+  firm: "company_name", "firm name": "company_name", "company firm": "company_name",
   prospect: "company_name", "prospect name": "company_name",
   "prospect client name": "company_name", "client prospect name": "company_name",
   "entity name": "company_name", "fund name": "company_name",
