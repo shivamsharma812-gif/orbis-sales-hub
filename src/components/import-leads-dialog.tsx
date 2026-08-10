@@ -515,14 +515,33 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           source = SOURCE_SYNONYMS[raw.toLowerCase()] ?? raw;
         }
 
-        // Est. value — unparseable falls back to 0 with a warning
-        let dealValue = 0;
-        const valueRaw = getVal("estimated_deal_value");
-        if (valueRaw !== "" && valueRaw !== null && valueRaw !== undefined) {
-          const parsed = parseCurrency(valueRaw);
-          if (parsed === null) notes.push(`Unparseable value "${valueRaw}" — set to 0`);
-          else dealValue = parsed;
+        // Currency columns are normalised to crores, using the unit hinted in the header
+        // ("in INR crore", "lakh") and falling back to a rupee-magnitude heuristic.
+        const colFor = (field: string) => rawHeaders.find((h) => mapping[h] === field);
+        const toCrores = (field: string): number | null => {
+          const raw = getVal(field);
+          if (raw === "" || raw === null || raw === undefined) return null;
+          const parsed = parseCurrency(raw);
+          if (parsed === null) { notes.push(`Unparseable value "${raw}" — ignored`); return null; }
+          const header = normalizeHeader(colFor(field) ?? "");
+          const cellText = String(raw).toLowerCase();
+          if (/\bcr\b|crore/.test(header) || /\bcr\b|crore/.test(cellText)) return parsed;
+          if (/lakh|lac/.test(header) || /lakh|lac/.test(cellText)) return parsed / 100;
+          if (Math.abs(parsed) >= 100000) {
+            notes.push(`"${raw}" read as rupees → ${(parsed / 1e7).toFixed(2)} Cr`);
+            return parsed / 1e7;
+          }
+          return parsed;
+        };
+
+        // Est. value — total revenue, or direct + indirect when only those are present
+        let dealValue = toCrores("estimated_deal_value");
+        if (dealValue === null) {
+          const direct = toCrores("revenue_direct");
+          const indirect = toCrores("revenue_indirect");
+          if (direct !== null || indirect !== null) dealValue = (direct ?? 0) + (indirect ?? 0);
         }
+        if (dealValue === null) dealValue = 0;
 
         // Created — invalid falls back to now
         const createdRaw = getVal("created_at");
@@ -532,8 +551,38 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           notes.push(`Invalid date "${createdRaw}" — set to today`);
         }
 
-        const subCategoryRaw = getVal("sub_category");
-        const subCategory = isJunkString(subCategoryRaw) ? null : String(subCategoryRaw).trim();
+        const text = (field: string): string | null => {
+          const v = getVal(field);
+          if (v === null || v === undefined) return null;
+          const s = String(v).trim();
+          return s && s !== "-" ? s : null;
+        };
+
+        const subCategory = isJunkString(getVal("sub_category")) ? null : String(getVal("sub_category")).trim();
+
+        // Services engaged — tick-mark columns
+        const services: string[] = [];
+        for (const h of rawHeaders) {
+          const field = mapping[h];
+          if (field.startsWith("service:") && isTicked(r[h])) {
+            const svc = field.slice("service:".length);
+            if (!services.includes(svc)) services.push(svc);
+          }
+        }
+
+        const probability = parsePercent(getVal("probability"));
+        const heat = text("heat");
+        const priority = (heat && HEAT_TO_PRIORITY[heat.toLowerCase()]) ?? "medium";
+        const closeIso = parseDate(getVal("expected_close_date"));
+        const expectedClose = getVal("expected_close_date") === "" ? null : closeIso ? closeIso.slice(0, 10) : null;
+        const annualRevenue = toCrores("estimated_annual_revenue");
+        const aucAum = toCrores("auc_aum");
+
+        const noteParts: string[] = [];
+        const remarks = text("notes");
+        if (remarks) noteParts.push(remarks);
+        if (aucAum !== null) noteParts.push(`Approx AUC/AUM: ₹${aucAum} Cr`);
+        if (heat) noteParts.push(`Heat map: ${heat}`);
 
         const dupKey = `${company.toLowerCase()}|${category.toLowerCase()}`;
         if (seenInFile.has(dupKey)) {
@@ -551,8 +600,24 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           estimated_deal_value: dealValue,
           lead_source: source,
           created_at: created,
+          priority: priority as LeadUpdate["priority"],
         };
         if (subCategory) base.sub_category = subCategory;
+        if (services.length > 0) base.services = services;
+        if (probability !== null) base.probability = probability;
+        if (expectedClose) base.expected_close_date = expectedClose;
+        if (annualRevenue !== null) base.estimated_annual_revenue = annualRevenue;
+        if (noteParts.length > 0) base.notes = noteParts.join("\n");
+        const city = text("city");
+        if (city) base.city = city;
+        const state = text("state");
+        if (state) base.state = state;
+        const country = text("country");
+        if (country) base.country = country;
+        const website = text("website");
+        if (website) base.website = website;
+        const referral = text("referral_by");
+        if (referral) base.referral_by = referral;
 
         if (existingLeadId) {
           toUpdate.push({ id: existingLeadId, patch: base });
@@ -561,11 +626,11 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           toInsert.push({
             ...base,
             status: "active",
-            priority: "medium",
-            services: [],
+            services: services,
           } as LeadInsert);
           results.push({ row: rowNum, company, status: "imported", reason: notes.join("; ") || undefined });
         }
+
       });
 
 
