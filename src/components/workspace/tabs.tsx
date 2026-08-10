@@ -678,9 +678,11 @@ function EditMeetingDialog({
 }
 
 /* ---------------- Follow-ups ---------------- */
-export function FollowupsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
+export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openOverride ?? openState;
+  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
   const [form, setForm] = useState({ due_date: "", priority: "medium", description: "" });
 
   const { data: followups = [] } = useQuery({
