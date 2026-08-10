@@ -392,62 +392,73 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
 
   return (
     <Card className="p-0 overflow-hidden">
+  const createDialog = (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {!formOnly && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Schedule</Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>{"Schedule meeting" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Date &amp; time</Label><Input type="datetime-local" value={form.meeting_date} onChange={(e) => setForm({ ...form, meeting_date: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Duration (min)</Label><Input type="number" min={5} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} /></div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Type</Label>
+            <Select value={form.meeting_type} onValueChange={(v) => setForm({ ...form, meeting_type: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["In-Person","Video Call","Phone Call"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Agenda</Label><Textarea rows={2} value={form.agenda} onChange={(e) => setForm({ ...form, agenda: e.target.value })} /></div>
+          {contacts.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Invite attendees</Label>
+              <div className="border rounded-md p-2 space-y-1 max-h-32 overflow-y-auto">
+                {contacts.map((c) => (
+                  <label key={c.email} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.attendees.some((a) => a.email === c.email)}
+                      onChange={() => toggleAttendee(c.email, c.name)}
+                    />
+                    <span>{c.name ?? c.email}</span>
+                    <span className="text-muted-foreground text-xs">{c.email}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <ParticipantPicker
+            value={form.attendees as Participant[]}
+            onChange={(next) => setForm({ ...form, attendees: next })}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => create.mutate()} disabled={!form.meeting_date || create.isPending}>Schedule</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (formOnly) return createDialog;
+
+  return (
+    <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="text-sm font-semibold flex items-center gap-2">
           <CalendarClock className="w-4 h-4" /> Meetings ({meetings.length})
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Schedule</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Schedule meeting</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Date &amp; time</Label><Input type="datetime-local" value={form.meeting_date} onChange={(e) => setForm({ ...form, meeting_date: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Duration (min)</Label><Input type="number" min={5} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} /></div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Type</Label>
-                <Select value={form.meeting_type} onValueChange={(v) => setForm({ ...form, meeting_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["In-Person","Video Call","Phone Call"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5"><Label>Agenda</Label><Textarea rows={2} value={form.agenda} onChange={(e) => setForm({ ...form, agenda: e.target.value })} /></div>
-              {contacts.length > 0 && (
-                <div className="space-y-1.5">
-                  <Label>Invite attendees</Label>
-                  <div className="border rounded-md p-2 space-y-1 max-h-32 overflow-y-auto">
-                    {contacts.map((c) => (
-                      <label key={c.email} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={form.attendees.some((a) => a.email === c.email)}
-                          onChange={() => toggleAttendee(c.email, c.name)}
-                        />
-                        <span>{c.name ?? c.email}</span>
-                        <span className="text-muted-foreground text-xs">{c.email}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <ParticipantPicker
-                value={form.attendees as Participant[]}
-                onChange={(next) => setForm({ ...form, attendees: next })}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={() => create.mutate()} disabled={!form.meeting_date || create.isPending}>Schedule</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {createDialog}
       </div>
       <div className="divide-y divide-border">
+
         {meetings.length === 0 && (
           <div className="text-center text-sm text-muted-foreground py-8">You have been sitting on your desk for long enough, Hustle up soldier :)</div>
         )}
