@@ -94,7 +94,7 @@ function LeadsPage() {
   const navigate = useNavigate();
 
   const { data: leads = [] } = useQuery({
-    queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q }],
+    queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q, sortDir }],
     queryFn: async () => {
       let query = supabase.from("leads").select("*").order("created_at", { ascending: sortDir === "asc" });
       if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter as never);
