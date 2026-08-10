@@ -96,7 +96,7 @@ function LeadsPage() {
   const { data: leads = [] } = useQuery({
     queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q }],
     queryFn: async () => {
-      let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
+      let query = supabase.from("leads").select("*").order("created_at", { ascending: sortDir === "asc" });
       if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter as never);
       if (statusFilter !== "all") query = query.eq("status", statusFilter as never);
       if (typeFilter !== "all") query = query.eq("client_type", typeFilter);
