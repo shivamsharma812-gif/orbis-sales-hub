@@ -1209,6 +1209,32 @@ export function DocumentsTab({ parentType, parentId, formOnly, openOverride, onO
     }
   }
 
+  if (formOnly) {
+    return (
+      <Dialog open={openOverride ?? false} onOpenChange={(o) => onOpenChange?.(o)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{"Upload document" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>File</Label>
+            <Input
+              type="file"
+              disabled={uploading}
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                await handleUpload(f);
+                onOpenChange?.(false);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {uploading ? "Uploading…" : "The document will be attached to this record."}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
