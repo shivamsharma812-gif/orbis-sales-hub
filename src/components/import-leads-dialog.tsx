@@ -327,13 +327,68 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         : wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
       if (!ws) { toast.error("The workbook has no sheets."); setProcessing(false); return; }
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", raw: true });
+      // Sheets often have a title row and/or a two-row header (e.g. "Services Engaged"
+      // spanning Trust / Custo / FA / RT). Find the row that looks most like a header,
+      // optionally merging it with the row below it.
+      const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, {
+        header: 1, defval: "", raw: true, blankrows: false,
+      });
+      if (aoa.length === 0) { toast.error(`The sheet "${sheetName}" is empty.`); setProcessing(false); return; }
+
+      const cellText = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
+      const recognize = (h: string) => {
+        const n = normalizeHeader(h);
+        return !!n && (!!HEADER_ALIASES[n] || !!SERVICE_COLUMNS[n]);
+      };
+      const scoreOf = (hs: string[]) => hs.filter(recognize).length;
+
+      let headerIdx = 0;
+      let headerRows = 1;
+      let bestScore = -1;
+      const limit = Math.min(aoa.length, 12);
+      for (let i = 0; i < limit; i++) {
+        const main = (aoa[i] ?? []).map(cellText);
+        const next = (aoa[i + 1] ?? []).map(cellText);
+        const merged = main.map((m, c) => next[c] || m);
+        const s1 = scoreOf(main);
+        const s2 = aoa[i + 1] ? scoreOf(merged) : -1;
+        if (s1 > bestScore) { bestScore = s1; headerIdx = i; headerRows = 1; }
+        if (s2 > bestScore) { bestScore = s2; headerIdx = i; headerRows = 2; }
+      }
+
+      const mainRow = (aoa[headerIdx] ?? []).map(cellText);
+      const subRow = (aoa[headerIdx + 1] ?? []).map(cellText);
+      const width = Math.max(mainRow.length, headerRows === 2 ? subRow.length : 0);
+      const headerCells: string[] = [];
+      for (let c = 0; c < width; c++) {
+        const main = mainRow[c] ?? "";
+        const sub = headerRows === 2 ? (subRow[c] ?? "") : "";
+        headerCells.push((sub || main || `Column ${c + 1}`).replace(/\s+/g, " ").trim());
+      }
+      // Ensure unique keys
+      const seenHeader = new Map<string, number>();
+      const rawHeaders = headerCells.map((h) => {
+        const count = (seenHeader.get(h) ?? 0) + 1;
+        seenHeader.set(h, count);
+        return count === 1 ? h : `${h} (${count})`;
+      });
+
+      const rows: Record<string, unknown>[] = [];
+      for (let i = headerIdx + headerRows; i < aoa.length; i++) {
+        const arr = aoa[i] ?? [];
+        const obj: Record<string, unknown> = {};
+        rawHeaders.forEach((h, c) => { obj[h] = arr[c] ?? ""; });
+        if (rawHeaders.some((h) => cellText(obj[h]) !== "")) rows.push(obj);
+      }
       if (rows.length === 0) { toast.error(`The sheet "${sheetName}" has no data rows.`); setProcessing(false); return; }
 
-      const rawHeaders = Object.keys(rows[0]);
       const mapping: Record<string, string> = {};
-      for (const h of rawHeaders) mapping[h] = HEADER_ALIASES[normalizeHeader(h)] ?? "unknown";
+      for (const h of rawHeaders) {
+        const n = normalizeHeader(h);
+        mapping[h] = HEADER_ALIASES[n] ?? (SERVICE_COLUMNS[n] ? `service:${SERVICE_COLUMNS[n]}` : "unknown");
+      }
       setMappedHeaders(rawHeaders.map((h) => `${h} → ${mapping[h]}`));
+
 
       const fields = Object.values(mapping);
       const missing: string[] = [];
