@@ -177,7 +177,7 @@ function DashboardPage() {
           <KpiCard label="Open Tasks" value={metrics?.openTasks} icon={ClipboardList} loading={isLoading} />
           <KpiCard
             label="Pipeline Value"
-            value={metrics ? formatCurrencyCr(metrics.pipelineValue) : undefined}
+            value={metrics ? formatCurrencyCrCompact(metrics.pipelineValue) : undefined}
             icon={Wallet}
             loading={isLoading}
           />
