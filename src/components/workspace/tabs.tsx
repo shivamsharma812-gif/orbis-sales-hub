@@ -79,6 +79,13 @@ interface WorkspaceProps {
   parentType: ParentType;
   parentId: string;
   ownerId: string;
+  /** Render only the create dialog (used by global Quick Actions). */
+  formOnly?: boolean;
+  /** Controlled open state for the create dialog. */
+  openOverride?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Appended to the dialog title, e.g. " — Tata Asset Management". */
+  titleSuffix?: string;
 }
 
 /* ---------------- Contacts ---------------- */
