@@ -208,9 +208,11 @@ export function CreateClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm"><Plus className="w-4 h-4" /> New client</Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm"><Plus className="w-4 h-4" /> New client</Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader><DialogTitle>Create client</DialogTitle></DialogHeader>
         <div className="grid grid-cols-2 gap-3">
