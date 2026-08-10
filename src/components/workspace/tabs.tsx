@@ -79,12 +79,21 @@ interface WorkspaceProps {
   parentType: ParentType;
   parentId: string;
   ownerId: string;
+  /** Render only the create dialog (used by global Quick Actions). */
+  formOnly?: boolean;
+  /** Controlled open state for the create dialog. */
+  openOverride?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Appended to the dialog title, e.g. " — Tata Asset Management". */
+  titleSuffix?: string;
 }
 
 /* ---------------- Contacts ---------------- */
-export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
+export function ContactsTab({ parentType, parentId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openOverride ?? openState;
+  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
   const [editingId, setEditingId] = useState<string | null>(null);
   const emptyForm = { name: "", designation: "", department: "", email: "", phone: "", is_primary: false };
   const [form, setForm] = useState(emptyForm);
@@ -156,39 +165,47 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
     if (!o) { setEditingId(null); setForm(emptyForm); }
   };
 
+  const createDialog = (
+    <Dialog open={open} onOpenChange={handleOpen}>
+      {!formOnly && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Add contact</Button>
+        </DialogTrigger>
+      )}
+      <DialogContent>
+        <DialogHeader><DialogTitle>{(editingId ? "Edit contact" : "Add contact") + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Designation</Label><Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={form.is_primary} onChange={(e) => setForm({ ...form, is_primary: e.target.checked })} />
+            Primary contact
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpen(false)}>Cancel</Button>
+          <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>{editingId ? "Save" : "Add"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (formOnly) return createDialog;
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="text-sm font-semibold flex items-center gap-2">
           <User className="w-4 h-4" /> Contacts ({contacts.length})
         </div>
-        <Dialog open={open} onOpenChange={handleOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Add contact</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editingId ? "Edit contact" : "Add contact"}</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Designation</Label><Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.is_primary} onChange={(e) => setForm({ ...form, is_primary: e.target.checked })} />
-                Primary contact
-              </label>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => handleOpen(false)}>Cancel</Button>
-              <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>{editingId ? "Save" : "Add"}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {createDialog}
       </div>
       <Table>
         <TableHeader>
@@ -230,9 +247,11 @@ export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
 }
 
 /* ---------------- Meetings ---------------- */
-export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
+export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openOverride ?? openState;
+  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
   const [form, setForm] = useState({
     meeting_date: "",
     meeting_type: "In-Person",
@@ -371,64 +390,73 @@ export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
     }
   };
 
+  const createDialog = (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {!formOnly && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Schedule</Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>{"Schedule meeting" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Date &amp; time</Label><Input type="datetime-local" value={form.meeting_date} onChange={(e) => setForm({ ...form, meeting_date: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Duration (min)</Label><Input type="number" min={5} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} /></div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Type</Label>
+            <Select value={form.meeting_type} onValueChange={(v) => setForm({ ...form, meeting_type: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["In-Person","Video Call","Phone Call"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Agenda</Label><Textarea rows={2} value={form.agenda} onChange={(e) => setForm({ ...form, agenda: e.target.value })} /></div>
+          {contacts.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Invite attendees</Label>
+              <div className="border rounded-md p-2 space-y-1 max-h-32 overflow-y-auto">
+                {contacts.map((c) => (
+                  <label key={c.email} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.attendees.some((a) => a.email === c.email)}
+                      onChange={() => toggleAttendee(c.email, c.name)}
+                    />
+                    <span>{c.name ?? c.email}</span>
+                    <span className="text-muted-foreground text-xs">{c.email}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <ParticipantPicker
+            value={form.attendees as Participant[]}
+            onChange={(next) => setForm({ ...form, attendees: next })}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => create.mutate()} disabled={!form.meeting_date || create.isPending}>Schedule</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (formOnly) return createDialog;
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="text-sm font-semibold flex items-center gap-2">
           <CalendarClock className="w-4 h-4" /> Meetings ({meetings.length})
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Schedule</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Schedule meeting</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Date &amp; time</Label><Input type="datetime-local" value={form.meeting_date} onChange={(e) => setForm({ ...form, meeting_date: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Duration (min)</Label><Input type="number" min={5} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} /></div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Type</Label>
-                <Select value={form.meeting_type} onValueChange={(v) => setForm({ ...form, meeting_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["In-Person","Video Call","Phone Call"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5"><Label>Agenda</Label><Textarea rows={2} value={form.agenda} onChange={(e) => setForm({ ...form, agenda: e.target.value })} /></div>
-              {contacts.length > 0 && (
-                <div className="space-y-1.5">
-                  <Label>Invite attendees</Label>
-                  <div className="border rounded-md p-2 space-y-1 max-h-32 overflow-y-auto">
-                    {contacts.map((c) => (
-                      <label key={c.email} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={form.attendees.some((a) => a.email === c.email)}
-                          onChange={() => toggleAttendee(c.email, c.name)}
-                        />
-                        <span>{c.name ?? c.email}</span>
-                        <span className="text-muted-foreground text-xs">{c.email}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <ParticipantPicker
-                value={form.attendees as Participant[]}
-                onChange={(next) => setForm({ ...form, attendees: next })}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={() => create.mutate()} disabled={!form.meeting_date || create.isPending}>Schedule</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {createDialog}
       </div>
       <div className="divide-y divide-border">
+
         {meetings.length === 0 && (
           <div className="text-center text-sm text-muted-foreground py-8">You have been sitting on your desk for long enough, Hustle up soldier :)</div>
         )}
@@ -650,9 +678,11 @@ function EditMeetingDialog({
 }
 
 /* ---------------- Follow-ups ---------------- */
-export function FollowupsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
+export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openOverride ?? openState;
+  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
   const [form, setForm] = useState({ due_date: "", priority: "medium", description: "" });
 
   const { data: followups = [] } = useQuery({
@@ -721,37 +751,45 @@ export function FollowupsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
   const pending = followups.filter((f) => f.status === "pending");
   const completed = followups.filter((f) => f.status === "completed");
 
+  const createDialog = (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {!formOnly && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New follow-up</Button>
+        </DialogTrigger>
+      )}
+      <DialogContent>
+        <DialogHeader><DialogTitle>{"Create follow-up" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5"><Label>Due date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+          <div className="space-y-1.5">
+            <Label>Priority</Label>
+            <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["low","medium","high"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => create.mutate()} disabled={!form.due_date || create.isPending}>Create</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (formOnly) return createDialog;
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="text-sm font-semibold flex items-center gap-2">
           <BellRing className="w-4 h-4" /> Follow-ups ({followups.length})
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New follow-up</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create follow-up</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1.5"><Label>Due date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-              <div className="space-y-1.5">
-                <Label>Priority</Label>
-                <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["low","medium","high"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={() => create.mutate()} disabled={!form.due_date || create.isPending}>Create</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {createDialog}
       </div>
       <div className="divide-y divide-border">
         {pending.length === 0 && completed.length === 0 && (
@@ -800,9 +838,11 @@ export function FollowupsTab({ parentType, parentId, ownerId }: WorkspaceProps) 
 }
 
 /* ---------------- Tasks ---------------- */
-export function TasksTab({ parentType, parentId, ownerId }: WorkspaceProps) {
+export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openOverride ?? openState;
+  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -879,49 +919,57 @@ export function TasksTab({ parentType, parentId, ownerId }: WorkspaceProps) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const createDialog = (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {!formOnly && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New task</Button>
+        </DialogTrigger>
+      )}
+      <DialogContent>
+        <DialogHeader><DialogTitle>{"Create task" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Due date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+            <div className="space-y-1.5">
+              <Label>Priority</Label>
+              <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["low","medium","high"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Assign to</Label>
+            <Select value={form.assigned_to} onValueChange={(v) => setForm({ ...form, assigned_to: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => create.mutate()} disabled={!form.title || create.isPending}>Create</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (formOnly) return createDialog;
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="text-sm font-semibold flex items-center gap-2">
           <ClipboardList className="w-4 h-4" /> Tasks ({tasks.length})
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New task</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create task</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1.5"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Due date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-                <div className="space-y-1.5">
-                  <Label>Priority</Label>
-                  <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {["low","medium","high"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Assign to</Label>
-                <Select value={form.assigned_to} onValueChange={(v) => setForm({ ...form, assigned_to: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={() => create.mutate()} disabled={!form.title || create.isPending}>Create</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {createDialog}
       </div>
       <div className="divide-y divide-border">
         {tasks.length === 0 && (
@@ -1093,7 +1141,7 @@ export function TimelineTab({ parentType, parentId }: WorkspaceProps) {
 }
 
 /* ---------------- Documents ---------------- */
-export function DocumentsTab({ parentType, parentId }: WorkspaceProps) {
+export function DocumentsTab({ parentType, parentId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const { data: currentUser } = useCurrentUser();
@@ -1159,6 +1207,32 @@ export function DocumentsTab({ parentType, parentId }: WorkspaceProps) {
       toast.success("Deleted");
       qc.invalidateQueries({ queryKey: ["documents", parentType, parentId] });
     }
+  }
+
+  if (formOnly) {
+    return (
+      <Dialog open={openOverride ?? false} onOpenChange={(o) => onOpenChange?.(o)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{"Upload document" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>File</Label>
+            <Input
+              type="file"
+              disabled={uploading}
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                await handleUpload(f);
+                onOpenChange?.(false);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {uploading ? "Uploading…" : "The document will be attached to this record."}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   return (
