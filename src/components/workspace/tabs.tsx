@@ -390,8 +390,6 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
     }
   };
 
-  return (
-    <Card className="p-0 overflow-hidden">
   const createDialog = (
     <Dialog open={open} onOpenChange={setOpen}>
       {!formOnly && (
