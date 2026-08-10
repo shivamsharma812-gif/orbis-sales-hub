@@ -247,9 +247,11 @@ export function ContactsTab({ parentType, parentId, formOnly, openOverride, onOp
 }
 
 /* ---------------- Meetings ---------------- */
-export function MeetingsTab({ parentType, parentId, ownerId }: WorkspaceProps) {
+export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openOverride ?? openState;
+  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
   const [form, setForm] = useState({
     meeting_date: "",
     meeting_type: "In-Person",
