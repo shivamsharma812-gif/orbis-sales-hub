@@ -155,8 +155,18 @@ function ClientsPage() {
   );
 }
 
-function CreateClientDialog() {
-  const [open, setOpen] = useState(false);
+export function CreateClientDialog({
+  openOverride,
+  onOpenChange,
+  hideTrigger,
+}: {
+  openOverride?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+} = {}) {
+  const [openState, setOpenState] = useState(false);
+  const open = openOverride ?? openState;
+  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
   const [form, setForm] = useState({
     company_name: "",
     client_type: "AIF",
