@@ -89,9 +89,11 @@ interface WorkspaceProps {
 }
 
 /* ---------------- Contacts ---------------- */
-export function ContactsTab({ parentType, parentId }: WorkspaceProps) {
+export function ContactsTab({ parentType, parentId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openOverride ?? openState;
+  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
   const [editingId, setEditingId] = useState<string | null>(null);
   const emptyForm = { name: "", designation: "", department: "", email: "", phone: "", is_primary: false };
   const [form, setForm] = useState(emptyForm);
