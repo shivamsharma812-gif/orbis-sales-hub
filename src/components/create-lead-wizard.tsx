@@ -181,8 +181,18 @@ const initialState: FormState = {
   services: [],
 };
 
-export function CreateLeadWizard() {
-  const [open, setOpen] = useState(false);
+export function CreateLeadWizard({
+  openOverride,
+  onOpenChange,
+  hideTrigger,
+}: {
+  openOverride?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+} = {}) {
+  const [openState, setOpenState] = useState(false);
+  const open = openOverride ?? openState;
+  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(initialState);
   const qc = useQueryClient();
