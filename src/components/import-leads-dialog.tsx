@@ -497,12 +497,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] ?? null;
-                  setFile(f);
-                  setReport(null);
-                  setMappedHeaders(null);
-                }}
+                onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
               />
               {file ? (
                 <div className="flex items-center justify-center gap-2 text-sm">
@@ -517,6 +512,25 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
                 </div>
               )}
             </div>
+
+            {file && sheetNames.length > 1 && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Sheet to import</label>
+                <Select value={selectedSheet} onValueChange={setSelectedSheet}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a sheet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sheetNames.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  This workbook has {sheetNames.length} sheets. Choose the one with your lead data.
+                </p>
+              </div>
+            )}
 
             {mappedHeaders && (
               <Alert>
