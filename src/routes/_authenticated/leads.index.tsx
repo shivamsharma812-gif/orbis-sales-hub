@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -86,6 +86,7 @@ function LeadsPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [q, setQ] = useState("");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [convertLead, setConvertLead] = useState<ConvertibleLead | null>(null);
   const [lostLead, setLostLead] = useState<Lead | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -93,9 +94,9 @@ function LeadsPage() {
   const navigate = useNavigate();
 
   const { data: leads = [] } = useQuery({
-    queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q }],
+    queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q, sortDir }],
     queryFn: async () => {
-      let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
+      let query = supabase.from("leads").select("*").order("created_at", { ascending: sortDir === "asc" });
       if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter as never);
       if (statusFilter !== "all") query = query.eq("status", statusFilter as never);
       if (typeFilter !== "all") query = query.eq("client_type", typeFilter);
@@ -235,7 +236,22 @@ function LeadsPage() {
                   <TableHead>Stage</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead className="text-right">Est. Value</TableHead>
-                  <TableHead>Created</TableHead>
+                    <TableHead>
+                      <button
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                        onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
+                        title={sortDir === "asc" ? "Sort newest first" : "Sort oldest first"}
+                      >
+                        Created
+                        {sortDir === "asc" ? (
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        ) : sortDir === "desc" ? (
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronsUpDown className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
