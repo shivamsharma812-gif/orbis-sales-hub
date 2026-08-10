@@ -165,39 +165,47 @@ export function ContactsTab({ parentType, parentId, formOnly, openOverride, onOp
     if (!o) { setEditingId(null); setForm(emptyForm); }
   };
 
+  const createDialog = (
+    <Dialog open={open} onOpenChange={handleOpen}>
+      {!formOnly && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Add contact</Button>
+        </DialogTrigger>
+      )}
+      <DialogContent>
+        <DialogHeader><DialogTitle>{(editingId ? "Edit contact" : "Add contact") + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Designation</Label><Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={form.is_primary} onChange={(e) => setForm({ ...form, is_primary: e.target.checked })} />
+            Primary contact
+          </label>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpen(false)}>Cancel</Button>
+          <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>{editingId ? "Save" : "Add"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (formOnly) return createDialog;
+
   return (
     <Card className="p-0 overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="text-sm font-semibold flex items-center gap-2">
           <User className="w-4 h-4" /> Contacts ({contacts.length})
         </div>
-        <Dialog open={open} onOpenChange={handleOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> Add contact</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editingId ? "Edit contact" : "Add contact"}</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Designation</Label><Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.is_primary} onChange={(e) => setForm({ ...form, is_primary: e.target.checked })} />
-                Primary contact
-              </label>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => handleOpen(false)}>Cancel</Button>
-              <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>{editingId ? "Save" : "Add"}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {createDialog}
       </div>
       <Table>
         <TableHeader>
