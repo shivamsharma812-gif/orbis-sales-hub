@@ -16,7 +16,7 @@ import {
   ArrowRight,
   AlertTriangle,
 } from "lucide-react";
-import { formatCurrencyCr, formatDate, relativeDay } from "@/lib/format";
+import { formatCurrencyCr, formatCurrencyCrCompact, formatDate, relativeDay } from "@/lib/format";
 import type { LucideIcon } from "lucide-react";
 import { MarketTicker } from "@/components/layout/market-ticker";
 import { DailyMeetingsDialog } from "@/components/daily-meetings-dialog";
