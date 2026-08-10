@@ -1074,7 +1074,7 @@ export function TimelineTab({ parentType, parentId }: WorkspaceProps) {
               <div className="flex-1 min-w-0">
                 <div className="text-sm">
                   <span className="font-medium">{a.action}</span>
-                  {a.metadata && Object.keys(a.metadata as object).length > 0 && (
+                  {a.metadata && Object.keys(a.metadata as object).length > 0 && false && (
                     <span className="text-muted-foreground text-xs ml-2">
                       {JSON.stringify(a.metadata)}
                     </span>
