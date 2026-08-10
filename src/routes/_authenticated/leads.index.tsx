@@ -236,7 +236,22 @@ function LeadsPage() {
                   <TableHead>Stage</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead className="text-right">Est. Value</TableHead>
-                  <TableHead>Created</TableHead>
+                    <TableHead>
+                      <button
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                        onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
+                        title={sortDir === "asc" ? "Sort newest first" : "Sort oldest first"}
+                      >
+                        Created
+                        {sortDir === "asc" ? (
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        ) : sortDir === "desc" ? (
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronsUpDown className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
