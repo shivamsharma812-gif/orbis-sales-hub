@@ -57,10 +57,14 @@ const HEADER_ALIASES: Record<string, string> = {
   client: "company_name", "client name": "company_name", account: "company_name",
   "account name": "company_name", organization: "company_name", organisation: "company_name",
   "business name": "company_name", customer: "company_name", name: "company_name",
+  prospect: "company_name", "prospect name": "company_name",
+  "prospect client name": "company_name", "client prospect name": "company_name",
+  "entity name": "company_name", "fund name": "company_name",
   // Category
   category: "client_type", "client category": "client_type", "company category": "client_type",
   "client type": "client_type", clienttype: "client_type", industry: "client_type",
   sector: "client_type", type: "client_type", "account type": "client_type",
+  "business type": "client_type", "entity type": "client_type", "type of client": "client_type",
   // Sub-category
   "sub category": "sub_category", subcategory: "sub_category",
   "secondary category": "sub_category", "child category": "sub_category",
@@ -84,12 +88,82 @@ const HEADER_ALIASES: Record<string, string> = {
   "estimated value": "estimated_deal_value", "estimated deal value": "estimated_deal_value",
   "deal value": "estimated_deal_value", "opportunity value": "estimated_deal_value",
   value: "estimated_deal_value", amount: "estimated_deal_value", revenue: "estimated_deal_value",
+  "total revenue": "estimated_deal_value",
+  "total revenue direct indirect": "estimated_deal_value",
+  "expected revenue": "estimated_deal_value",
+  "expected revenue direct": "revenue_direct",
+  "expected revenue indirect": "revenue_indirect",
+  "direct revenue": "revenue_direct", "indirect revenue": "revenue_indirect",
+  // Annual revenue / AUM
+  "estimated annual revenue": "estimated_annual_revenue",
+  "annual revenue": "estimated_annual_revenue",
+  "approx auc aum in inr crore": "auc_aum", "approx auc aum": "auc_aum",
+  "auc aum": "auc_aum", auc: "auc_aum", aum: "auc_aum",
+  "assets under custody": "auc_aum", "assets under management": "auc_aum",
+  // Jurisdiction / geography
+  jurisdiction: "city", city: "city", location: "city", "place": "city",
+  state: "state", country: "country", region: "country",
+  // Probability / heat
+  probability: "probability", "probability of closure": "probability",
+  "win probability": "probability", confidence: "probability",
+  "heat map": "heat", heat: "heat", temperature: "heat", "heat map status": "heat",
+  // Expected close
+  "expected date for deal closure": "expected_close_date",
+  "expected closure date": "expected_close_date",
+  "expected close date": "expected_close_date",
+  "expected date of closure": "expected_close_date",
+  "closure date": "expected_close_date", "close date": "expected_close_date",
+  "target close date": "expected_close_date",
+  // Remarks / notes
+  remarks: "notes", remark: "notes", notes: "notes", note: "notes",
+  comments: "notes", comment: "notes", description: "notes",
+  // Referral / website
+  "referral by": "referral_by", "referred by": "referral_by", referral: "referral_by",
+  website: "website", url: "website", "web site": "website",
   // Created
   created: "created_at", "created date": "created_at", "created at": "created_at",
   date: "created_at", "entry date": "created_at", "addition date": "created_at",
   // Ignored
   actions: "actions", action: "actions", "is active": "actions", active: "actions",
 };
+
+// Tick-mark style columns (e.g. "Services Engaged" sub-headers) → service names.
+const SERVICE_COLUMNS: Record<string, string> = {
+  trust: "Trusteeship", trusteeship: "Trusteeship",
+  custo: "Custody & Allied Services", custody: "Custody & Allied Services",
+  "custody allied services": "Custody & Allied Services",
+  fa: "Fund Accounting", "fund accounting": "Fund Accounting",
+  "fund administration": "Fund Administration",
+  rt: "RTA", rta: "RTA", "registrar transfer agent": "RTA",
+  pcm: "PCM",
+};
+
+const HEAT_TO_PRIORITY: Record<string, "high" | "medium" | "low"> = {
+  hot: "high", warm: "medium", cold: "low",
+  high: "high", medium: "medium", moderate: "medium", low: "low",
+};
+
+function isTicked(v: unknown): boolean {
+  if (v === null || v === undefined) return false;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v > 0;
+  const s = String(v).trim().toLowerCase();
+  if (!s || s === "-" || s === "0" || s === "no" || s === "n" || s === "false" || s === "na" || s === "n a") return false;
+  return true;
+}
+
+function parsePercent(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number" && isFinite(v)) {
+    // Excel percent cells arrive as fractions (0.4) unless typed as plain numbers.
+    return Math.round(v <= 1 ? v * 100 : v);
+  }
+  const s = String(v).replace(/[^0-9.]/g, "");
+  const n = parseFloat(s);
+  if (!isFinite(n)) return null;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
 
 
 interface Props {
