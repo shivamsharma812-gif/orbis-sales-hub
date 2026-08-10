@@ -1141,7 +1141,7 @@ export function TimelineTab({ parentType, parentId }: WorkspaceProps) {
 }
 
 /* ---------------- Documents ---------------- */
-export function DocumentsTab({ parentType, parentId }: WorkspaceProps) {
+export function DocumentsTab({ parentType, parentId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const { data: currentUser } = useCurrentUser();
