@@ -9,6 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,6 +109,8 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
   const [processing, setProcessing] = useState(false);
   const [report, setReport] = useState<ReportRow[] | null>(null);
   const [mappedHeaders, setMappedHeaders] = useState<string[] | null>(null);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
   const { data: assignableUsers = [] } = useAssignableUsers();
   const { data: currentUser } = useCurrentUser();
@@ -122,7 +131,29 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
     setFile(null);
     setReport(null);
     setMappedHeaders(null);
+    setSheetNames([]);
+    setSelectedSheet("");
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  // Scan the workbook for sheet names when a file is picked so the user can
+  // choose which sheet to import (single-sheet files are auto-selected).
+  async function pickFile(f: File | null) {
+    setFile(f);
+    setReport(null);
+    setMappedHeaders(null);
+    setSheetNames([]);
+    setSelectedSheet("");
+    if (!f) return;
+    try {
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const names = wb.SheetNames ?? [];
+      setSheetNames(names);
+      setSelectedSheet(names[0] ?? "");
+    } catch {
+      setSheetNames([]);
+    }
   }
 
   function normalizeHeader(h: string): string {
@@ -217,10 +248,13 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
       const buf = await file.arrayBuffer();
       // No cellDates: keep dates as raw Excel serials so no timezone conversion happens.
       const wb = XLSX.read(buf, { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
+      const sheetName = selectedSheet && wb.SheetNames.includes(selectedSheet)
+        ? selectedSheet
+        : wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
       if (!ws) { toast.error("The workbook has no sheets."); setProcessing(false); return; }
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", raw: true });
-      if (rows.length === 0) { toast.error("The first sheet has no data rows."); setProcessing(false); return; }
+      if (rows.length === 0) { toast.error(`The sheet "${sheetName}" has no data rows.`); setProcessing(false); return; }
 
       const rawHeaders = Object.keys(rows[0]);
       const mapping: Record<string, string> = {};
@@ -463,12 +497,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] ?? null;
-                  setFile(f);
-                  setReport(null);
-                  setMappedHeaders(null);
-                }}
+                onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
               />
               {file ? (
                 <div className="flex items-center justify-center gap-2 text-sm">
@@ -483,6 +512,25 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
                 </div>
               )}
             </div>
+
+            {file && sheetNames.length > 1 && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Sheet to import</label>
+                <Select value={selectedSheet} onValueChange={setSelectedSheet}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a sheet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sheetNames.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  This workbook has {sheetNames.length} sheets. Choose the one with your lead data.
+                </p>
+              </div>
+            )}
 
             {mappedHeaders && (
               <Alert>
