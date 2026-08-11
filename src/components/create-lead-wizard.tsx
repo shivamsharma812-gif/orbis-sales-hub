@@ -602,7 +602,7 @@ export function CreateLeadWizard({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Expected close date</Label>
+                <Label>Estimated deal closure date</Label>
                 <Input
                   type="date"
                   value={form.expected_close_date}
@@ -761,7 +761,7 @@ export function CreateLeadWizard({
                   <ReviewItem label="Stage" value={form.pipeline_stage} />
                   <ReviewItem label="Priority" value={form.priority} />
                   <ReviewItem
-                    label="Expected close"
+                    label="Estimated deal closure"
                     value={form.expected_close_date || "—"}
                   />
                   <ReviewItem
