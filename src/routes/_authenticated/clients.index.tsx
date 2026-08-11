@@ -45,6 +45,7 @@ function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState("active");
   const [q, setQ] = useState("");
   const navigate = useNavigate();
+  const { endOwnerName } = useEndOwners();
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients", { serviceFilter, statusFilter, q }],
