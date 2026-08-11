@@ -258,6 +258,38 @@ function DashboardPage() {
   return (
     <div>
       <DailyMeetingsDialog />
+      <Dialog open={!!notDoneMeeting} onOpenChange={(v) => !v && setNotDoneMeeting(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Why didn't the meeting take place?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Reason</Label>
+            <Textarea
+              rows={4}
+              autoFocus
+              placeholder="e.g. Client rescheduled at the last minute"
+              value={notDoneReason}
+              onChange={(e) => setNotDoneReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotDoneMeeting(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!notDoneReason.trim() || markNotDone.isPending}
+              onClick={() =>
+                notDoneMeeting &&
+                markNotDone.mutate({ id: notDoneMeeting.id, reason: notDoneReason.trim() })
+              }
+            >
+              Save reason
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <MinutesOfMeetingDialog
         meeting={momMeeting}
         open={!!momMeeting}
