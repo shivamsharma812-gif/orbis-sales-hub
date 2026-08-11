@@ -139,9 +139,6 @@ function ClientsPage() {
                       <div className="text-xs text-muted-foreground">{c.client_type}</div>
                     </TableCell>
                     <TableCell>{owner?.full_name ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {endOwnerName(c as { owner_id: string; end_owner_id?: string | null })}
-                    </TableCell>
                     <TableCell><Badge variant="outline">{c.service_type ?? "—"}</Badge></TableCell>
                     <TableCell className="text-right font-mono">{formatCurrencyCr(c.auc)}</TableCell>
                     <TableCell className="text-right font-mono">{formatCurrencyCr(c.annual_revenue)}</TableCell>
