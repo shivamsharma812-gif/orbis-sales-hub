@@ -21,6 +21,9 @@ import { formatCurrencyCr, formatCurrencyCrCompact, formatDate, relativeDay } fr
 import type { LucideIcon } from "lucide-react";
 import { MarketTicker } from "@/components/layout/market-ticker";
 import { DailyMeetingsDialog } from "@/components/daily-meetings-dialog";
+import { MinutesOfMeetingDialog, type MomMeeting } from "@/components/minutes-of-meeting-dialog";
+import { useState } from "react";
+import { FileText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Orbis CRM" }] }),
@@ -35,6 +38,8 @@ function hasMeetingEnded(meetingDate: string, durationMinutes: number | null) {
 
 
 function DashboardPage() {
+  const [momMeeting, setMomMeeting] = useState<MomMeeting | null>(null);
+
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["dashboard", "metrics"],
     queryFn: async () => {
@@ -114,7 +119,41 @@ function DashboardPage() {
 
   });
 
+  const { data: pendingMinutes } = useQuery({
+    queryKey: ["dashboard", "pending-minutes"],
+    queryFn: async (): Promise<MomMeeting[]> => {
+      const since = new Date(Date.now() - 14 * 24 * 60 * 60_000).toISOString();
+      const { data } = await supabase
+        .from("meetings")
+        .select(
+          "id, parent_type, parent_id, meeting_date, meeting_type, agenda, duration_minutes, discussion_summary, action_items, attendees",
+        )
+        .eq("status", "scheduled")
+        .gte("meeting_date", since)
+        .lte("meeting_date", new Date().toISOString())
+        .order("meeting_date", { ascending: false })
+        .limit(20);
+
+      const ended = (data ?? []).filter((m) => hasMeetingEnded(m.meeting_date, m.duration_minutes));
+      const leadIds = ended.filter((m) => m.parent_type === "lead").map((m) => m.parent_id);
+      const clientIds = ended.filter((m) => m.parent_type === "client").map((m) => m.parent_id);
+      const [leads, clients] = await Promise.all([
+        leadIds.length
+          ? supabase.from("leads").select("id, company_name").in("id", leadIds)
+          : Promise.resolve({ data: [] as { id: string; company_name: string }[] }),
+        clientIds.length
+          ? supabase.from("clients").select("id, company_name").in("id", clientIds)
+          : Promise.resolve({ data: [] as { id: string; company_name: string }[] }),
+      ]);
+      const names = new Map<string, string>();
+      for (const r of [...(leads.data ?? []), ...(clients.data ?? [])]) names.set(r.id, r.company_name);
+      return ended.map((m) => ({ ...m, parent_name: names.get(m.parent_id) })) as MomMeeting[];
+    },
+    refetchInterval: 60_000,
+  });
+
   const { data: recentActivity } = useQuery({
+
     queryKey: ["dashboard", "activity"],
     queryFn: async () => {
       const { data } = await supabase
@@ -153,6 +192,12 @@ function DashboardPage() {
   return (
     <div>
       <DailyMeetingsDialog />
+      <MinutesOfMeetingDialog
+        meeting={momMeeting}
+        open={!!momMeeting}
+        onOpenChange={(v) => !v && setMomMeeting(null)}
+      />
+
       <PageHeader
         title="Dashboard"
         description="Live view of your work and pipeline."
@@ -193,7 +238,8 @@ function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Today's meetings */}
-          <Card className="p-4 lg:col-span-2">
+          <Card className="p-4">
+
             <SectionTitle title="Today's meetings" count={todaysMeetings?.length} icon={CalendarClock} />
             <div className="mt-3 divide-y divide-border">
               {todaysMeetings?.length === 0 && <EmptyRow>You have been sitting on your desk for long enough, Hustle up soldier :)</EmptyRow>}
@@ -226,6 +272,34 @@ function DashboardPage() {
               ))}
             </div>
           </Card>
+
+          {/* Minutes of the meeting */}
+          <Card className="p-4">
+            <SectionTitle title="Minutes of the Meeting" count={pendingMinutes?.length} icon={FileText} />
+            <div className="mt-3 divide-y divide-border">
+              {pendingMinutes?.length === 0 && <EmptyRow>No meetings awaiting minutes.</EmptyRow>}
+              {pendingMinutes?.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMomMeeting(m)}
+                  className="w-full text-left flex items-center gap-3 py-2.5 hover:bg-accent rounded px-2 -mx-2"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm truncate">{m.parent_name ?? m.agenda ?? "Meeting"}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {new Date(m.meeting_date).toLocaleDateString()} · {m.meeting_type}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="font-medium bg-amber-500/10 text-amber-600 border-amber-500/30 shrink-0">
+                    Add minutes
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          </Card>
+
+
 
           {/* Follow-ups */}
           <Card className="p-4">
