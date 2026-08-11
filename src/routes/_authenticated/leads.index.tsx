@@ -28,6 +28,7 @@ import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { CreateLeadWizard } from "@/components/create-lead-wizard";
 import { ImportLeadsDialog } from "@/components/import-leads-dialog";
+import { useEndOwners } from "@/hooks/use-end-owners";
 import {
   ConvertLeadDialog,
   MarkLostDialog,
@@ -93,6 +94,7 @@ function LeadsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const months = monthOptions();
   const navigate = useNavigate();
+  const { endOwnerName } = useEndOwners();
 
   const { data: leads = [] } = useQuery({
     queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q, sortDir }],
@@ -234,6 +236,7 @@ function LeadsPage() {
                 <TableRow>
                   <TableHead>Company</TableHead>
                   <TableHead>Owner</TableHead>
+                  <TableHead>End owner</TableHead>
                   <TableHead>Stage</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead className="text-right">AUC</TableHead>
@@ -259,7 +262,7 @@ function LeadsPage() {
               <TableBody>
                 {leads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                       No leads match these filters.
                     </TableCell>
                   </TableRow>
@@ -275,6 +278,9 @@ function LeadsPage() {
                       <div className="text-xs text-muted-foreground">{l.client_type}</div>
                     </TableCell>
                     <TableCell>{ownerMap.get(l.owner_id) ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {endOwnerName(l as { owner_id: string; end_owner_id?: string | null })}
+                    </TableCell>
                     <TableCell>
                       <StageBadge stage={l.pipeline_stage} />
                     </TableCell>

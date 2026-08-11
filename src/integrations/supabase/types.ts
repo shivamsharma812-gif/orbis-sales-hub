@@ -85,8 +85,10 @@ export type Database = {
           annual_revenue: number | null
           auc: number | null
           client_type: string | null
+          co_owner_id: string | null
           company_name: string
           created_at: string
+          end_owner_id: string | null
           id: string
           industry: string | null
           originating_lead_id: string | null
@@ -102,8 +104,10 @@ export type Database = {
           annual_revenue?: number | null
           auc?: number | null
           client_type?: string | null
+          co_owner_id?: string | null
           company_name: string
           created_at?: string
+          end_owner_id?: string | null
           id?: string
           industry?: string | null
           originating_lead_id?: string | null
@@ -119,8 +123,10 @@ export type Database = {
           annual_revenue?: number | null
           auc?: number | null
           client_type?: string | null
+          co_owner_id?: string | null
           company_name?: string
           created_at?: string
+          end_owner_id?: string | null
           id?: string
           industry?: string | null
           originating_lead_id?: string | null
@@ -132,6 +138,20 @@ export type Database = {
           website?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_co_owner_id_fkey"
+            columns: ["co_owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_end_owner_id_fkey"
+            columns: ["end_owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_originating_lead_fk"
             columns: ["originating_lead_id"]
@@ -306,6 +326,7 @@ export type Database = {
           converted_client_id: string | null
           country: string | null
           created_at: string
+          end_owner_id: string | null
           estimated_annual_revenue: number | null
           estimated_deal_value: number | null
           expected_close_date: string | null
@@ -337,6 +358,7 @@ export type Database = {
           converted_client_id?: string | null
           country?: string | null
           created_at?: string
+          end_owner_id?: string | null
           estimated_annual_revenue?: number | null
           estimated_deal_value?: number | null
           expected_close_date?: string | null
@@ -368,6 +390,7 @@ export type Database = {
           converted_client_id?: string | null
           country?: string | null
           created_at?: string
+          end_owner_id?: string | null
           estimated_annual_revenue?: number | null
           estimated_deal_value?: number | null
           expected_close_date?: string | null
@@ -403,6 +426,13 @@ export type Database = {
             columns: ["converted_client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_end_owner_id_fkey"
+            columns: ["end_owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -715,6 +745,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      hierarchy_end_owner: { Args: { _user_id: string }; Returns: string }
       is_descendant_of: {
         Args: { manager_user_id: string; target_user_id: string }
         Returns: boolean

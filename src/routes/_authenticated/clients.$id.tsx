@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
@@ -13,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trash2, Undo2 } from "lucide-react";
+import { ArrowLeft, Trash2, Undo2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import {
@@ -26,6 +27,9 @@ import {
   DocumentsTab,
 } from "@/components/workspace/tabs";
 import { useAssignableUsers } from "@/hooks/use-assignable-users";
+import { useEndOwners } from "@/hooks/use-end-owners";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({ meta: [{ title: "Client — Orbis CRM" }] }),
@@ -36,6 +40,9 @@ function ClientWorkspace() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [shareTransferOpen, setShareTransferOpen] = useState(false);
+  const { endOwnerName, userName } = useEndOwners();
+  const { data: me } = useCurrentUser();
 
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", id],
@@ -138,6 +145,11 @@ function ClientWorkspace() {
             >
               <Undo2 className="w-4 h-4" /> Revert to lead
             </Button>
+            {(me?.designation === "President" || me?.designation === "MD & CEO") && (
+              <Button variant="outline" size="sm" onClick={() => setShareTransferOpen(true)}>
+                <Share2 className="w-4 h-4" /> Share / Transfer
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -174,7 +186,31 @@ function ClientWorkspace() {
             </Select>
           </div>
         </Card>
+        <Card className="p-3">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider">End owner</div>
+          <div className="mt-1.5 text-sm font-medium">
+            {endOwnerName(client as { owner_id: string; end_owner_id?: string | null })}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {(client as { end_owner_id?: string | null }).end_owner_id
+              ? "Set by transfer"
+              : "From hierarchy"}
+            {(client as { co_owner_id?: string | null }).co_owner_id &&
+              ` · shared 50/50 with ${userName((client as { co_owner_id?: string | null }).co_owner_id) ?? "another President"}`}
+          </div>
+        </Card>
       </div>
+
+      <ShareTransferLeadDialog
+        open={shareTransferOpen}
+        onOpenChange={setShareTransferOpen}
+        entity="client"
+        leadId={client.id}
+        ownerId={client.owner_id}
+        currentEndOwnerId={(client as { end_owner_id?: string | null }).end_owner_id ?? null}
+        currentCoOwnerId={(client as { co_owner_id?: string | null }).co_owner_id ?? null}
+        currentUserDesignation={me?.designation ?? ""}
+      />
 
       <div className="p-6">
         <Tabs defaultValue="overview">

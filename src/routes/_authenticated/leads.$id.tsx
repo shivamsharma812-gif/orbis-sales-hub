@@ -26,6 +26,7 @@ import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
 import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useEndOwners } from "@/hooks/use-end-owners";
 import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
 import {
   ConvertLeadDialog,
@@ -74,6 +75,7 @@ function LeadWorkspace() {
 
   const { data: users = [] } = useAssignableUsers();
   const { data: me } = useCurrentUser();
+  const { endOwnerName, userName } = useEndOwners();
 
   const toggleShare = useMutation({
     mutationFn: async (next: boolean) => {
@@ -246,8 +248,10 @@ function LeadWorkspace() {
       <ShareTransferLeadDialog
         open={shareTransferOpen}
         onOpenChange={setShareTransferOpen}
+        entity="lead"
         leadId={lead.id}
-        currentOwnerId={lead.owner_id}
+        ownerId={lead.owner_id}
+        currentEndOwnerId={(lead as { end_owner_id?: string | null }).end_owner_id ?? null}
         currentCoOwnerId={(lead as { co_owner_id?: string | null }).co_owner_id ?? null}
         currentUserDesignation={me?.designation ?? ""}
       />
@@ -304,6 +308,19 @@ function LeadWorkspace() {
                 {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider">End owner</div>
+          <div className="mt-1.5 text-sm font-medium">
+            {endOwnerName(lead as { owner_id: string; end_owner_id?: string | null })}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {(lead as { end_owner_id?: string | null }).end_owner_id
+              ? "Set by transfer"
+              : "From hierarchy"}
+            {(lead as { co_owner_id?: string | null }).co_owner_id &&
+              ` · shared 50/50 with ${userName((lead as { co_owner_id?: string | null }).co_owner_id) ?? "another President"}`}
           </div>
         </Card>
         <Card className="p-3">
