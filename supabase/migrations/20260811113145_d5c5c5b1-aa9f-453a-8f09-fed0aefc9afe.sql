@@ -1,0 +1,1 @@
+UPDATE public.leads SET pipeline_stage = 'Onboarding' WHERE pipeline_stage = 'Mandate Signed';
