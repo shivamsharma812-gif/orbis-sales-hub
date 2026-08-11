@@ -72,6 +72,7 @@ interface Lead {
   lead_source: string | null;
   pipeline_stage: string;
   estimated_deal_value: number;
+  auc: number | null;
   status: string;
   owner_id: string;
   created_at: string;
@@ -235,7 +236,7 @@ function LeadsPage() {
                   <TableHead>Owner</TableHead>
                   <TableHead>Stage</TableHead>
                   <TableHead>Source</TableHead>
-                  <TableHead className="text-right">Est. Value</TableHead>
+                  <TableHead className="text-right">AUC</TableHead>
                     <TableHead>
                       <button
                         className="inline-flex items-center gap-1 hover:text-foreground"
@@ -279,7 +280,7 @@ function LeadsPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{l.lead_source}</TableCell>
                     <TableCell className="text-right font-mono">
-                      {formatCurrencyCr(l.estimated_deal_value)}
+                      {formatCurrencyCr(l.auc)}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
                       {formatDate(l.created_at)}

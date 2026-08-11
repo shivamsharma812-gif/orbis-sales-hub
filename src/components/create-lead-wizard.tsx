@@ -147,6 +147,8 @@ interface FormState {
   expected_close_date: string;
   estimated_annual_revenue: string;
   revenue_unit: "cr" | "lakh";
+  auc: string;
+  auc_unit: "cr" | "lakh";
   probability: "high" | "moderate" | "low";
   internal_remarks: string;
   // Step 4
@@ -176,6 +178,8 @@ const initialState: FormState = {
   expected_close_date: "",
   estimated_annual_revenue: "",
   revenue_unit: "cr",
+  auc: "",
+  auc_unit: "cr",
   probability: "moderate",
   internal_remarks: "",
   services: [],
@@ -277,6 +281,7 @@ export function CreateLeadWizard({
           estimated_deal_value: form.estimated_annual_revenue
             ? toCrores(form.estimated_annual_revenue, form.revenue_unit)
             : 0,
+          auc: form.auc ? toCrores(form.auc, form.auc_unit) : 0,
           probability: PROBABILITY_VALUES[form.probability] ?? null,
           notes: form.internal_remarks || null,
           services: form.services,
@@ -605,7 +610,34 @@ export function CreateLeadWizard({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Estimated annual revenue</Label>
+                <Label>AUC (Assets Under Custody)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.auc}
+                    onChange={(e) => update("auc", e.target.value)}
+                  />
+                  <Select
+                    value={form.auc_unit}
+                    onValueChange={(v) => update("auc_unit", v as "cr" | "lakh")}
+                  >
+                    <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cr">₹ Crores</SelectItem>
+                      <SelectItem value="lakh">₹ Lakhs</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.auc && (
+                  <div className="text-[10px] text-muted-foreground">
+                    = ₹{toCrores(form.auc, form.auc_unit).toFixed(2)} Cr
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Annual revenue</Label>
                 <div className="flex gap-2">
                   <Input
                     type="number"

@@ -292,7 +292,7 @@ function LeadWorkspace() {
           </div>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider">Estimated value</div>
+          <div className="text-xs text-muted-foreground uppercase tracking-wider">Annual revenue</div>
           <div className="mt-1.5 text-lg font-semibold">{formatCurrencyCr(lead.estimated_deal_value)}</div>
         </Card>
         <Card className="p-3">
@@ -336,7 +336,8 @@ function LeadWorkspace() {
                 
                 <Field label="Lead source" value={lead.lead_source} />
                 <Field label="Pipeline stage" value={lead.pipeline_stage} />
-                <Field label="Estimated value" value={formatCurrencyCr(lead.estimated_deal_value)} />
+                <Field label="AUC" value={formatCurrencyCr((lead as { auc?: number | null }).auc)} />
+                <Field label="Annual revenue" value={formatCurrencyCr(lead.estimated_deal_value)} />
               </div>
               {lead.notes && (
                 <div className="mt-4">

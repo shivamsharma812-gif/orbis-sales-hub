@@ -608,6 +608,7 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         if (probability !== null) base.probability = probability;
         if (expectedClose) base.expected_close_date = expectedClose;
         if (annualRevenue !== null) base.estimated_annual_revenue = annualRevenue;
+        if (aucAum !== null) base.auc = aucAum;
         if (noteParts.length > 0) base.notes = noteParts.join("\n");
         const city = text("city");
         if (city) base.city = city;
