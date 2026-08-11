@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StageBadge } from "@/components/stage-badge";
+import { Badge } from "@/components/ui/badge";
 import {
   Target,
   Building2,
@@ -25,6 +26,13 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Orbis CRM" }] }),
   component: DashboardPage,
 });
+
+/** A meeting has ended once its start time plus duration (default 30 min) is in the past. */
+function hasMeetingEnded(meetingDate: string, durationMinutes: number | null) {
+  const end = new Date(meetingDate).getTime() + (durationMinutes ?? 30) * 60_000;
+  return end <= Date.now();
+}
+
 
 function DashboardPage() {
   const { data: metrics, isLoading } = useQuery({
@@ -73,7 +81,7 @@ function DashboardPage() {
       endOfDay.setHours(23, 59, 59, 999);
       const { data } = await supabase
         .from("meetings")
-        .select("id, parent_type, parent_id, meeting_date, meeting_type, agenda, status")
+        .select("id, parent_type, parent_id, meeting_date, meeting_type, agenda, status, duration_minutes")
         .gte("meeting_date", startOfDay.toISOString())
         .lte("meeting_date", endOfDay.toISOString())
         .order("meeting_date", { ascending: true })
@@ -205,7 +213,15 @@ function DashboardPage() {
                       {m.meeting_type} · {m.parent_type}
                     </div>
                   </div>
-                  <StageBadge stage={m.status === "completed" ? "Won" : "Meeting Scheduled"} />
+                  {m.status === "completed" ? (
+                    <StageBadge stage="Won" />
+                  ) : hasMeetingEnded(m.meeting_date, m.duration_minutes) ? (
+                    <Badge variant="outline" className="font-medium bg-amber-500/10 text-amber-600 border-amber-500/30">
+                      Minutes of the Meeting
+                    </Badge>
+                  ) : (
+                    <StageBadge stage="Meeting Scheduled" />
+                  )}
                 </Link>
               ))}
             </div>
