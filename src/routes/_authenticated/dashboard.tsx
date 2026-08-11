@@ -104,18 +104,57 @@ function DashboardPage() {
       endOfDay.setHours(23, 59, 59, 999);
       const { data } = await supabase
         .from("meetings")
-        .select("id, parent_type, parent_id, meeting_date, meeting_type, agenda, status, duration_minutes")
+        .select("id, parent_type, parent_id, meeting_date, meeting_type, agenda, status, duration_minutes, attendees")
         .gte("meeting_date", startOfDay.toISOString())
         .lte("meeting_date", endOfDay.toISOString())
         .neq("status", "cancelled")
         .order("meeting_date", { ascending: true })
         .limit(20);
-      return (data ?? [])
+      const upcoming = (data ?? [])
         .filter((m) => !hasMeetingEnded(m.meeting_date, m.duration_minutes))
         .slice(0, 6);
+
+      const leadIds = upcoming.filter((m) => m.parent_type === "lead").map((m) => m.parent_id);
+      const clientIds = upcoming.filter((m) => m.parent_type === "client").map((m) => m.parent_id);
+      const [leads, clients] = await Promise.all([
+        leadIds.length
+          ? supabase.from("leads").select("id, company_name").in("id", leadIds)
+          : Promise.resolve({ data: [] as { id: string; company_name: string }[] }),
+        clientIds.length
+          ? supabase.from("clients").select("id, company_name").in("id", clientIds)
+          : Promise.resolve({ data: [] as { id: string; company_name: string }[] }),
+      ]);
+      const names = new Map<string, string>();
+      for (const r of [...(leads.data ?? []), ...(clients.data ?? [])]) names.set(r.id, r.company_name);
+
+      // Contacts on the other side of the table (who the meeting is with)
+      const contactsRes = upcoming.length
+        ? await supabase
+            .from("contacts")
+            .select("parent_id, name, designation, is_primary")
+            .in(
+              "parent_id",
+              upcoming.map((m) => m.parent_id),
+            )
+        : { data: [] as { parent_id: string; name: string; designation: string | null; is_primary: boolean }[] };
+      const contactByParent = new Map<string, { name: string; designation: string | null }>();
+      for (const c of contactsRes.data ?? []) {
+        const existing = contactByParent.get(c.parent_id);
+        if (!existing || c.is_primary) contactByParent.set(c.parent_id, { name: c.name, designation: c.designation });
+      }
+
+      return upcoming.map((m) => ({
+        ...m,
+        parent_name: names.get(m.parent_id),
+        contact: contactByParent.get(m.parent_id),
+        participants: ((m.attendees ?? []) as { email: string; name?: string }[]).map(
+          (a) => a.name || a.email,
+        ),
+      }));
     },
     refetchInterval: 60_000,
   });
+
 
   const { data: todaysFollowups } = useQuery({
     queryKey: ["dashboard", "todays-followups"],
@@ -270,17 +309,34 @@ function DashboardPage() {
                   key={m.id}
                   to={m.parent_type === "lead" ? "/leads/$id" : "/clients/$id"}
                   params={{ id: m.parent_id }}
-                  className="flex items-center gap-3 py-2.5 hover:bg-accent rounded px-2 -mx-2"
+                  className="flex items-start gap-3 py-2.5 hover:bg-accent rounded px-2 -mx-2"
                 >
-                  <div className="text-sm font-mono text-muted-foreground w-14 shrink-0">
+                  <div className="text-sm font-mono text-muted-foreground w-14 shrink-0 pt-0.5">
                     {new Date(m.meeting_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm truncate">{m.agenda ?? "Meeting"}</div>
+                    <div className="text-sm font-medium truncate">
+                      {m.parent_name ?? (m.parent_type === "lead" ? "Lead" : "Client")}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">{m.agenda ?? "Meeting"}</div>
+                    {m.contact && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        With: {m.contact.name}
+                        {m.contact.designation ? ` · ${m.contact.designation}` : ""}
+                      </div>
+                    )}
+                    {m.participants.length > 0 && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        Participants: {m.participants.slice(0, 3).join(", ")}
+                        {m.participants.length > 3 ? ` +${m.participants.length - 3}` : ""}
+                      </div>
+                    )}
                     <div className="text-xs text-muted-foreground truncate">
-                      {m.meeting_type} · {m.parent_type}
+                      {m.meeting_type}
+                      {m.duration_minutes ? ` · ${m.duration_minutes} min` : ""} · {m.parent_type}
                     </div>
                   </div>
+
                   {m.status === "completed" ? (
                     <StageBadge stage="Won" />
                   ) : hasMeetingEnded(m.meeting_date, m.duration_minutes) ? (
