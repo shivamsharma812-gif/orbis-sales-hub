@@ -376,8 +376,10 @@ function DashboardPage() {
                     size="sm"
                     variant="ghost"
                     className="h-7 shrink-0 text-muted-foreground"
-                    disabled={markNotDone.isPending}
-                    onClick={() => markNotDone.mutate(m.id)}
+                    onClick={() => {
+                      setNotDoneReason("");
+                      setNotDoneMeeting(m);
+                    }}
                   >
                     Meeting not done
                   </Button>
