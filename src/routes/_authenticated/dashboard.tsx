@@ -39,6 +39,23 @@ function hasMeetingEnded(meetingDate: string, durationMinutes: number | null) {
 
 function DashboardPage() {
   const [momMeeting, setMomMeeting] = useState<MomMeeting | null>(null);
+  const qc = useQueryClient();
+
+  const markNotDone = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("meetings")
+        .update({ status: "cancelled", discussion_summary: "Meeting not done." })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Marked as not done");
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["meetings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["dashboard", "metrics"],
