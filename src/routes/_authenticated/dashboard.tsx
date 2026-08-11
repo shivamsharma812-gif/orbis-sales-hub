@@ -89,10 +89,14 @@ function DashboardPage() {
         .select("id, parent_type, parent_id, meeting_date, meeting_type, agenda, status, duration_minutes")
         .gte("meeting_date", startOfDay.toISOString())
         .lte("meeting_date", endOfDay.toISOString())
+        .neq("status", "cancelled")
         .order("meeting_date", { ascending: true })
-        .limit(6);
-      return data ?? [];
+        .limit(20);
+      return (data ?? [])
+        .filter((m) => !hasMeetingEnded(m.meeting_date, m.duration_minutes))
+        .slice(0, 6);
     },
+    refetchInterval: 60_000,
   });
 
   const { data: todaysFollowups } = useQuery({
