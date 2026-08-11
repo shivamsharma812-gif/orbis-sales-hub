@@ -602,7 +602,7 @@ export function CreateLeadWizard({
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Expected close date</Label>
+                <Label>Estimated deal closure date</Label>
                 <Input
                   type="date"
                   value={form.expected_close_date}
