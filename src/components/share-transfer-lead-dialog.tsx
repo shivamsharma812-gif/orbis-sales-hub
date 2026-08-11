@@ -30,6 +30,7 @@ interface Props {
   currentOwnerId: string;
   currentCoOwnerId: string | null;
   currentUserDesignation: string;
+  currentUserId?: string;
 }
 
 export function ShareTransferLeadDialog({
@@ -39,6 +40,7 @@ export function ShareTransferLeadDialog({
   currentOwnerId,
   currentCoOwnerId,
   currentUserDesignation,
+  currentUserId,
 }: Props) {
   const qc = useQueryClient();
   const isCeo = currentUserDesignation === "MD & CEO";
