@@ -89,29 +89,84 @@ function PipelineReport() {
     },
   });
 
+  const { data: sourceData = [] } = useQuery({
+    queryKey: ["report", "client-sources"],
+    queryFn: async () => {
+      const [clients, leads] = await Promise.all([
+        supabase.from("clients").select("id, originating_lead_id"),
+        supabase.from("leads").select("id, lead_source"),
+      ]);
+      const leadMap = new Map(
+        (leads.data ?? []).map((l) => [l.id, l.lead_source]),
+      );
+      const map = new Map<string, number>();
+      (clients.data ?? []).forEach((c) => {
+        const raw =
+          c.originating_lead_id && leadMap.get(c.originating_lead_id);
+        const source = raw && raw.trim() ? raw : "Direct";
+        map.set(source, (map.get(source) ?? 0) + 1);
+      });
+      return Array.from(map.entries())
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
+    },
+  });
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <ChartCard title="Leads by pipeline stage">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-            <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
-            <Bar dataKey="count" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
-      <ChartCard title="Pipeline value by stage (₹ Cr)">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-            <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
-            <Bar dataKey="value" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ChartCard title="Leads by pipeline stage">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+              <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
+              <Bar dataKey="count" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+        <ChartCard title="Pipeline value by stage (₹ Cr)">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+              <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
+              <Bar dataKey="value" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
+      <ChartCard title="Client sources">
+        {sourceData.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+            No converted clients yet.
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={sourceData}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={60}
+                outerRadius={110}
+                paddingAngle={2}
+                label={({ name, value }) => `${name}: ${value}`}
+                labelLine={false}
+              >
+                {sourceData.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
       </ChartCard>
     </div>
   );
