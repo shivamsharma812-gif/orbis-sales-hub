@@ -586,10 +586,14 @@ function MeetingRow({
               {formatDateTime(m.meeting_date)} · {m.meeting_type}
             </div>
             {m.status === "cancelled" && (
-              <Badge variant="outline" className="text-xs">Meeting not done</Badge>
+              <Badge variant="outline" className="gap-1 border-destructive/40 bg-destructive/10 text-destructive text-xs">
+                <AlertTriangle className="w-3.5 h-3.5" /> Meeting not done
+              </Badge>
             )}
             {m.discussion_summary ? (
-              <div className="whitespace-pre-wrap">{m.discussion_summary}</div>
+              <div className={`whitespace-pre-wrap${m.status === "cancelled" ? " text-destructive" : ""}`}>
+                {m.discussion_summary}
+              </div>
             ) : (
               <div className="text-muted-foreground">No notes recorded for this meeting.</div>
             )}
