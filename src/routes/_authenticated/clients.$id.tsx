@@ -40,6 +40,9 @@ function ClientWorkspace() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [shareTransferOpen, setShareTransferOpen] = useState(false);
+  const { endOwnerName, userName } = useEndOwners();
+  const { data: me } = useCurrentUser();
 
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", id],
