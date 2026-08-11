@@ -53,6 +53,7 @@ import {
   Download,
   Pencil,
   FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { PIPELINE_STAGES } from "@/components/stage-badge";
@@ -534,9 +535,15 @@ function MeetingRow({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={m.status === "completed" ? "secondary" : "outline"}>
-            {m.status ? m.status.charAt(0).toUpperCase() + m.status.slice(1) : m.status}
-          </Badge>
+          {m.status === "cancelled" ? (
+            <Badge variant="outline" className="gap-1 border-destructive/40 bg-destructive/10 text-destructive">
+              <AlertTriangle className="w-3.5 h-3.5" /> Meeting not done
+            </Badge>
+          ) : (
+            <Badge variant={m.status === "completed" ? "secondary" : "outline"}>
+              {m.status ? m.status.charAt(0).toUpperCase() + m.status.slice(1) : m.status}
+            </Badge>
+          )}
           <Button size="sm" variant="ghost" onClick={onEdit}>
             <Pencil className="w-3.5 h-3.5" />
           </Button>
@@ -548,9 +555,15 @@ function MeetingRow({
           </Button>
         </div>
       </div>
-      {m.discussion_summary && (
-        <div className="mt-2 text-sm text-muted-foreground">{m.discussion_summary}</div>
-      )}
+      {m.discussion_summary &&
+        (m.status === "cancelled" ? (
+          <div className="mt-2 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-sm text-destructive">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span className="whitespace-pre-wrap">{m.discussion_summary}</span>
+          </div>
+        ) : (
+          <div className="mt-2 text-sm text-muted-foreground">{m.discussion_summary}</div>
+        ))}
       {m.action_items && (
         <div className="mt-1 text-xs">
           <span className="font-medium">Action items: </span>
@@ -573,10 +586,14 @@ function MeetingRow({
               {formatDateTime(m.meeting_date)} · {m.meeting_type}
             </div>
             {m.status === "cancelled" && (
-              <Badge variant="outline" className="text-xs">Meeting not done</Badge>
+              <Badge variant="outline" className="gap-1 border-destructive/40 bg-destructive/10 text-destructive text-xs">
+                <AlertTriangle className="w-3.5 h-3.5" /> Meeting not done
+              </Badge>
             )}
             {m.discussion_summary ? (
-              <div className="whitespace-pre-wrap">{m.discussion_summary}</div>
+              <div className={`whitespace-pre-wrap${m.status === "cancelled" ? " text-destructive" : ""}`}>
+                {m.discussion_summary}
+              </div>
             ) : (
               <div className="text-muted-foreground">No notes recorded for this meeting.</div>
             )}

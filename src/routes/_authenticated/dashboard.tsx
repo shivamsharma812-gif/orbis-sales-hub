@@ -6,6 +6,9 @@ import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { StageBadge } from "@/components/stage-badge";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -40,23 +43,28 @@ function hasMeetingEnded(meetingDate: string, durationMinutes: number | null) {
 
 function DashboardPage() {
   const [momMeeting, setMomMeeting] = useState<MomMeeting | null>(null);
+  const [notDoneMeeting, setNotDoneMeeting] = useState<MomMeeting | null>(null);
+  const [notDoneReason, setNotDoneReason] = useState("");
   const qc = useQueryClient();
 
   const markNotDone = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
       const { error } = await supabase
         .from("meetings")
-        .update({ status: "cancelled", discussion_summary: "Meeting not done." })
+        .update({ status: "cancelled", discussion_summary: `Meeting not done: ${reason}` })
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Marked as not done");
+      setNotDoneMeeting(null);
+      setNotDoneReason("");
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["meetings"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["dashboard", "metrics"],
@@ -253,6 +261,38 @@ function DashboardPage() {
   return (
     <div>
       <DailyMeetingsDialog />
+      <Dialog open={!!notDoneMeeting} onOpenChange={(v) => !v && setNotDoneMeeting(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Why didn't the meeting take place?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Reason</Label>
+            <Textarea
+              rows={4}
+              autoFocus
+              placeholder="e.g. Client rescheduled at the last minute"
+              value={notDoneReason}
+              onChange={(e) => setNotDoneReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotDoneMeeting(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!notDoneReason.trim() || markNotDone.isPending}
+              onClick={() =>
+                notDoneMeeting &&
+                markNotDone.mutate({ id: notDoneMeeting.id, reason: notDoneReason.trim() })
+              }
+            >
+              Save reason
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <MinutesOfMeetingDialog
         meeting={momMeeting}
         open={!!momMeeting}
@@ -371,8 +411,10 @@ function DashboardPage() {
                     size="sm"
                     variant="ghost"
                     className="h-7 shrink-0 text-muted-foreground"
-                    disabled={markNotDone.isPending}
-                    onClick={() => markNotDone.mutate(m.id)}
+                    onClick={() => {
+                      setNotDoneReason("");
+                      setNotDoneMeeting(m);
+                    }}
                   >
                     Meeting not done
                   </Button>
