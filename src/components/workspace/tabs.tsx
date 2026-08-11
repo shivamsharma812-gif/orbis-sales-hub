@@ -52,6 +52,7 @@ import {
   Trash2,
   Download,
   Pencil,
+  FileText,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { PIPELINE_STAGES } from "@/components/stage-badge";
