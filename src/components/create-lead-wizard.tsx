@@ -761,7 +761,7 @@ export function CreateLeadWizard({
                   <ReviewItem label="Stage" value={form.pipeline_stage} />
                   <ReviewItem label="Priority" value={form.priority} />
                   <ReviewItem
-                    label="Expected close"
+                    label="Estimated deal closure"
                     value={form.expected_close_date || "—"}
                   />
                   <ReviewItem
