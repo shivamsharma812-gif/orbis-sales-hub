@@ -124,7 +124,7 @@ function ClientsPage() {
             </TableHeader>
             <TableBody>
               {clients.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">No clients match these filters.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">No clients match these filters.</TableCell></TableRow>
               )}
               {clients.map((c) => {
                 const owner = (c as unknown as { owner?: { full_name: string } }).owner;
