@@ -84,7 +84,7 @@ export function ConvertLeadDialog({
         .from("leads")
         .update({
           status: "won" as never,
-          pipeline_stage: "Won" as never,
+          pipeline_stage: "Onboarding" as never,
           converted_client_id: client.id,
         })
         .eq("id", lead.id);
@@ -172,7 +172,6 @@ export function MarkLostDialog({
         .from("leads")
         .update({
           status: "lost" as never,
-          pipeline_stage: "Lost" as never,
           lost_reason: reason,
           lost_at: new Date().toISOString(),
         } as never)
