@@ -51,6 +51,64 @@ const SOURCE_SYNONYMS: Record<string, string> = {
   event: "Event", website: "Website", regulatory: "Regulatory Filing", partner: "Partner",
 };
 
+// Categories must match the create-lead wizard exactly; anything else becomes "Other".
+const CLIENT_CATEGORIES = [
+  "Alternative Investment Fund (AIF)",
+  "Portfolio Management Services (PMS)",
+  "Foreign Portfolio Investor (FPI)",
+  "Foreign Direct Investment (FDI)",
+  "Foreign Venture Capital Investor (FVCI)",
+  "Trading Member",
+  "Family Office",
+  "General Corporate",
+  "Individual",
+  "Other",
+];
+
+const CATEGORY_SYNONYMS: Record<string, string> = {
+  aif: "Alternative Investment Fund (AIF)",
+  "alternative investment fund": "Alternative Investment Fund (AIF)",
+  pms: "Portfolio Management Services (PMS)",
+  "portfolio management services": "Portfolio Management Services (PMS)",
+  "portfolio management": "Portfolio Management Services (PMS)",
+  fpi: "Foreign Portfolio Investor (FPI)",
+  "foreign portfolio investor": "Foreign Portfolio Investor (FPI)",
+  fdi: "Foreign Direct Investment (FDI)",
+  "foreign direct investment": "Foreign Direct Investment (FDI)",
+  fvci: "Foreign Venture Capital Investor (FVCI)",
+  "foreign venture capital investor": "Foreign Venture Capital Investor (FVCI)",
+  "trading member": "Trading Member",
+  tm: "Trading Member",
+  broker: "Trading Member",
+  "family office": "Family Office",
+  corporate: "General Corporate",
+  "general corporate": "General Corporate",
+  company: "General Corporate",
+  individual: "Individual",
+  retail: "Individual",
+  hni: "Individual",
+};
+
+function normalizeCategory(raw: string): string {
+  const v = raw.trim();
+  if (!v) return "Other";
+  const exact = CLIENT_CATEGORIES.find((c) => c.toLowerCase() === v.toLowerCase());
+  if (exact) return exact;
+  const key = v.toLowerCase().replace(/[().]/g, " ").replace(/\s+/g, " ").trim();
+  return CATEGORY_SYNONYMS[key] ?? "Other";
+}
+
+const LEAD_SOURCES = [
+  "Referral",
+  "Cold Outreach",
+  "Event",
+  "Website",
+  "Regulatory Filing",
+  "Partner",
+  "Inbound Email",
+];
+
+
 const HEADER_ALIASES: Record<string, string> = {
   // Company name
   "company name": "company_name", company: "company_name", companyname: "company_name",
