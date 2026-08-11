@@ -565,7 +565,34 @@ function MeetingRow({
           <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={syncNow}>Sync now</Button>
         )}
       </div>
-      {m.status !== "completed" && (
+      <Dialog open={notesOpen} onOpenChange={setNotesOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Meeting notes</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="text-xs text-muted-foreground">
+              {formatDateTime(m.meeting_date)} · {m.meeting_type}
+            </div>
+            {m.status === "cancelled" && (
+              <Badge variant="outline" className="text-xs">Meeting not done</Badge>
+            )}
+            {m.discussion_summary ? (
+              <div className="whitespace-pre-wrap">{m.discussion_summary}</div>
+            ) : (
+              <div className="text-muted-foreground">No notes recorded for this meeting.</div>
+            )}
+            {m.action_items && (
+              <div>
+                <div className="font-medium">Next steps / action items</div>
+                <div className="text-muted-foreground whitespace-pre-wrap">{m.action_items}</div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotesOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {m.status === "scheduled" && (
         <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
           <DialogTrigger asChild>
             <Button size="sm" variant="ghost" className="mt-2 h-7">Mark completed</Button>
