@@ -115,6 +115,7 @@ function ClientsPage() {
               <TableRow>
                 <TableHead>Company</TableHead>
                 <TableHead>Owner</TableHead>
+                <TableHead>End owner</TableHead>
                 <TableHead>Service</TableHead>
                 <TableHead className="text-right">AUC</TableHead>
                 <TableHead className="text-right">Revenue</TableHead>
