@@ -281,6 +281,7 @@ export function CreateLeadWizard({
           estimated_deal_value: form.estimated_annual_revenue
             ? toCrores(form.estimated_annual_revenue, form.revenue_unit)
             : 0,
+          auc: form.auc ? toCrores(form.auc, form.auc_unit) : 0,
           probability: PROBABILITY_VALUES[form.probability] ?? null,
           notes: form.internal_remarks || null,
           services: form.services,
