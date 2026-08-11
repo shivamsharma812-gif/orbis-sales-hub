@@ -539,6 +539,9 @@ function MeetingRow({
           <Button size="sm" variant="ghost" onClick={onEdit}>
             <Pencil className="w-3.5 h-3.5" />
           </Button>
+          <Button size="sm" variant="ghost" title="View meeting notes" onClick={() => setNotesOpen(true)}>
+            <FileText className="w-3.5 h-3.5" />
+          </Button>
           <Button size="sm" variant="ghost" onClick={onDelete}>
             <Trash2 className="w-3.5 h-3.5 text-destructive" />
           </Button>
