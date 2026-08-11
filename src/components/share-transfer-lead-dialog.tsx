@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +42,9 @@ export function ShareTransferLeadDialog({
   currentUserDesignation,
 }: Props) {
   const qc = useQueryClient();
-  const isCeo = currentUserDesignation === "MD & CEO";
+  const { data: me } = useCurrentUser();
+  const myId = me?.id ?? null;
+  const isCeo = (me?.designation ?? currentUserDesignation) === "MD & CEO";
   const [mode, setMode] = useState<"transfer" | "share">(isCeo ? "transfer" : "transfer");
   const [targetId, setTargetId] = useState<string>("");
 
@@ -58,18 +61,19 @@ export function ShareTransferLeadDialog({
     },
   });
 
-  // CEO: show all Presidents (exclude MD & CEO themselves). Presidents: show only other Presidents (exclude self and CEO).
+  // Never offer the signed-in user, the current owner, or (when sharing) the existing co-owner.
   const options = peers.filter((p) => {
     if (p.id === currentOwnerId) return false;
-    if (isCeo) return p.designation === "President";
-    // President user
+    if (myId && p.id === myId) return false;
+    if (mode === "share" && p.id === currentCoOwnerId) return false;
     return p.designation === "President";
   });
-
 
   const apply = useMutation({
     mutationFn: async () => {
       if (!targetId) throw new Error("Pick a recipient");
+      if (targetId === myId) throw new Error("You can't transfer or share a lead with yourself");
+      if (targetId === currentOwnerId) throw new Error("That person already owns this lead");
       if (mode === "transfer") {
         const { error } = await supabase
           .from("leads")
