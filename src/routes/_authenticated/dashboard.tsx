@@ -114,7 +114,41 @@ function DashboardPage() {
 
   });
 
+  const { data: pendingMinutes } = useQuery({
+    queryKey: ["dashboard", "pending-minutes"],
+    queryFn: async (): Promise<MomMeeting[]> => {
+      const since = new Date(Date.now() - 14 * 24 * 60 * 60_000).toISOString();
+      const { data } = await supabase
+        .from("meetings")
+        .select(
+          "id, parent_type, parent_id, meeting_date, meeting_type, agenda, duration_minutes, discussion_summary, action_items, attendees",
+        )
+        .eq("status", "scheduled")
+        .gte("meeting_date", since)
+        .lte("meeting_date", new Date().toISOString())
+        .order("meeting_date", { ascending: false })
+        .limit(20);
+
+      const ended = (data ?? []).filter((m) => hasMeetingEnded(m.meeting_date, m.duration_minutes));
+      const leadIds = ended.filter((m) => m.parent_type === "lead").map((m) => m.parent_id);
+      const clientIds = ended.filter((m) => m.parent_type === "client").map((m) => m.parent_id);
+      const [leads, clients] = await Promise.all([
+        leadIds.length
+          ? supabase.from("leads").select("id, company_name").in("id", leadIds)
+          : Promise.resolve({ data: [] as { id: string; company_name: string }[] }),
+        clientIds.length
+          ? supabase.from("clients").select("id, company_name").in("id", clientIds)
+          : Promise.resolve({ data: [] as { id: string; company_name: string }[] }),
+      ]);
+      const names = new Map<string, string>();
+      for (const r of [...(leads.data ?? []), ...(clients.data ?? [])]) names.set(r.id, r.company_name);
+      return ended.map((m) => ({ ...m, parent_name: names.get(m.parent_id) })) as MomMeeting[];
+    },
+    refetchInterval: 60_000,
+  });
+
   const { data: recentActivity } = useQuery({
+
     queryKey: ["dashboard", "activity"],
     queryFn: async () => {
       const { data } = await supabase
