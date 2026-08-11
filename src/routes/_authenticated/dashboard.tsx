@@ -73,7 +73,7 @@ function DashboardPage() {
       endOfDay.setHours(23, 59, 59, 999);
       const { data } = await supabase
         .from("meetings")
-        .select("id, parent_type, parent_id, meeting_date, meeting_type, agenda, status")
+        .select("id, parent_type, parent_id, meeting_date, meeting_type, agenda, status, duration_minutes")
         .gte("meeting_date", startOfDay.toISOString())
         .lte("meeting_date", endOfDay.toISOString())
         .order("meeting_date", { ascending: true })
