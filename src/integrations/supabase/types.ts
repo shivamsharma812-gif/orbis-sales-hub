@@ -298,6 +298,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          auc: number | null
           city: string | null
           client_type: string | null
           co_owner_id: string | null
@@ -328,6 +329,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          auc?: number | null
           city?: string | null
           client_type?: string | null
           co_owner_id?: string | null
@@ -358,6 +360,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          auc?: number | null
           city?: string | null
           client_type?: string | null
           co_owner_id?: string | null
