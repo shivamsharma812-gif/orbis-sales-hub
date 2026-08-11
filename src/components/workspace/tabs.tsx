@@ -898,14 +898,9 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
     assigned_to: ownerId,
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ["users-lite"],
-    queryFn: async () => {
-      const { data } = await supabase.from("users").select("id, full_name");
-      return data ?? [];
-    },
-    staleTime: 300_000,
-  });
+  // Only the current user's own reporting downline can be assigned work.
+  const { data: users = [] } = useAssignableUsers();
+
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks", parentType, parentId],
