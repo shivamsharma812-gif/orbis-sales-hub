@@ -27,6 +27,9 @@ import {
   DocumentsTab,
 } from "@/components/workspace/tabs";
 import { useAssignableUsers } from "@/hooks/use-assignable-users";
+import { useEndOwners } from "@/hooks/use-end-owners";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({ meta: [{ title: "Client — Orbis CRM" }] }),
