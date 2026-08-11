@@ -555,9 +555,15 @@ function MeetingRow({
           </Button>
         </div>
       </div>
-      {m.discussion_summary && (
-        <div className="mt-2 text-sm text-muted-foreground">{m.discussion_summary}</div>
-      )}
+      {m.discussion_summary &&
+        (m.status === "cancelled" ? (
+          <div className="mt-2 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-sm text-destructive">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span className="whitespace-pre-wrap">{m.discussion_summary}</span>
+          </div>
+        ) : (
+          <div className="mt-2 text-sm text-muted-foreground">{m.discussion_summary}</div>
+        ))}
       {m.action_items && (
         <div className="mt-1 text-xs">
           <span className="font-medium">Action items: </span>
