@@ -10,6 +10,8 @@ const DEMO = [
   { email: "president@orbis.demo", app_user_id: "11111111-1111-1111-1111-000000000002" },
   { email: "svp@orbis.demo",       app_user_id: "11111111-1111-1111-1111-000000000007" },
   { email: "rm@orbis.demo",        app_user_id: "11111111-1111-1111-1111-000000000009" },
+  { email: "upendra.tripathi@orbis.demo", app_user_id: "11111111-1111-1111-1111-000000000003" },
+  { email: "chirag.sharma@orbis.demo",    app_user_id: "11111111-1111-1111-1111-000000000019" },
 ];
 const PASSWORD = "Orbis@2026";
 
