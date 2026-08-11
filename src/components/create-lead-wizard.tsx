@@ -178,6 +178,8 @@ const initialState: FormState = {
   expected_close_date: "",
   estimated_annual_revenue: "",
   revenue_unit: "cr",
+  auc: "",
+  auc_unit: "cr",
   probability: "moderate",
   internal_remarks: "",
   services: [],
