@@ -567,12 +567,17 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
           else notes.push(`Unrecognized stage "${raw}" — set to Prospect`);
         }
 
-        // Source — defaults to "Excel Import"
-        let source = "Excel Import";
+        // Source — only the wizard's options are accepted; anything else stays blank
+        let source: string | null = null;
         const sourceRaw = getVal("lead_source");
         if (sourceRaw && String(sourceRaw).trim() && !isJunkString(sourceRaw)) {
           const raw = String(sourceRaw).trim();
-          source = SOURCE_SYNONYMS[raw.toLowerCase()] ?? raw;
+          const mapped =
+            LEAD_SOURCES.find((s) => s.toLowerCase() === raw.toLowerCase()) ??
+            SOURCE_SYNONYMS[raw.toLowerCase()] ??
+            null;
+          source = mapped && LEAD_SOURCES.includes(mapped) ? mapped : null;
+          if (!source) notes.push(`Unrecognized source "${raw}" — left blank`);
         }
 
         // Currency columns are normalised to crores, using the unit hinted in the header
