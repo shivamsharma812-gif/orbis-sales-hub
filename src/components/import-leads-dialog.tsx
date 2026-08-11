@@ -30,20 +30,19 @@ type LeadUpdate = Database["public"]["Tables"]["leads"]["Update"];
 
 const PIPELINE_STAGES = [
   "Prospect", "Contacted", "Meeting Scheduled", "Meeting Completed",
-  "Proposal Sent", "Negotiation", "Mandate Signed", "Onboarding", "Won", "Lost",
+  "Proposal Sent", "Negotiation", "Onboarding",
 ] as const;
 
 const STAGE_SYNONYMS: Record<string, string> = {
-  closed: "Won", close: "Won", won: "Won",
+  closed: "Onboarding", close: "Onboarding", won: "Onboarding",
   lead: "Prospect", new: "Prospect", prospect: "Prospect",
   contacted: "Contacted", "reached out": "Contacted",
   meeting: "Meeting Scheduled", "meeting scheduled": "Meeting Scheduled",
   "meeting completed": "Meeting Completed", met: "Meeting Completed",
   proposal: "Proposal Sent", "proposal sent": "Proposal Sent",
   negotiating: "Negotiation", negotiation: "Negotiation",
-  mandate: "Mandate Signed", "mandate signed": "Mandate Signed",
+  mandate: "Onboarding", "mandate signed": "Onboarding",
   onboarding: "Onboarding",
-  lost: "Lost",
 };
 
 const SOURCE_SYNONYMS: Record<string, string> = {
