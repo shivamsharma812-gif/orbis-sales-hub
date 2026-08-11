@@ -230,7 +230,8 @@ function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Today's meetings */}
-          <Card className="p-4 lg:col-span-2">
+          <Card className="p-4">
+
             <SectionTitle title="Today's meetings" count={todaysMeetings?.length} icon={CalendarClock} />
             <div className="mt-3 divide-y divide-border">
               {todaysMeetings?.length === 0 && <EmptyRow>You have been sitting on your desk for long enough, Hustle up soldier :)</EmptyRow>}
