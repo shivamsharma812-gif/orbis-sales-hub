@@ -279,7 +279,7 @@ function LeadsPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{l.lead_source}</TableCell>
                     <TableCell className="text-right font-mono">
-                      {formatCurrencyCr(l.estimated_deal_value)}
+                      {formatCurrencyCr(l.auc)}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
                       {formatDate(l.created_at)}
