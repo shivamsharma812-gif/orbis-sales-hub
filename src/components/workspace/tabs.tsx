@@ -532,7 +532,9 @@ function MeetingRow({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={m.status === "completed" ? "secondary" : "outline"}>{m.status}</Badge>
+          <Badge variant={m.status === "completed" ? "secondary" : "outline"}>
+            {m.status ? m.status.charAt(0).toUpperCase() + m.status.slice(1) : m.status}
+          </Badge>
           <Button size="sm" variant="ghost" onClick={onEdit}>
             <Pencil className="w-3.5 h-3.5" />
           </Button>
