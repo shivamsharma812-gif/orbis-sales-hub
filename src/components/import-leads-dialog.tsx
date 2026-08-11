@@ -457,7 +457,8 @@ export function ImportLeadsDialog({ open, onOpenChange }: Props) {
         };
 
         const company = String(getVal("company_name") ?? "").trim();
-        const category = String(getVal("client_type") ?? "").trim();
+        const categoryRaw = String(getVal("client_type") ?? "").trim();
+        const category = normalizeCategory(categoryRaw);
         const ownerRaw = getVal("owner");
         const notes: string[] = [];
 
