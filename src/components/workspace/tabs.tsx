@@ -535,11 +535,7 @@ function MeetingRow({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {m.status === "cancelled" ? (
-            <Badge variant="outline" className="gap-1 border-destructive/40 bg-destructive/10 text-destructive">
-              <AlertTriangle className="w-3.5 h-3.5" /> Meeting not done
-            </Badge>
-          ) : (
+          {m.status !== "cancelled" && (
             <Badge variant={m.status === "completed" ? "secondary" : "outline"}>
               {m.status ? m.status.charAt(0).toUpperCase() + m.status.slice(1) : m.status}
             </Badge>
