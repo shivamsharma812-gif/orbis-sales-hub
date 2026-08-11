@@ -278,7 +278,7 @@ function LeadsPage() {
                     <TableCell>
                       <StageBadge stage={l.pipeline_stage} />
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{l.lead_source}</TableCell>
+                    <TableCell className="text-muted-foreground">{l.lead_source || "—"}</TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrencyCr(l.auc)}
                     </TableCell>
