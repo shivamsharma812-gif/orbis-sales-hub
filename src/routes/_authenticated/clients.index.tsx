@@ -34,7 +34,6 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Filter } from "lucide-react";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { useEndOwners } from "@/hooks/use-end-owners";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
   head: () => ({ meta: [{ title: "Clients — Orbis CRM" }] }),
@@ -46,7 +45,6 @@ function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState("active");
   const [q, setQ] = useState("");
   const navigate = useNavigate();
-  const { endOwnerName } = useEndOwners();
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients", { serviceFilter, statusFilter, q }],
@@ -115,7 +113,6 @@ function ClientsPage() {
               <TableRow>
                 <TableHead>Company</TableHead>
                 <TableHead>Owner</TableHead>
-                <TableHead>End owner</TableHead>
                 <TableHead>Service</TableHead>
                 <TableHead className="text-right">AUC</TableHead>
                 <TableHead className="text-right">Revenue</TableHead>
@@ -125,7 +122,7 @@ function ClientsPage() {
             </TableHeader>
             <TableBody>
               {clients.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">No clients match these filters.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">No clients match these filters.</TableCell></TableRow>
               )}
               {clients.map((c) => {
                 const owner = (c as unknown as { owner?: { full_name: string } }).owner;
@@ -140,9 +137,6 @@ function ClientsPage() {
                       <div className="text-xs text-muted-foreground">{c.client_type}</div>
                     </TableCell>
                     <TableCell>{owner?.full_name ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {endOwnerName(c as { owner_id: string; end_owner_id?: string | null })}
-                    </TableCell>
                     <TableCell><Badge variant="outline">{c.service_type ?? "—"}</Badge></TableCell>
                     <TableCell className="text-right font-mono">{formatCurrencyCr(c.auc)}</TableCell>
                     <TableCell className="text-right font-mono">{formatCurrencyCr(c.annual_revenue)}</TableCell>
