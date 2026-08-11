@@ -145,6 +145,11 @@ function ClientWorkspace() {
             >
               <Undo2 className="w-4 h-4" /> Revert to lead
             </Button>
+            {(me?.designation === "President" || me?.designation === "MD & CEO") && (
+              <Button variant="outline" size="sm" onClick={() => setShareTransferOpen(true)}>
+                <Share2 className="w-4 h-4" /> Share / Transfer
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
