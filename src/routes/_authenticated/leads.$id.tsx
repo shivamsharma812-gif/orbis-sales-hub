@@ -336,7 +336,8 @@ function LeadWorkspace() {
                 
                 <Field label="Lead source" value={lead.lead_source} />
                 <Field label="Pipeline stage" value={lead.pipeline_stage} />
-                <Field label="Estimated value" value={formatCurrencyCr(lead.estimated_deal_value)} />
+                <Field label="AUC" value={formatCurrencyCr((lead as { auc?: number | null }).auc)} />
+                <Field label="Annual revenue" value={formatCurrencyCr(lead.estimated_deal_value)} />
               </div>
               {lead.notes && (
                 <div className="mt-4">
