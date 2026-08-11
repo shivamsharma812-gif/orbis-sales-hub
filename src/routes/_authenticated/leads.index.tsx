@@ -28,6 +28,7 @@ import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { CreateLeadWizard } from "@/components/create-lead-wizard";
 import { ImportLeadsDialog } from "@/components/import-leads-dialog";
+import { useEndOwners } from "@/hooks/use-end-owners";
 import {
   ConvertLeadDialog,
   MarkLostDialog,
