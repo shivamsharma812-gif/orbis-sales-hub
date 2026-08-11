@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useEndOwners } from "@/hooks/use-end-owners";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +28,11 @@ const ELIGIBLE_DESIGNATIONS = ["President", "MD & CEO"];
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** "lead" (pipeline) or "client" */
+  entity?: "lead" | "client";
   leadId: string;
-  currentOwnerId: string;
+  ownerId: string;
+  currentEndOwnerId: string | null;
   currentCoOwnerId: string | null;
   currentUserDesignation: string;
 }
@@ -36,17 +40,24 @@ interface Props {
 export function ShareTransferLeadDialog({
   open,
   onOpenChange,
+  entity = "lead",
   leadId,
-  currentOwnerId,
+  ownerId,
+  currentEndOwnerId,
   currentCoOwnerId,
   currentUserDesignation,
 }: Props) {
   const qc = useQueryClient();
   const { data: me } = useCurrentUser();
+  const { hierarchyEndOwnerId, userName } = useEndOwners();
   const myId = me?.id ?? null;
   const isCeo = (me?.designation ?? currentUserDesignation) === "MD & CEO";
-  const [mode, setMode] = useState<"transfer" | "share">(isCeo ? "transfer" : "transfer");
+  const [mode, setMode] = useState<"transfer" | "share">("transfer");
   const [targetId, setTargetId] = useState<string>("");
+
+  const table = entity === "client" ? "clients" : "leads";
+  const label = entity === "client" ? "client" : "lead";
+  const effectiveEndOwnerId = currentEndOwnerId ?? hierarchyEndOwnerId(ownerId);
 
   const { data: peers = [] } = useQuery({
     queryKey: ["president-peers"],
@@ -61,9 +72,9 @@ export function ShareTransferLeadDialog({
     },
   });
 
-  // Never offer the signed-in user, the current owner, or (when sharing) the existing co-owner.
+  // Never offer the signed-in user, the current end owner, or (when sharing) the existing co-owner.
   const options = peers.filter((p) => {
-    if (p.id === currentOwnerId) return false;
+    if (p.id === effectiveEndOwnerId) return false;
     if (myId && p.id === myId) return false;
     if (mode === "share" && p.id === currentCoOwnerId) return false;
     return p.designation === "President";
@@ -72,26 +83,27 @@ export function ShareTransferLeadDialog({
   const apply = useMutation({
     mutationFn: async () => {
       if (!targetId) throw new Error("Pick a recipient");
-      if (targetId === myId) throw new Error("You can't transfer or share a lead with yourself");
-      if (targetId === currentOwnerId) throw new Error("That person already owns this lead");
-      if (mode === "transfer") {
-        const { error } = await supabase
-          .from("leads")
-          .update({ owner_id: targetId, co_owner_id: null } as never)
-          .eq("id", leadId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("leads")
-          .update({ co_owner_id: targetId } as never)
-          .eq("id", leadId);
-        if (error) throw error;
-      }
+      if (targetId === myId) throw new Error(`You can't transfer or share a ${label} with yourself`);
+      if (targetId === effectiveEndOwnerId)
+        throw new Error(`That person is already the end owner of this ${label}`);
+      const patch =
+        mode === "transfer"
+          ? { end_owner_id: targetId, co_owner_id: null }
+          : { end_owner_id: effectiveEndOwnerId, co_owner_id: targetId };
+      const { error } = await supabase
+        .from(table)
+        .update(patch as never)
+        .eq("id", leadId);
+      if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(mode === "transfer" ? "Lead transferred" : "Lead shared — revenue split 50/50");
-      qc.invalidateQueries({ queryKey: ["lead", leadId] });
-      qc.invalidateQueries({ queryKey: ["leads"] });
+      toast.success(
+        mode === "transfer"
+          ? "End ownership transferred"
+          : "End ownership shared — revenue split 50/50",
+      );
+      qc.invalidateQueries({ queryKey: [entity, leadId] });
+      qc.invalidateQueries({ queryKey: [entity === "client" ? "clients" : "leads"] });
       onOpenChange(false);
       setTargetId("");
     },
@@ -102,19 +114,38 @@ export function ShareTransferLeadDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Share or transfer lead</DialogTitle>
+          <DialogTitle>Share or transfer end ownership</DialogTitle>
           <DialogDescription>
-            Move this lead to another President, or share it so the estimated revenue is split 50/50
-            and the lead appears on both accounts.
+            End ownership sits with the President a {label} ultimately rolls up to. Transfer it to
+            another President, or share it so the revenue is split 50/50 and the {label} counts on
+            both accounts. The day-to-day owner stays unchanged.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="rounded-md border p-3 text-sm">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">
+              Current end owner
+            </div>
+            <div className="font-medium mt-0.5">
+              {userName(effectiveEndOwnerId) ?? "—"}
+              {!currentEndOwnerId && effectiveEndOwnerId && (
+                <span className="text-xs text-muted-foreground font-normal"> · from hierarchy</span>
+              )}
+            </div>
+            {currentCoOwnerId && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Shared 50/50 with {userName(currentCoOwnerId) ?? "another President"}
+              </div>
+            )}
+          </div>
+
           {isCeo ? (
             <div className="rounded-md border p-3 text-sm">
-              <div className="font-medium">Transfer lead</div>
+              <div className="font-medium">Transfer end ownership</div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                As MD &amp; CEO you can transfer this lead to any President. Sharing (50/50 split) is available only between Presidents.
+                As MD &amp; CEO you can transfer end ownership to any President. Sharing (50/50
+                split) is available only between Presidents.
               </p>
             </div>
           ) : (
@@ -122,24 +153,25 @@ export function ShareTransferLeadDialog({
               <div className="flex items-start gap-2 rounded-md border p-3">
                 <RadioGroupItem value="transfer" id="mode-transfer" className="mt-0.5" />
                 <div className="flex-1">
-                  <Label htmlFor="mode-transfer" className="font-medium">Transfer lead</Label>
+                  <Label htmlFor="mode-transfer" className="font-medium">Transfer end ownership</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Reassigns full ownership to another President. You lose access unless they share it back.
+                    Hands full end ownership to another President. You lose access unless they share
+                    it back.
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-2 rounded-md border p-3">
                 <RadioGroupItem value="share" id="mode-share" className="mt-0.5" />
                 <div className="flex-1">
-                  <Label htmlFor="mode-share" className="font-medium">Share lead (split 50/50)</Label>
+                  <Label htmlFor="mode-share" className="font-medium">Share end ownership (50/50)</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Both Presidents keep the lead on their account; estimated revenue is counted at 50% each.
+                    Both Presidents keep the {label} on their account; revenue is counted at 50%
+                    each.
                   </p>
                 </div>
               </div>
             </RadioGroup>
           )}
-
 
           <div className="space-y-1.5">
             <Label>{mode === "transfer" ? "Transfer to" : "Share with"}</Label>
@@ -155,7 +187,8 @@ export function ShareTransferLeadDialog({
             </Select>
             {currentCoOwnerId && mode === "share" && (
               <p className="text-xs text-muted-foreground">
-                This lead is already co-owned. Picking someone new will replace the current co-owner.
+                This {label} is already co-owned. Picking someone new will replace the current
+                co-owner.
               </p>
             )}
           </div>
@@ -164,7 +197,7 @@ export function ShareTransferLeadDialog({
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={() => apply.mutate()} disabled={!targetId || apply.isPending}>
-            {mode === "transfer" ? "Transfer lead" : "Share lead"}
+            {mode === "transfer" ? "Transfer end ownership" : "Share end ownership"}
           </Button>
         </DialogFooter>
       </DialogContent>
