@@ -27,6 +27,13 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
 });
 
+/** A meeting has ended once its start time plus duration (default 30 min) is in the past. */
+function hasMeetingEnded(meetingDate: string, durationMinutes: number | null) {
+  const end = new Date(meetingDate).getTime() + (durationMinutes ?? 30) * 60_000;
+  return end <= Date.now();
+}
+
+
 function DashboardPage() {
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["dashboard", "metrics"],
