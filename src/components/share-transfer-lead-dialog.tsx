@@ -41,7 +41,9 @@ export function ShareTransferLeadDialog({
   currentUserDesignation,
 }: Props) {
   const qc = useQueryClient();
-  const isCeo = currentUserDesignation === "MD & CEO";
+  const { data: me } = useCurrentUser();
+  const myId = me?.id ?? null;
+  const isCeo = (me?.designation ?? currentUserDesignation) === "MD & CEO";
   const [mode, setMode] = useState<"transfer" | "share">(isCeo ? "transfer" : "transfer");
   const [targetId, setTargetId] = useState<string>("");
 
