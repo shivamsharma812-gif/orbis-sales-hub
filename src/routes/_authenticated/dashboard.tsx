@@ -205,7 +205,15 @@ function DashboardPage() {
                       {m.meeting_type} · {m.parent_type}
                     </div>
                   </div>
-                  <StageBadge stage={m.status === "completed" ? "Won" : "Meeting Scheduled"} />
+                  {m.status === "completed" ? (
+                    <StageBadge stage="Won" />
+                  ) : hasMeetingEnded(m.meeting_date, m.duration_minutes) ? (
+                    <Badge variant="outline" className="font-medium bg-amber-500/10 text-amber-600 border-amber-500/30">
+                      Minutes of the Meeting
+                    </Badge>
+                  ) : (
+                    <StageBadge stage="Meeting Scheduled" />
+                  )}
                 </Link>
               ))}
             </div>
