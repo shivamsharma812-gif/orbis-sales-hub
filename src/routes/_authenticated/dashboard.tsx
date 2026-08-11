@@ -192,6 +192,12 @@ function DashboardPage() {
   return (
     <div>
       <DailyMeetingsDialog />
+      <MinutesOfMeetingDialog
+        meeting={momMeeting}
+        open={!!momMeeting}
+        onOpenChange={(v) => !v && setMomMeeting(null)}
+      />
+
       <PageHeader
         title="Dashboard"
         description="Live view of your work and pipeline."
