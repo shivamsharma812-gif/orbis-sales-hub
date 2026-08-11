@@ -503,6 +503,7 @@ function MeetingRow({
 }) {
   const qc = useQueryClient();
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [summary, setSummary] = useState(m.discussion_summary ?? "");
   const [actions, setActions] = useState(m.action_items ?? "");
   const attendees = ((m.attendees ?? []) as { email: string; name?: string }[]).length;
