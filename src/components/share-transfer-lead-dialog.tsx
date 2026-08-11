@@ -63,6 +63,7 @@ export function ShareTransferLeadDialog({
   // CEO: show all Presidents (exclude MD & CEO themselves). Presidents: show only other Presidents (exclude self and CEO).
   const options = peers.filter((p) => {
     if (p.id === currentOwnerId) return false;
+    if (currentUserId && p.id === currentUserId) return false;
     if (isCeo) return p.designation === "President";
     // President user
     return p.designation === "President";
