@@ -605,7 +605,34 @@ export function CreateLeadWizard({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Estimated annual revenue</Label>
+                <Label>AUC (Assets Under Custody)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.auc}
+                    onChange={(e) => update("auc", e.target.value)}
+                  />
+                  <Select
+                    value={form.auc_unit}
+                    onValueChange={(v) => update("auc_unit", v as "cr" | "lakh")}
+                  >
+                    <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cr">₹ Crores</SelectItem>
+                      <SelectItem value="lakh">₹ Lakhs</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.auc && (
+                  <div className="text-[10px] text-muted-foreground">
+                    = ₹{toCrores(form.auc, form.auc_unit).toFixed(2)} Cr
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Annual revenue</Label>
                 <div className="flex gap-2">
                   <Input
                     type="number"
