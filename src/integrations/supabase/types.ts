@@ -706,6 +706,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_view_user: { Args: { target_user_id: string }; Returns: boolean }
       current_app_user_id: { Args: never; Returns: string }
       has_role: {
         Args: {
