@@ -147,6 +147,8 @@ interface FormState {
   expected_close_date: string;
   estimated_annual_revenue: string;
   revenue_unit: "cr" | "lakh";
+  auc: string;
+  auc_unit: "cr" | "lakh";
   probability: "high" | "moderate" | "low";
   internal_remarks: string;
   // Step 4
