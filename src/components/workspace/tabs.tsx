@@ -555,7 +555,7 @@ function MeetingRow({
         (m.status === "cancelled" ? (
           <div className="mt-2 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-sm text-destructive">
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span className="whitespace-pre-wrap">{m.discussion_summary}</span>
+            <span className="whitespace-pre-wrap">{m.discussion_summary.replace(/^\s*Meeting not done:\s*/i, "")}</span>
           </div>
         ) : (
           <div className="mt-2 text-sm text-muted-foreground">{m.discussion_summary}</div>
