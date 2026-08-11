@@ -30,6 +30,7 @@ interface Props {
   currentOwnerId: string;
   currentCoOwnerId: string | null;
   currentUserDesignation: string;
+  currentUserId?: string;
 }
 
 export function ShareTransferLeadDialog({
@@ -39,6 +40,7 @@ export function ShareTransferLeadDialog({
   currentOwnerId,
   currentCoOwnerId,
   currentUserDesignation,
+  currentUserId,
 }: Props) {
   const qc = useQueryClient();
   const isCeo = currentUserDesignation === "MD & CEO";
@@ -61,6 +63,7 @@ export function ShareTransferLeadDialog({
   // CEO: show all Presidents (exclude MD & CEO themselves). Presidents: show only other Presidents (exclude self and CEO).
   const options = peers.filter((p) => {
     if (p.id === currentOwnerId) return false;
+    if (currentUserId && p.id === currentUserId) return false;
     if (isCeo) return p.designation === "President";
     // President user
     return p.designation === "President";
