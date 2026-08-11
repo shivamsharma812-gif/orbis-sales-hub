@@ -292,7 +292,7 @@ function LeadWorkspace() {
           </div>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider">Estimated value</div>
+          <div className="text-xs text-muted-foreground uppercase tracking-wider">Annual revenue</div>
           <div className="mt-1.5 text-lg font-semibold">{formatCurrencyCr(lead.estimated_deal_value)}</div>
         </Card>
         <Card className="p-3">
