@@ -174,7 +174,31 @@ function ClientWorkspace() {
             </Select>
           </div>
         </Card>
+        <Card className="p-3">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider">End owner</div>
+          <div className="mt-1.5 text-sm font-medium">
+            {endOwnerName(client as { owner_id: string; end_owner_id?: string | null })}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {(client as { end_owner_id?: string | null }).end_owner_id
+              ? "Set by transfer"
+              : "From hierarchy"}
+            {(client as { co_owner_id?: string | null }).co_owner_id &&
+              ` · shared 50/50 with ${userName((client as { co_owner_id?: string | null }).co_owner_id) ?? "another President"}`}
+          </div>
+        </Card>
       </div>
+
+      <ShareTransferLeadDialog
+        open={shareTransferOpen}
+        onOpenChange={setShareTransferOpen}
+        entity="client"
+        leadId={client.id}
+        ownerId={client.owner_id}
+        currentEndOwnerId={(client as { end_owner_id?: string | null }).end_owner_id ?? null}
+        currentCoOwnerId={(client as { co_owner_id?: string | null }).co_owner_id ?? null}
+        currentUserDesignation={me?.designation ?? ""}
+      />
 
       <div className="p-6">
         <Tabs defaultValue="overview">
