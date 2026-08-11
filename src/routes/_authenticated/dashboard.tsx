@@ -443,53 +443,56 @@ function DashboardPage() {
 
 
 
-          {/* Follow-ups */}
-          <Card className="p-4">
-            <SectionTitle title="Follow-ups due" count={todaysFollowups?.length} icon={BellRing} />
-            <div className="mt-3 divide-y divide-border">
-              {todaysFollowups?.length === 0 && <EmptyRow>No follow-ups due.</EmptyRow>}
-              {todaysFollowups?.map((f) => {
-                const overdue = f.due_date < new Date().toISOString().split("T")[0];
-                return (
-                  <Link
-                    key={f.id}
-                    to={f.parent_type === "lead" ? "/leads/$id" : "/clients/$id"}
-                    params={{ id: f.parent_id }}
-                    className="flex items-start gap-2 py-2.5 hover:bg-accent rounded px-2 -mx-2"
-                  >
-                    {overdue && <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />}
+          {/* Follow-ups + Recent activity side by side */}
+          <div className="lg:col-span-2 xl:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Follow-ups */}
+            <Card className="p-4">
+              <SectionTitle title="Follow-ups due" count={todaysFollowups?.length} icon={BellRing} />
+              <div className="mt-3 divide-y divide-border">
+                {todaysFollowups?.length === 0 && <EmptyRow>No follow-ups due.</EmptyRow>}
+                {todaysFollowups?.map((f) => {
+                  const overdue = f.due_date < new Date().toISOString().split("T")[0];
+                  return (
+                    <Link
+                      key={f.id}
+                      to={f.parent_type === "lead" ? "/leads/$id" : "/clients/$id"}
+                      params={{ id: f.parent_id }}
+                      className="flex items-start gap-2 py-2.5 hover:bg-accent rounded px-2 -mx-2"
+                    >
+                      {overdue && <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm truncate">{f.description}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {relativeDay(f.due_date)} · {f.priority}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Recent activity */}
+            <Card className="p-4">
+              <SectionTitle title="Recent activity" icon={ClipboardList} />
+              <div className="mt-3 space-y-2">
+                {recentActivity?.map((a) => (
+                  <div key={a.id} className="flex items-start gap-2 text-sm">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm truncate">{f.description}</div>
+                      <div className="truncate">
+                        <span className="font-medium">{a.action}</span>
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        {relativeDay(f.due_date)} · {f.priority}
+                        {new Date(a.created_at).toLocaleString()}
                       </div>
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </Card>
-
-          {/* Recent activity */}
-          <Card className="p-4 lg:col-span-2">
-            <SectionTitle title="Recent activity" icon={ClipboardList} />
-            <div className="mt-3 space-y-2">
-              {recentActivity?.map((a) => (
-                <div key={a.id} className="flex items-start gap-2 text-sm">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate">
-                      <span className="font-medium">{a.action}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(a.created_at).toLocaleString()}
-                    </div>
                   </div>
-                </div>
-              ))}
-              {recentActivity?.length === 0 && <EmptyRow>No activity yet.</EmptyRow>}
-            </div>
-          </Card>
+                ))}
+                {recentActivity?.length === 0 && <EmptyRow>No activity yet.</EmptyRow>}
+              </div>
+            </Card>
+          </div>
 
           {/* Recent leads + clients */}
           <Card className="p-4">
