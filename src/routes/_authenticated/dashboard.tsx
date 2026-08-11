@@ -40,23 +40,28 @@ function hasMeetingEnded(meetingDate: string, durationMinutes: number | null) {
 
 function DashboardPage() {
   const [momMeeting, setMomMeeting] = useState<MomMeeting | null>(null);
+  const [notDoneMeeting, setNotDoneMeeting] = useState<MomMeeting | null>(null);
+  const [notDoneReason, setNotDoneReason] = useState("");
   const qc = useQueryClient();
 
   const markNotDone = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
       const { error } = await supabase
         .from("meetings")
-        .update({ status: "cancelled", discussion_summary: "Meeting not done." })
+        .update({ status: "cancelled", discussion_summary: `Meeting not done: ${reason}` })
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Marked as not done");
+      setNotDoneMeeting(null);
+      setNotDoneReason("");
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["meetings"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["dashboard", "metrics"],
