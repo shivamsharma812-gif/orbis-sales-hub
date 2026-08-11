@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Filter } from "lucide-react";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
+import { useEndOwners } from "@/hooks/use-end-owners";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
   head: () => ({ meta: [{ title: "Clients — Orbis CRM" }] }),
