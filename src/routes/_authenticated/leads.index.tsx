@@ -93,6 +93,7 @@ function LeadsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const months = monthOptions();
   const navigate = useNavigate();
+  const { endOwnerName } = useEndOwners();
 
   const { data: leads = [] } = useQuery({
     queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q, sortDir }],
