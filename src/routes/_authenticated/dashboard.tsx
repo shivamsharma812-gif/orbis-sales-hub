@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,23 @@ function hasMeetingEnded(meetingDate: string, durationMinutes: number | null) {
 
 function DashboardPage() {
   const [momMeeting, setMomMeeting] = useState<MomMeeting | null>(null);
+  const qc = useQueryClient();
+
+  const markNotDone = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("meetings")
+        .update({ status: "cancelled", discussion_summary: "Meeting not done." })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Marked as not done");
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["meetings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["dashboard", "metrics"],
@@ -89,10 +107,14 @@ function DashboardPage() {
         .select("id, parent_type, parent_id, meeting_date, meeting_type, agenda, status, duration_minutes")
         .gte("meeting_date", startOfDay.toISOString())
         .lte("meeting_date", endOfDay.toISOString())
+        .neq("status", "cancelled")
         .order("meeting_date", { ascending: true })
-        .limit(6);
-      return data ?? [];
+        .limit(20);
+      return (data ?? [])
+        .filter((m) => !hasMeetingEnded(m.meeting_date, m.duration_minutes))
+        .slice(0, 6);
     },
+    refetchInterval: 60_000,
   });
 
   const { data: todaysFollowups } = useQuery({
@@ -279,22 +301,26 @@ function DashboardPage() {
             <div className="mt-3 divide-y divide-border">
               {pendingMinutes?.length === 0 && <EmptyRow>No meetings awaiting minutes.</EmptyRow>}
               {pendingMinutes?.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setMomMeeting(m)}
-                  className="w-full text-left flex items-center gap-3 py-2.5 hover:bg-accent rounded px-2 -mx-2"
-                >
+                <div key={m.id} className="flex items-center gap-3 py-2.5 px-2 -mx-2">
                   <div className="flex-1 min-w-0">
                     <div className="text-sm truncate">{m.parent_name ?? m.agenda ?? "Meeting"}</div>
                     <div className="text-xs text-muted-foreground truncate">
                       {new Date(m.meeting_date).toLocaleDateString()} · {m.meeting_type}
                     </div>
                   </div>
-                  <Badge variant="outline" className="font-medium bg-amber-500/10 text-amber-600 border-amber-500/30 shrink-0">
+                  <Button size="sm" className="h-7 shrink-0" onClick={() => setMomMeeting(m)}>
                     Add minutes
-                  </Badge>
-                </button>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 shrink-0 text-muted-foreground"
+                    disabled={markNotDone.isPending}
+                    onClick={() => markNotDone.mutate(m.id)}
+                  >
+                    Meeting not done
+                  </Button>
+                </div>
               ))}
             </div>
           </Card>
