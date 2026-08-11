@@ -60,18 +60,19 @@ export function ShareTransferLeadDialog({
     },
   });
 
-  // CEO: show all Presidents (exclude MD & CEO themselves). Presidents: show only other Presidents (exclude self and CEO).
+  // Never offer the signed-in user, the current owner, or (when sharing) the existing co-owner.
   const options = peers.filter((p) => {
     if (p.id === currentOwnerId) return false;
-    if (isCeo) return p.designation === "President";
-    // President user
+    if (myId && p.id === myId) return false;
+    if (mode === "share" && p.id === currentCoOwnerId) return false;
     return p.designation === "President";
   });
-
 
   const apply = useMutation({
     mutationFn: async () => {
       if (!targetId) throw new Error("Pick a recipient");
+      if (targetId === myId) throw new Error("You can't transfer or share a lead with yourself");
+      if (targetId === currentOwnerId) throw new Error("That person already owns this lead");
       if (mode === "transfer") {
         const { error } = await supabase
           .from("leads")
