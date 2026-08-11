@@ -246,8 +246,10 @@ function LeadWorkspace() {
       <ShareTransferLeadDialog
         open={shareTransferOpen}
         onOpenChange={setShareTransferOpen}
+        entity="lead"
         leadId={lead.id}
-        currentOwnerId={lead.owner_id}
+        ownerId={lead.owner_id}
+        currentEndOwnerId={(lead as { end_owner_id?: string | null }).end_owner_id ?? null}
         currentCoOwnerId={(lead as { co_owner_id?: string | null }).co_owner_id ?? null}
         currentUserDesignation={me?.designation ?? ""}
       />
