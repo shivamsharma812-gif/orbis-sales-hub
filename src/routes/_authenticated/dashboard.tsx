@@ -38,6 +38,8 @@ function hasMeetingEnded(meetingDate: string, durationMinutes: number | null) {
 
 
 function DashboardPage() {
+  const [momMeeting, setMomMeeting] = useState<MomMeeting | null>(null);
+
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["dashboard", "metrics"],
     queryFn: async () => {
