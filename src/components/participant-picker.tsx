@@ -21,20 +21,41 @@ interface Employee {
 }
 
 export function useEmployees() {
+  const { data: me } = useCurrentUser();
   return useQuery({
-    queryKey: ["employees-directory"],
+    queryKey: ["employees-directory", me?.id],
+    enabled: !!me?.id,
     queryFn: async (): Promise<Employee[]> => {
       const { data, error } = await supabase
         .from("users")
-        .select("id, full_name, email, designation")
+        .select("id, full_name, email, designation, reports_to_user_id")
         .eq("status", "active")
         .order("full_name");
       if (error) throw error;
-      return (data ?? []).filter((u) => !!u.email) as Employee[];
+      const all = (data ?? []) as (Employee & { reports_to_user_id: string | null })[];
+      // Only the current user and their downline may be added as participants.
+      const childrenOf = new Map<string, typeof all>();
+      for (const u of all) {
+        const p = u.reports_to_user_id ?? "";
+        if (!childrenOf.has(p)) childrenOf.set(p, []);
+        childrenOf.get(p)!.push(u);
+      }
+      const meId = me!.id;
+      const allowed = all.filter((u) => u.id === meId);
+      const stack = [meId];
+      while (stack.length) {
+        const cur = stack.pop()!;
+        for (const child of childrenOf.get(cur) ?? []) {
+          allowed.push(child);
+          stack.push(child.id);
+        }
+      }
+      return allowed.filter((u) => !!u.email) as Employee[];
     },
     staleTime: 5 * 60_000,
   });
 }
+
 
 /**
  * Searchable employee picker for meeting participants. Shows an avatar, the
