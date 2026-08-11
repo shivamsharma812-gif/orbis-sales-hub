@@ -191,13 +191,6 @@ function ClientWorkspace() {
           <div className="mt-1.5 text-sm font-medium">
             {endOwnerName(client as { owner_id: string; end_owner_id?: string | null })}
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5">
-            {(client as { end_owner_id?: string | null }).end_owner_id
-              ? "Set by transfer"
-              : "From hierarchy"}
-            {(client as { co_owner_id?: string | null }).co_owner_id &&
-              ` · shared 50/50 with ${userName((client as { co_owner_id?: string | null }).co_owner_id) ?? "another President"}`}
-          </div>
         </Card>
       </div>
 
