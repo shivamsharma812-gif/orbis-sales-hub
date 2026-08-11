@@ -74,6 +74,7 @@ function LeadWorkspace() {
 
   const { data: users = [] } = useAssignableUsers();
   const { data: me } = useCurrentUser();
+  const { endOwnerName, userName } = useEndOwners();
 
   const toggleShare = useMutation({
     mutationFn: async (next: boolean) => {
