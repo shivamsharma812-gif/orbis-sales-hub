@@ -337,10 +337,9 @@ function DashboardPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {/* Today's meetings */}
           <Card className="p-4">
-
             <SectionTitle title="Today's meetings" count={todaysMeetings?.length} icon={CalendarClock} />
             <div className="mt-3 divide-y divide-border">
               {todaysMeetings?.length === 0 && <EmptyRow>You have been sitting on your desk for long enough, Hustle up soldier :)</EmptyRow>}
@@ -349,43 +348,56 @@ function DashboardPage() {
                   key={m.id}
                   to={m.parent_type === "lead" ? "/leads/$id" : "/clients/$id"}
                   params={{ id: m.parent_id }}
-                  className="flex items-start gap-3 py-2.5 hover:bg-accent rounded px-2 -mx-2"
+                  className="block py-3 hover:bg-accent rounded-md px-2 -mx-2 transition-colors"
                 >
-                  <div className="text-sm font-mono text-muted-foreground w-14 shrink-0 pt-0.5">
-                    {new Date(m.meeting_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      {m.parent_name ?? (m.parent_type === "lead" ? "Lead" : "Client")}
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold truncate">
+                        {m.parent_name ?? (m.parent_type === "lead" ? "Lead" : "Client")}
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                        <span className="font-mono">
+                          {new Date(m.meeting_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <span aria-hidden>·</span>
+                        <span className="capitalize">{m.meeting_type}</span>
+                        {m.duration_minutes ? (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span>{m.duration_minutes} min</span>
+                          </>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">{m.agenda ?? "Meeting"}</div>
+                    <div className="shrink-0">
+                      {m.status === "completed" ? (
+                        <StageBadge stage="Won" />
+                      ) : hasMeetingEnded(m.meeting_date, m.duration_minutes) ? (
+                        <Badge variant="outline" className="font-medium bg-amber-500/10 text-amber-600 border-amber-500/30">
+                          Minutes pending
+                        </Badge>
+                      ) : (
+                        <StageBadge stage="Meeting Scheduled" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                    {m.agenda && <div className="line-clamp-2">{m.agenda}</div>}
                     {m.contact && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        With: {m.contact.name}
+                      <div className="truncate">
+                        <span className="text-foreground/70">With</span> {m.contact.name}
                         {m.contact.designation ? ` · ${m.contact.designation}` : ""}
                       </div>
                     )}
                     {m.participants.length > 0 && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        Participants: {m.participants.slice(0, 3).join(", ")}
+                      <div className="truncate">
+                        <span className="text-foreground/70">Participants</span>{" "}
+                        {m.participants.slice(0, 3).join(", ")}
                         {m.participants.length > 3 ? ` +${m.participants.length - 3}` : ""}
                       </div>
                     )}
-                    <div className="text-xs text-muted-foreground truncate">
-                      {m.meeting_type}
-                      {m.duration_minutes ? ` · ${m.duration_minutes} min` : ""} · {m.parent_type}
-                    </div>
                   </div>
-
-                  {m.status === "completed" ? (
-                    <StageBadge stage="Won" />
-                  ) : hasMeetingEnded(m.meeting_date, m.duration_minutes) ? (
-                    <Badge variant="outline" className="font-medium bg-amber-500/10 text-amber-600 border-amber-500/30">
-                      Minutes of the Meeting
-                    </Badge>
-                  ) : (
-                    <StageBadge stage="Meeting Scheduled" />
-                  )}
                 </Link>
               ))}
             </div>
@@ -397,31 +409,37 @@ function DashboardPage() {
             <div className="mt-3 divide-y divide-border">
               {pendingMinutes?.length === 0 && <EmptyRow>No meetings awaiting minutes.</EmptyRow>}
               {pendingMinutes?.map((m) => (
-                <div key={m.id} className="flex items-center gap-3 py-2.5 px-2 -mx-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm truncate">{m.parent_name ?? m.agenda ?? "Meeting"}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {new Date(m.meeting_date).toLocaleDateString()} · {m.meeting_type}
-                    </div>
+                <div key={m.id} className="py-3">
+                  <div className="text-sm font-semibold truncate">{m.parent_name ?? m.agenda ?? "Meeting"}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground truncate">
+                    {new Date(m.meeting_date).toLocaleDateString(undefined, {
+                      day: "2-digit",
+                      month: "short",
+                    })}
+                    {" · "}
+                    <span className="capitalize">{m.meeting_type}</span>
                   </div>
-                  <Button size="sm" className="h-7 shrink-0" onClick={() => setMomMeeting(m)}>
-                    Add minutes
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 shrink-0 text-muted-foreground"
-                    onClick={() => {
-                      setNotDoneReason("");
-                      setNotDoneMeeting(m);
-                    }}
-                  >
-                    Meeting not done
-                  </Button>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Button size="sm" className="h-7" onClick={() => setMomMeeting(m)}>
+                      Add minutes
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-muted-foreground"
+                      onClick={() => {
+                        setNotDoneReason("");
+                        setNotDoneMeeting(m);
+                      }}
+                    >
+                      Meeting not done
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           </Card>
+
 
 
 
