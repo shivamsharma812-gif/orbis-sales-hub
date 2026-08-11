@@ -235,7 +235,7 @@ function LeadsPage() {
                   <TableHead>Owner</TableHead>
                   <TableHead>Stage</TableHead>
                   <TableHead>Source</TableHead>
-                  <TableHead className="text-right">Est. Value</TableHead>
+                  <TableHead className="text-right">AUC</TableHead>
                     <TableHead>
                       <button
                         className="inline-flex items-center gap-1 hover:text-foreground"
