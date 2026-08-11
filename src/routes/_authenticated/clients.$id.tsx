@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trash2, Undo2 } from "lucide-react";
+import { ArrowLeft, Trash2, Undo2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import {
