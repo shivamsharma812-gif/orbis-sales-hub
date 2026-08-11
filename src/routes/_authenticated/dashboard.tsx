@@ -369,7 +369,9 @@ function DashboardPage() {
                     </div>
                     <div className="shrink-0">
                       {m.status === "completed" ? (
-                        <StageBadge stage="Won" />
+                        <Badge variant="outline" className="font-medium bg-success/15 text-success border-success/30">
+                          Completed
+                        </Badge>
                       ) : hasMeetingEnded(m.meeting_date, m.duration_minutes) ? (
                         <Badge variant="outline" className="font-medium bg-amber-500/10 text-amber-600 border-amber-500/30">
                           Minutes pending
