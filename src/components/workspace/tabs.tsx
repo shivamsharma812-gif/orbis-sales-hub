@@ -588,7 +588,7 @@ function MeetingRow({
             )}
             {m.discussion_summary ? (
               <div className={`whitespace-pre-wrap${m.status === "cancelled" ? " text-destructive" : ""}`}>
-                {m.discussion_summary}
+                {m.status === "cancelled" ? m.discussion_summary.replace(/^\s*Meeting not done:\s*/i, "") : m.discussion_summary}
               </div>
             ) : (
               <div className="text-muted-foreground">No notes recorded for this meeting.</div>
