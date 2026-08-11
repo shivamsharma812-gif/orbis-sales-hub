@@ -323,8 +323,6 @@ function DashboardPage() {
           <KpiCard
             label="Pending Follow-ups"
             value={metrics?.pendingFollowups}
-            sub={metrics?.overdue ? `${metrics.overdue} overdue` : undefined}
-            subTone={metrics?.overdue ? "warn" : undefined}
             icon={BellRing}
             loading={isLoading}
           />
