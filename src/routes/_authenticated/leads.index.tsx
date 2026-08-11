@@ -275,6 +275,9 @@ function LeadsPage() {
                       <div className="text-xs text-muted-foreground">{l.client_type}</div>
                     </TableCell>
                     <TableCell>{ownerMap.get(l.owner_id) ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {endOwnerName(l as { owner_id: string; end_owner_id?: string | null })}
+                    </TableCell>
                     <TableCell>
                       <StageBadge stage={l.pipeline_stage} />
                     </TableCell>
