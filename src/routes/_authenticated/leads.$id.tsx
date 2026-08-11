@@ -26,6 +26,7 @@ import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
 import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useEndOwners } from "@/hooks/use-end-owners";
 import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
 import {
   ConvertLeadDialog,
