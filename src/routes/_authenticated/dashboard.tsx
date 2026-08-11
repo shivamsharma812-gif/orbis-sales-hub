@@ -21,6 +21,9 @@ import { formatCurrencyCr, formatCurrencyCrCompact, formatDate, relativeDay } fr
 import type { LucideIcon } from "lucide-react";
 import { MarketTicker } from "@/components/layout/market-ticker";
 import { DailyMeetingsDialog } from "@/components/daily-meetings-dialog";
+import { MinutesOfMeetingDialog, type MomMeeting } from "@/components/minutes-of-meeting-dialog";
+import { useState } from "react";
+import { FileText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Orbis CRM" }] }),
