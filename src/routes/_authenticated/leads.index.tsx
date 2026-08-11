@@ -72,6 +72,7 @@ interface Lead {
   lead_source: string | null;
   pipeline_stage: string;
   estimated_deal_value: number;
+  auc: number | null;
   status: string;
   owner_id: string;
   created_at: string;
