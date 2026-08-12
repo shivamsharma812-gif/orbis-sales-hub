@@ -115,14 +115,13 @@ function ClientsPage() {
                 <TableHead>Owner</TableHead>
                 <TableHead>Service</TableHead>
                 <TableHead className="text-right">AUC</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
                 <TableHead>Last meeting</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {clients.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">No clients match these filters.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">No clients match these filters.</TableCell></TableRow>
               )}
               {clients.map((c) => {
                 const owner = (c as unknown as { owner?: { full_name: string } }).owner;
@@ -139,7 +138,6 @@ function ClientsPage() {
                     <TableCell>{owner?.full_name ?? "—"}</TableCell>
                     <TableCell><Badge variant="outline">{c.service_type ?? "—"}</Badge></TableCell>
                     <TableCell className="text-right font-mono">{formatCurrencyCr(c.auc)}</TableCell>
-                    <TableCell className="text-right font-mono">{formatCurrencyCr(c.annual_revenue)}</TableCell>
                     <TableCell className="text-muted-foreground text-xs">{formatDate(lastMeetings?.get(c.id))}</TableCell>
                     <TableCell>
                       <Badge variant={c.status === "active" ? "secondary" : "outline"}>{c.status}</Badge>
