@@ -101,10 +101,14 @@ function LeadsPage() {
     queryFn: async () => {
       let query = supabase.from("leads").select("*").order("created_at", { ascending: sortDir === "asc" });
       if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter as never);
-      // Lost leads live exclusively behind the "View lost leads" toggle —
-      // they are never mixed into "All status" or any other stage view.
-      if (statusFilter === "all") query = query.neq("status", "lost" as never);
-      else query = query.eq("status", statusFilter as never);
+      // Treat both the canonical lost status and legacy Lost pipeline stage as
+      // lost records. They are only returned by the dedicated lost-leads view.
+      if (statusFilter === "lost") {
+        query = query.or("status.eq.lost,pipeline_stage.eq.Lost");
+      } else {
+        query = query.neq("status", "lost" as never).neq("pipeline_stage", "Lost" as never);
+        if (statusFilter !== "all") query = query.eq("status", statusFilter as never);
+      }
       if (typeFilter !== "all") query = query.eq("client_type", typeFilter);
       if (monthFilter !== "all") {
         const [y, m] = monthFilter.split("-").map(Number);
@@ -224,7 +228,6 @@ function LeadsPage() {
               <SelectItem value="all">All status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="won">Won</SelectItem>
-              <SelectItem value="lost">Lost</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
