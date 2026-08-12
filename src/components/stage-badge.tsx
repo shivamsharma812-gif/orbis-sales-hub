@@ -9,7 +9,6 @@ const stageColors: Record<string, string> = {
   "Proposal Sent": "bg-chart-4/20 text-warning border-warning/30",
   Negotiation: "bg-chart-4/25 text-warning border-warning/30",
   Onboarding: "bg-primary/15 text-primary border-primary/25",
-  Lost: "bg-destructive/15 text-destructive border-destructive/25",
 };
 
 export function StageBadge({ stage }: { stage: string }) {

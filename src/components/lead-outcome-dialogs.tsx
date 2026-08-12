@@ -172,7 +172,6 @@ export function MarkLostDialog({
         .from("leads")
         .update({
           status: "lost" as never,
-          pipeline_stage: "Lost" as never,
           lost_reason: reason,
           lost_at: new Date().toISOString(),
         } as never)
