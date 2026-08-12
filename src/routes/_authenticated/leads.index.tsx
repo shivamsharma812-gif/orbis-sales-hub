@@ -224,6 +224,7 @@ function LeadsPage() {
               <SelectItem value="all">All status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="won">Won</SelectItem>
+              <SelectItem value="lost">Lost</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
