@@ -56,6 +56,7 @@ import {
   Pencil,
   FileText,
   AlertTriangle,
+  Eye,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { PIPELINE_STAGES } from "@/components/stage-badge";
@@ -1233,6 +1234,12 @@ export function DocumentsTab({ parentType, parentId, formOnly, openOverride, onO
     }
   }
 
+  async function handleView(path: string) {
+    const { data, error } = await supabase.storage.from("crm-documents").createSignedUrl(path, 300);
+    if (error || !data) return toast.error(error?.message ?? "Failed to open document");
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
   async function handleDownload(path: string, name: string) {
     const { data, error } = await supabase.storage.from("crm-documents").createSignedUrl(path, 60);
     if (error || !data) return toast.error(error?.message ?? "Failed");
@@ -1318,7 +1325,10 @@ export function DocumentsTab({ parentType, parentId, formOnly, openOverride, onO
                 <TableCell className="text-muted-foreground">{uploader?.full_name ?? "—"}</TableCell>
                 <TableCell className="text-muted-foreground text-xs">{formatDate(d.created_at)}</TableCell>
                 <TableCell className="text-right">
-                  <Button size="sm" variant="ghost" onClick={() => handleDownload(d.storage_path, d.file_name)}>
+                  <Button size="sm" variant="ghost" title="View" onClick={() => handleView(d.storage_path)}>
+                    <Eye className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" title="Download" onClick={() => handleDownload(d.storage_path, d.file_name)}>
                     <Download className="w-3.5 h-3.5" />
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => handleDelete(d.id, d.storage_path)}>
