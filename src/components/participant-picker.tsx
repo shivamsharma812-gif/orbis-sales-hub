@@ -92,8 +92,19 @@ export function ParticipantPicker({
   label?: string;
 }) {
   const { data: employees = [] } = useEmployees();
+  const { data: me } = useCurrentUser();
   const [query, setQuery] = useState("");
   const [freeTextName, setFreeTextName] = useState("");
+
+  // The organiser is always a participant — added automatically once.
+  const selfAdded = useRef(false);
+  useEffect(() => {
+    if (selfAdded.current || !me?.email) return;
+    selfAdded.current = true;
+    if (value.some((p) => p.email?.toLowerCase() === me.email.toLowerCase())) return;
+    onChange([{ email: me.email, name: me.full_name }, ...value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.email]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
