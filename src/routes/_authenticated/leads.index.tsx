@@ -241,6 +241,7 @@ function LeadsPage() {
                   <TableHead>Company</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead>Stage</TableHead>
+                  {isLostView && <TableHead>Lost reason</TableHead>}
                   <TableHead>Source</TableHead>
                   <TableHead className="text-right">AUC</TableHead>
                     <TableHead>
@@ -249,7 +250,7 @@ function LeadsPage() {
                         onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
                         title={sortDir === "asc" ? "Sort newest first" : "Sort oldest first"}
                       >
-                        Created
+                        {isLostView ? "Lost on" : "Created"}
                         {sortDir === "asc" ? (
                           <ArrowUp className="w-3.5 h-3.5" />
                         ) : sortDir === "desc" ? (
