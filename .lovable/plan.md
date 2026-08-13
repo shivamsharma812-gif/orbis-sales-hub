@@ -81,7 +81,9 @@ created with `security_invoker = on`, so it inherits the existing lead RLS exact
 
 ### 5. Fix the list toggle at the same time
 
-Today the "View lost leads" button flips a single filter between the literal `active` and `lost`, so the 3 `won` leads sit in neither view, and the separate status dropdown writes the same state and desyncs the button label. The default view becomes "not lost" (`status <> 'lost'`), and the button derives its pressed state from the filter instead of owning a second copy.
+You are right about won leads: converting sets `status = 'won'` and `pipeline_stage = 'Onboarding'`, writes `converted_client_id`, and the record then lives in the Clients list. All 3 won leads in the database match that exactly. So keeping them out of the default pipeline list is correct and stays as is — `status = 'active'` remains the default filter, not "not lost".
+
+The one thing to fix is the control duplication: the "View lost leads" button and the status dropdown both write the same `statusFilter` state, so picking "All status" in the dropdown shows lost rows while the button still reads "View lost leads". The button's pressed state should be derived from the filter rather than owning a second copy, and the lost list should keep its own column set (reason, lost date) as described above.
 
 ## What the UI shows after this
 
