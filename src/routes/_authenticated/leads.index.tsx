@@ -104,7 +104,13 @@ function LeadsPage() {
   const { data: leads = [] } = useQuery({
     queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q, sortDir }],
     queryFn: async () => {
-      let query = supabase.from("leads").select("*").order("created_at", { ascending: sortDir === "asc" });
+      let query = supabase
+        .from("leads")
+        .select("*")
+        .order(statusFilter === "lost" ? "lost_at" : "created_at", {
+          ascending: sortDir === "asc",
+          nullsFirst: false,
+        });
       if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter as never);
       if (statusFilter !== "all") query = query.eq("status", statusFilter as never);
       if (typeFilter !== "all") query = query.eq("client_type", typeFilter);
