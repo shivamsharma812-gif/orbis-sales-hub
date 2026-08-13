@@ -262,8 +262,9 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
     meeting_type: "In-Person",
     agenda: "",
     duration_minutes: "30",
-    attendees: [] as { email: string; name?: string }[],
+    attendees: [] as Participant[],
   });
+
   const [editing, setEditing] = useState<MeetingRowType | null>(null);
 
   const { data: contacts = [] } = useQuery({
