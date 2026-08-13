@@ -25,12 +25,29 @@ export const SERVICE_OPTIONS = [
   "Fund Administration",
 ] as const;
 
-export const LOST_REASONS = [
-  "Requires bank custodian",
-  "Lack of follow ups",
-  "Inadequate Commercial quotations",
-  "Other",
+export const LOST_REASON_OPTIONS = [
+  { code: "requires_bank_custodian", label: "Requires bank custodian" },
+  { code: "lack_of_follow_ups", label: "Lack of follow ups" },
+  { code: "inadequate_commercial_quotations", label: "Inadequate Commercial quotations" },
+  { code: "other", label: "Other" },
 ] as const;
+
+export const LOST_REASON_LABELS: Record<string, string> = {
+  requires_bank_custodian: "Requires bank custodian",
+  lack_of_follow_ups: "Lack of follow ups",
+  inadequate_commercial_quotations: "Inadequate Commercial quotations",
+  other: "Other",
+  not_recorded: "Reason not recorded",
+};
+
+export function lostReasonText(
+  code: string | null | undefined,
+  note?: string | null,
+): string {
+  if (!code) return "Reason not recorded";
+  if (code === "other") return note?.trim() || "Other";
+  return LOST_REASON_LABELS[code] ?? code;
+}
 
 export interface ConvertibleLead {
   id: string;
