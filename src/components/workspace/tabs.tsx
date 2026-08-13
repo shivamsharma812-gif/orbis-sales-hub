@@ -439,9 +439,10 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
             </div>
           )}
           <ParticipantPicker
-            value={form.attendees as Participant[]}
+            value={form.attendees}
             onChange={(next) => setForm({ ...form, attendees: next })}
           />
+
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
