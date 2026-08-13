@@ -23,7 +23,6 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 
-const ELIGIBLE_DESIGNATIONS = ["President", "MD & CEO"];
 
 interface Props {
   open: boolean;
