@@ -245,8 +245,8 @@ export function MarkLostDialog({
           </Button>
           <Button
             variant="destructive"
-            onClick={() => markLost.mutate(choice === "Other" ? other.trim() : choice)}
-            disabled={!choice || (choice === "Other" && !other.trim()) || markLost.isPending}
+            onClick={() => markLost.mutate({ code: choice, note: other.trim() })}
+            disabled={!choice || (choice === "other" && !other.trim()) || markLost.isPending}
           >
             Mark lost
           </Button>
