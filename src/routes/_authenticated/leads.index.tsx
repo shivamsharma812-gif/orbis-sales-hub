@@ -286,12 +286,25 @@ function LeadsPage() {
                     <TableCell>
                       <StageBadge stage={l.pipeline_stage} />
                     </TableCell>
+                    {isLostView && (
+                      <TableCell className="max-w-[240px]">
+                        <span
+                          className={
+                            l.lost_reason_code && l.lost_reason_code !== "not_recorded"
+                              ? "text-sm"
+                              : "text-sm italic text-muted-foreground"
+                          }
+                        >
+                          {lostReasonText(l.lost_reason_code, l.lost_reason_note)}
+                        </span>
+                      </TableCell>
+                    )}
                     <TableCell className="text-muted-foreground">{l.lead_source || "—"}</TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrencyCr(l.auc)}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
-                      {formatDate(l.created_at)}
+                      {isLostView ? (l.lost_at ? formatDate(l.lost_at) : "—") : formatDate(l.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
                       {l.status === "active" ? (
