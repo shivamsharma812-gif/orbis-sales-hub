@@ -32,6 +32,7 @@ import { ImportLeadsDialog } from "@/components/import-leads-dialog";
 import {
   ConvertLeadDialog,
   MarkLostDialog,
+  lostReasonText,
   type ConvertibleLead,
 } from "@/components/lead-outcome-dialogs";
 
@@ -78,6 +79,9 @@ interface Lead {
   owner_id: string;
   created_at: string;
   services?: string[] | null;
+  lost_reason_code?: string | null;
+  lost_reason_note?: string | null;
+  lost_at?: string | null;
 }
 
 
@@ -94,12 +98,19 @@ function LeadsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const months = monthOptions();
   const navigate = useNavigate();
+  const isLostView = statusFilter === "lost";
   
 
   const { data: leads = [] } = useQuery({
     queryKey: ["leads", { stageFilter, statusFilter, typeFilter, monthFilter, q, sortDir }],
     queryFn: async () => {
-      let query = supabase.from("leads").select("*").order("created_at", { ascending: sortDir === "asc" });
+      let query = supabase
+        .from("leads")
+        .select("*")
+        .order(statusFilter === "lost" ? "lost_at" : "created_at", {
+          ascending: sortDir === "asc",
+          nullsFirst: false,
+        });
       if (stageFilter !== "all") query = query.eq("pipeline_stage", stageFilter as never);
       if (statusFilter !== "all") query = query.eq("status", statusFilter as never);
       if (typeFilter !== "all") query = query.eq("client_type", typeFilter);
@@ -159,9 +170,10 @@ function LeadsPage() {
           </button>
         </div>
         <Button
-          variant={statusFilter === "lost" ? "default" : "outline"}
+          variant={isLostView ? "default" : "outline"}
           size="sm"
-          onClick={() => { setStatusFilter(statusFilter === "lost" ? "active" : "lost"); setView("list"); }}
+          aria-pressed={isLostView}
+          onClick={() => { setStatusFilter(isLostView ? "active" : "lost"); setView("list"); }}
         >
           {statusFilter === "lost" ? "Showing lost leads" : "View lost leads"}
         </Button>
@@ -237,6 +249,7 @@ function LeadsPage() {
                   <TableHead>Company</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead>Stage</TableHead>
+                  {isLostView && <TableHead>Lost reason</TableHead>}
                   <TableHead>Source</TableHead>
                   <TableHead className="text-right">AUC</TableHead>
                     <TableHead>
@@ -245,7 +258,7 @@ function LeadsPage() {
                         onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
                         title={sortDir === "asc" ? "Sort newest first" : "Sort oldest first"}
                       >
-                        Created
+                        {isLostView ? "Lost on" : "Created"}
                         {sortDir === "asc" ? (
                           <ArrowUp className="w-3.5 h-3.5" />
                         ) : sortDir === "desc" ? (
@@ -261,7 +274,7 @@ function LeadsPage() {
               <TableBody>
                 {leads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={isLostView ? 8 : 7} className="text-center text-muted-foreground py-10">
                       No leads match these filters.
                     </TableCell>
                   </TableRow>
@@ -280,12 +293,25 @@ function LeadsPage() {
                     <TableCell>
                       <StageBadge stage={l.pipeline_stage} />
                     </TableCell>
+                    {isLostView && (
+                      <TableCell className="max-w-[240px]">
+                        <span
+                          className={
+                            l.lost_reason_code && l.lost_reason_code !== "not_recorded"
+                              ? "text-sm"
+                              : "text-sm italic text-muted-foreground"
+                          }
+                        >
+                          {lostReasonText(l.lost_reason_code, l.lost_reason_note)}
+                        </span>
+                      </TableCell>
+                    )}
                     <TableCell className="text-muted-foreground">{l.lead_source || "—"}</TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrencyCr(l.auc)}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
-                      {formatDate(l.created_at)}
+                      {isLostView ? (l.lost_at ? formatDate(l.lost_at) : "—") : formatDate(l.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
                       {l.status === "active" ? (

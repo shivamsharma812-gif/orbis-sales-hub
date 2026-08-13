@@ -32,6 +32,7 @@ import {
   ConvertLeadDialog,
   MarkLostDialog,
   SERVICE_OPTIONS,
+  lostReasonText,
 } from "@/components/lead-outcome-dialogs";
 
 import { toast } from "sonner";
@@ -137,6 +138,8 @@ function LeadWorkspace() {
           status: "active" as never,
           pipeline_stage: "Prospect" as never,
           lost_reason: null,
+          lost_reason_code: null,
+          lost_reason_note: null,
           lost_at: null,
         } as never)
         .eq("id", id);
@@ -223,16 +226,33 @@ function LeadWorkspace() {
         }
       />
 
-      {lead.status === "lost" && (lead as { lost_reason?: string | null }).lost_reason && (
-        <div className="px-6 pt-4">
-          <Card className="p-4 border-destructive/40">
-            <div className="text-xs uppercase tracking-wider text-destructive">
-              Lost reason {(lead as { lost_at?: string | null }).lost_at && `· ${formatDateTime((lead as { lost_at?: string | null }).lost_at)}`}
-            </div>
-            <div className="mt-1 text-sm whitespace-pre-wrap">{(lead as { lost_reason?: string | null }).lost_reason}</div>
-          </Card>
-        </div>
-      )}
+      {lead.status === "lost" && (() => {
+        const l = lead as {
+          lost_reason_code?: string | null;
+          lost_reason_note?: string | null;
+          lost_at?: string | null;
+        };
+        const recorded = !!l.lost_reason_code && l.lost_reason_code !== "not_recorded";
+        return (
+          <div className="px-6 pt-4">
+            <Card className="p-4 border-destructive/40">
+              <div className="text-xs uppercase tracking-wider text-destructive">
+                Lost reason {l.lost_at && `· ${formatDateTime(l.lost_at)}`}
+              </div>
+              <div
+                className={`mt-1 text-sm whitespace-pre-wrap ${recorded ? "" : "italic text-muted-foreground"}`}
+              >
+                {lostReasonText(l.lost_reason_code, l.lost_reason_note)}
+              </div>
+              {recorded && l.lost_reason_code !== "other" && l.lost_reason_note && (
+                <div className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">
+                  {l.lost_reason_note}
+                </div>
+              )}
+            </Card>
+          </div>
+        );
+      })()}
 
       {(lead as { co_owner?: { full_name: string } | null }).co_owner && (
         <div className="px-6 pt-4">

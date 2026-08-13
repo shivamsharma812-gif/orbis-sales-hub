@@ -25,12 +25,29 @@ export const SERVICE_OPTIONS = [
   "Fund Administration",
 ] as const;
 
-export const LOST_REASONS = [
-  "Requires bank custodian",
-  "Lack of follow ups",
-  "Inadequate Commercial quotations",
-  "Other",
+export const LOST_REASON_OPTIONS = [
+  { code: "requires_bank_custodian", label: "Requires bank custodian" },
+  { code: "lack_of_follow_ups", label: "Lack of follow ups" },
+  { code: "inadequate_commercial_quotations", label: "Inadequate Commercial quotations" },
+  { code: "other", label: "Other" },
 ] as const;
+
+export const LOST_REASON_LABELS: Record<string, string> = {
+  requires_bank_custodian: "Requires bank custodian",
+  lack_of_follow_ups: "Lack of follow ups",
+  inadequate_commercial_quotations: "Inadequate Commercial quotations",
+  other: "Other",
+  not_recorded: "Reason not recorded",
+};
+
+export function lostReasonText(
+  code: string | null | undefined,
+  note?: string | null,
+): string {
+  if (!code) return "Reason not recorded";
+  if (code === "other") return note?.trim() || "Other";
+  return LOST_REASON_LABELS[code] ?? code;
+}
 
 export interface ConvertibleLead {
   id: string;
@@ -166,13 +183,14 @@ export function MarkLostDialog({
   }, [open]);
 
   const markLost = useMutation({
-    mutationFn: async (reason: string) => {
+    mutationFn: async ({ code, note }: { code: string; note: string }) => {
       if (!leadId) throw new Error("Lead missing");
       const { error } = await supabase
         .from("leads")
         .update({
           status: "lost" as never,
-          lost_reason: reason,
+          lost_reason_code: code as never,
+          lost_reason_note: code === "other" ? note : null,
           lost_at: new Date().toISOString(),
         } as never)
         .eq("id", leadId);
@@ -199,16 +217,16 @@ export function MarkLostDialog({
         </DialogHeader>
         <div className="space-y-3">
           <RadioGroup value={choice} onValueChange={setChoice}>
-            {LOST_REASONS.map((r) => (
-              <div key={r} className="flex items-center gap-2 rounded-md border p-2.5">
-                <RadioGroupItem value={r} id={`lost-${r}`} />
-                <Label htmlFor={`lost-${r}`} className="font-normal cursor-pointer">
-                  {r}
+            {LOST_REASON_OPTIONS.map((r) => (
+              <div key={r.code} className="flex items-center gap-2 rounded-md border p-2.5">
+                <RadioGroupItem value={r.code} id={`lost-${r.code}`} />
+                <Label htmlFor={`lost-${r.code}`} className="font-normal cursor-pointer">
+                  {r.label}
                 </Label>
               </div>
             ))}
           </RadioGroup>
-          {choice === "Other" && (
+          {choice === "other" && (
             <div className="space-y-1.5">
               <Label htmlFor="lost-other">Please specify</Label>
               <Textarea
@@ -227,8 +245,8 @@ export function MarkLostDialog({
           </Button>
           <Button
             variant="destructive"
-            onClick={() => markLost.mutate(choice === "Other" ? other.trim() : choice)}
-            disabled={!choice || (choice === "Other" && !other.trim()) || markLost.isPending}
+            onClick={() => markLost.mutate({ code: choice, note: other.trim() })}
+            disabled={!choice || (choice === "other" && !other.trim()) || markLost.isPending}
           >
             Mark lost
           </Button>

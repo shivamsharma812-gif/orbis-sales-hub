@@ -160,6 +160,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clients_originating_lead_fk"
+            columns: ["originating_lead_id"]
+            isOneToOne: false
+            referencedRelation: "lost_leads_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clients_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
@@ -316,6 +323,61 @@ export type Database = {
           },
         ]
       }
+      lead_status_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          from_status: Database["public"]["Enums"]["lead_status"] | null
+          id: string
+          lead_id: string
+          reason_code: Database["public"]["Enums"]["lead_lost_reason"] | null
+          reason_note: string | null
+          to_status: Database["public"]["Enums"]["lead_status"]
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["lead_status"] | null
+          id?: string
+          lead_id: string
+          reason_code?: Database["public"]["Enums"]["lead_lost_reason"] | null
+          reason_note?: string | null
+          to_status: Database["public"]["Enums"]["lead_status"]
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["lead_status"] | null
+          id?: string
+          lead_id?: string
+          reason_code?: Database["public"]["Enums"]["lead_lost_reason"] | null
+          reason_note?: string | null
+          to_status?: Database["public"]["Enums"]["lead_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_status_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_status_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_status_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lost_leads_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           auc: number | null
@@ -334,7 +396,12 @@ export type Database = {
           industry: string | null
           lead_source: string | null
           lost_at: string | null
+          lost_by_user_id: string | null
           lost_reason: string | null
+          lost_reason_code:
+            | Database["public"]["Enums"]["lead_lost_reason"]
+            | null
+          lost_reason_note: string | null
           notes: string | null
           owner_id: string
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
@@ -366,7 +433,12 @@ export type Database = {
           industry?: string | null
           lead_source?: string | null
           lost_at?: string | null
+          lost_by_user_id?: string | null
           lost_reason?: string | null
+          lost_reason_code?:
+            | Database["public"]["Enums"]["lead_lost_reason"]
+            | null
+          lost_reason_note?: string | null
           notes?: string | null
           owner_id: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
@@ -398,7 +470,12 @@ export type Database = {
           industry?: string | null
           lead_source?: string | null
           lost_at?: string | null
+          lost_by_user_id?: string | null
           lost_reason?: string | null
+          lost_reason_code?:
+            | Database["public"]["Enums"]["lead_lost_reason"]
+            | null
+          lost_reason_note?: string | null
           notes?: string | null
           owner_id?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
@@ -431,6 +508,13 @@ export type Database = {
           {
             foreignKeyName: "leads_end_owner_id_fkey"
             columns: ["end_owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_lost_by_user_id_fkey"
+            columns: ["lost_by_user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -725,7 +809,84 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      lost_leads_v: {
+        Row: {
+          auc: number | null
+          city: string | null
+          client_type: string | null
+          co_owner_id: string | null
+          company_name: string | null
+          converted_client_id: string | null
+          country: string | null
+          created_at: string | null
+          end_owner_id: string | null
+          estimated_annual_revenue: number | null
+          estimated_deal_value: number | null
+          expected_close_date: string | null
+          id: string | null
+          industry: string | null
+          lead_source: string | null
+          lost_at: string | null
+          lost_by_name: string | null
+          lost_by_user_id: string | null
+          lost_reason: string | null
+          lost_reason_code:
+            | Database["public"]["Enums"]["lead_lost_reason"]
+            | null
+          lost_reason_note: string | null
+          notes: string | null
+          owner_id: string | null
+          owner_name: string | null
+          pipeline_stage: Database["public"]["Enums"]["pipeline_stage"] | null
+          priority: Database["public"]["Enums"]["priority_level"] | null
+          probability: number | null
+          referral_by: string | null
+          services: string[] | null
+          shared_with_team: boolean | null
+          state: string | null
+          status: Database["public"]["Enums"]["lead_status"] | null
+          sub_category: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_co_owner_id_fkey"
+            columns: ["co_owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_client_id_fkey"
+            columns: ["converted_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_end_owner_id_fkey"
+            columns: ["end_owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_lost_by_user_id_fkey"
+            columns: ["lost_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_access_owner: { Args: { target_owner_id: string }; Returns: boolean }
@@ -765,6 +926,12 @@ export type Database = {
       app_role: "system_admin"
       client_status: "active" | "inactive"
       followup_status: "pending" | "completed"
+      lead_lost_reason:
+        | "requires_bank_custodian"
+        | "lack_of_follow_ups"
+        | "inadequate_commercial_quotations"
+        | "other"
+        | "not_recorded"
       lead_status: "active" | "won" | "lost" | "archived"
       meeting_status: "scheduled" | "completed" | "cancelled"
       parent_kind: "lead" | "client"
@@ -912,6 +1079,13 @@ export const Constants = {
       app_role: ["system_admin"],
       client_status: ["active", "inactive"],
       followup_status: ["pending", "completed"],
+      lead_lost_reason: [
+        "requires_bank_custodian",
+        "lack_of_follow_ups",
+        "inadequate_commercial_quotations",
+        "other",
+        "not_recorded",
+      ],
       lead_status: ["active", "won", "lost", "archived"],
       meeting_status: ["scheduled", "completed", "cancelled"],
       parent_kind: ["lead", "client"],
