@@ -1,5 +1,16 @@
 # Lost pipeline: what's happening, and how to make it consistent
 
+## Is the lost toggle full-proof? No — close, but leaky
+
+Your description is almost right. The default list is not "everything that isn't lost": the toggle flips a single `statusFilter` between the literal values `active` and `lost`, and the query does `.eq("status", filter)`. So:
+
+- Default view = only `status = 'active'` (552 leads). The 3 `won` leads and any future `archived` ones are invisible in both views — they fall through the gap.
+- "View lost leads" = only `status = 'lost'` (96 leads). That part is correct.
+- The same `statusFilter` state is also driven by the separate "All status / Active / Won / Lost / Archived" dropdown, so the two controls fight each other: pick "All status" in the dropdown and lost rows appear while the button still reads "View lost leads".
+- The kanban view groups by `pipeline_stage` and drops anything not in the active stage list, so 92 rows sitting on the retired `Lost` stage would silently vanish there if their status ever changed back.
+
+Fix for that, on top of the items below: make the toggle mean "exclude lost" (`.neq('status','lost')`) rather than "active only", derive the button's pressed state from the filter instead of duplicating it, and let the dropdown be the single source of truth with the button as a shortcut into/out of `lost`.
+
 ## What the data actually looks like
 
 Everything about a lost lead lives on one table: `public.leads`. There is no separate "lost leads" table. Three columns matter:
