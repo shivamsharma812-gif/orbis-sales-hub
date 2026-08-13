@@ -35,29 +35,55 @@ export function useEmployees() {
         .eq("status", "active")
         .order("full_name");
       if (error) throw error;
-      const all = (data ?? []) as (Employee & { reports_to_user_id: string | null })[];
-      // Only the current user and their downline may be added as participants.
-      const childrenOf = new Map<string, typeof all>();
+      type Row = Employee & { reports_to_user_id: string | null };
+      const all = (data ?? []) as Row[];
+      const byId = new Map(all.map((u) => [u.id, u]));
+      const childrenOf = new Map<string, Row[]>();
       for (const u of all) {
         const p = u.reports_to_user_id ?? "";
         if (!childrenOf.has(p)) childrenOf.set(p, []);
         childrenOf.get(p)!.push(u);
       }
       const meId = me!.id;
-      const allowed = all.filter((u) => u.id === meId);
-      const stack = [meId];
+
+      // Walk up to the head of this user's vertical (top-most manager below the CEO).
+      let top = byId.get(meId);
+      let guard = 0;
+      while (top && guard++ < 20) {
+        const mgr = top.reports_to_user_id ? byId.get(top.reports_to_user_id) : undefined;
+        if (!mgr) break; // manager not visible or top of tree
+        if (!mgr.reports_to_user_id) break; // manager is the CEO → `top` is the President
+        top = mgr;
+      }
+
+      // Everyone in that vertical: the head + their whole downline (peers included),
+      // plus the current user and their own downline as a fallback.
+      const allowedIds = new Set<string>([meId]);
+      const stack = [top?.id ?? meId, meId];
       while (stack.length) {
         const cur = stack.pop()!;
+        allowedIds.add(cur);
         for (const child of childrenOf.get(cur) ?? []) {
-          allowed.push(child);
-          stack.push(child.id);
+          if (!allowedIds.has(child.id)) stack.push(child.id);
         }
       }
-      return allowed.filter((u) => !!u.email) as Employee[];
+      // Managers above the user, up to the vertical head.
+      let node = byId.get(meId);
+      guard = 0;
+      while (node?.reports_to_user_id && guard++ < 20) {
+        const mgr = byId.get(node.reports_to_user_id);
+        if (!mgr) break;
+        allowedIds.add(mgr.id);
+        if (mgr.id === top?.id) break;
+        node = mgr;
+      }
+
+      return all.filter((u) => allowedIds.has(u.id) && !!u.email) as Employee[];
     },
     staleTime: 5 * 60_000,
   });
 }
+
 
 
 /**
