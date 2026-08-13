@@ -32,6 +32,7 @@ import {
   ConvertLeadDialog,
   MarkLostDialog,
   SERVICE_OPTIONS,
+  lostReasonText,
 } from "@/components/lead-outcome-dialogs";
 
 import { toast } from "sonner";
