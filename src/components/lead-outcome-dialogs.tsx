@@ -217,16 +217,16 @@ export function MarkLostDialog({
         </DialogHeader>
         <div className="space-y-3">
           <RadioGroup value={choice} onValueChange={setChoice}>
-            {LOST_REASONS.map((r) => (
-              <div key={r} className="flex items-center gap-2 rounded-md border p-2.5">
-                <RadioGroupItem value={r} id={`lost-${r}`} />
-                <Label htmlFor={`lost-${r}`} className="font-normal cursor-pointer">
-                  {r}
+            {LOST_REASON_OPTIONS.map((r) => (
+              <div key={r.code} className="flex items-center gap-2 rounded-md border p-2.5">
+                <RadioGroupItem value={r.code} id={`lost-${r.code}`} />
+                <Label htmlFor={`lost-${r.code}`} className="font-normal cursor-pointer">
+                  {r.label}
                 </Label>
               </div>
             ))}
           </RadioGroup>
-          {choice === "Other" && (
+          {choice === "other" && (
             <div className="space-y-1.5">
               <Label htmlFor="lost-other">Please specify</Label>
               <Textarea
