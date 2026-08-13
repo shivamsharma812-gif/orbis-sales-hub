@@ -78,6 +78,9 @@ interface Lead {
   owner_id: string;
   created_at: string;
   services?: string[] | null;
+  lost_reason_code?: string | null;
+  lost_reason_note?: string | null;
+  lost_at?: string | null;
 }
 
 
