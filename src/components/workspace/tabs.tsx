@@ -1235,10 +1235,16 @@ export function DocumentsTab({ parentType, parentId, formOnly, openOverride, onO
   }
 
   async function handleView(path: string) {
-    const { data, error } = await supabase.storage.from("crm-documents").createSignedUrl(path, 300);
+    const { data, error } = await supabase.storage.from("crm-documents").createSignedUrl(path, 600);
     if (error || !data) return toast.error(error?.message ?? "Failed to open document");
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    const ext = path.split(".").pop()?.toLowerCase() ?? "";
+    const officeExts = ["doc", "docx", "xls", "xlsx", "xlsm", "csv", "ppt", "pptx"];
+    const url = officeExts.includes(ext)
+      ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(data.signedUrl)}`
+      : data.signedUrl;
+    window.open(url, "_blank", "noopener,noreferrer");
   }
+
 
   async function handleDownload(path: string, name: string) {
     const { data, error } = await supabase.storage.from("crm-documents").createSignedUrl(path, 60);
