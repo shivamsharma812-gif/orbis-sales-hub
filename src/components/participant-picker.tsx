@@ -82,7 +82,7 @@ export function ParticipantPicker({
     const q = query.trim().toLowerCase();
     if (!q) return employees;
     return employees.filter(
-      (e) => e.full_name.toLowerCase().includes(q) || e.email.toLowerCase().includes(q),
+      (e) => e.full_name.toLowerCase().includes(q),
     );
   }, [employees, query]);
 
@@ -143,7 +143,7 @@ export function ParticipantPicker({
       )}
       <div className="flex gap-2">
         <Input
-          placeholder="Enter external participant name"
+          placeholder="Enter participant name"
           value={freeTextName}
           onChange={(e) => setFreeTextName(e.target.value)}
           onKeyDown={(e) => {
@@ -168,7 +168,7 @@ export function ParticipantPicker({
         <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
         <Input
           className="pl-8"
-          placeholder="Search employees by name or email"
+          placeholder="Search employees by name"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -191,7 +191,7 @@ export function ParticipantPicker({
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="text-sm truncate">{e.full_name}</div>
-                <div className="text-xs text-muted-foreground truncate">{e.email}</div>
+                <div className="text-xs text-muted-foreground truncate">{e.designation}</div>
               </div>
               {selected && <Check className="w-4 h-4 text-primary shrink-0" />}
             </button>
