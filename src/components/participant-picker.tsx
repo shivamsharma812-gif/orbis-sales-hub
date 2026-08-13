@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -36,7 +36,9 @@ export function useEmployees() {
         .order("full_name");
       if (error) throw error;
       const all = (data ?? []) as (Employee & { reports_to_user_id: string | null })[];
-      // Only the current user and their downline may be added as participants.
+      // The current user, everyone below them, and their management chain
+      // upwards (stopping at the President — i.e. excluding the top of the tree).
+      const byId = new Map(all.map((u) => [u.id, u]));
       const childrenOf = new Map<string, typeof all>();
       for (const u of all) {
         const p = u.reports_to_user_id ?? "";
@@ -44,16 +46,31 @@ export function useEmployees() {
         childrenOf.get(p)!.push(u);
       }
       const meId = me!.id;
-      const allowed = all.filter((u) => u.id === meId);
+      const picked = new Map<string, (typeof all)[number]>();
+      const meRow = byId.get(meId);
+      if (meRow) picked.set(meId, meRow);
       const stack = [meId];
       while (stack.length) {
         const cur = stack.pop()!;
         for (const child of childrenOf.get(cur) ?? []) {
-          allowed.push(child);
+          if (picked.has(child.id)) continue;
+          picked.set(child.id, child);
           stack.push(child.id);
         }
       }
-      return allowed.filter((u) => !!u.email) as Employee[];
+      // Walk upwards; skip the top of the tree (CEO has no manager).
+      let cursor = meRow?.reports_to_user_id ?? null;
+      let guard = 0;
+      while (cursor && guard++ < 20) {
+        const mgr = byId.get(cursor);
+        if (!mgr) break;
+        if (mgr.reports_to_user_id === null) break; // top of tree — stop before CEO
+        picked.set(mgr.id, mgr);
+        cursor = mgr.reports_to_user_id;
+      }
+      return [...picked.values()]
+        .filter((u) => !!u.email)
+        .sort((a, b) => a.full_name.localeCompare(b.full_name)) as Employee[];
     },
     staleTime: 5 * 60_000,
   });
@@ -75,8 +92,19 @@ export function ParticipantPicker({
   label?: string;
 }) {
   const { data: employees = [] } = useEmployees();
+  const { data: me } = useCurrentUser();
   const [query, setQuery] = useState("");
   const [freeTextName, setFreeTextName] = useState("");
+
+  // The organiser is always a participant — added automatically once.
+  const selfAdded = useRef(false);
+  useEffect(() => {
+    if (selfAdded.current || !me?.email) return;
+    selfAdded.current = true;
+    if (value.some((p) => p.email?.toLowerCase() === me.email.toLowerCase())) return;
+    onChange([{ email: me.email, name: me.full_name }, ...value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.email]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
