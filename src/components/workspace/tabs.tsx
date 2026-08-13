@@ -262,8 +262,9 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
     meeting_type: "In-Person",
     agenda: "",
     duration_minutes: "30",
-    attendees: [] as { email: string; name?: string }[],
+    attendees: [] as Participant[],
   });
+
   const [editing, setEditing] = useState<MeetingRowType | null>(null);
 
   const { data: contacts = [] } = useQuery({
@@ -395,6 +396,7 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
     }
   };
 
+
   const createDialog = (
     <Dialog open={open} onOpenChange={setOpen}>
       {!formOnly && (
@@ -438,9 +440,10 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
             </div>
           )}
           <ParticipantPicker
-            value={form.attendees as Participant[]}
+            value={form.attendees}
             onChange={(next) => setForm({ ...form, attendees: next })}
           />
+
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>

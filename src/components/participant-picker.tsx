@@ -6,12 +6,13 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, X, Check } from "lucide-react";
+import { Search, X, Check, Plus } from "lucide-react";
 import { initials } from "@/lib/format";
 
 export interface Participant {
-  email: string;
+  email?: string;
   name?: string;
 }
 
@@ -61,7 +62,8 @@ export function useEmployees() {
 
 /**
  * Searchable employee picker for meeting participants. Shows an avatar, the
- * employee name and their email address for each row.
+ * employee name and their email address for each row. Also allows free-text
+ * external participants to be added by name.
  */
 export function ParticipantPicker({
   value,
@@ -74,6 +76,7 @@ export function ParticipantPicker({
 }) {
   const { data: employees = [] } = useEmployees();
   const [query, setQuery] = useState("");
+  const [freeTextName, setFreeTextName] = useState("");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -83,10 +86,36 @@ export function ParticipantPicker({
     );
   }, [employees, query]);
 
+  const addFreeTextParticipant = () => {
+    const name = freeTextName.trim();
+    if (!name) return;
+    const duplicate = value.some(
+      (p) => p.name?.toLowerCase() === name.toLowerCase() && !p.email,
+    );
+    if (duplicate) {
+      setFreeTextName("");
+      return;
+    }
+    onChange([...value, { name }]);
+    setFreeTextName("");
+  };
+
+  const removeParticipant = (participant: Participant) => {
+    if (participant.email) {
+      onChange(value.filter((p) => p.email?.toLowerCase() !== participant.email!.toLowerCase()));
+    } else {
+      onChange(
+        value.filter(
+          (p) => !(p.name === participant.name && !p.email),
+        ),
+      );
+    }
+  };
+
   const toggle = (e: Employee) => {
-    const exists = value.some((p) => p.email.toLowerCase() === e.email.toLowerCase());
+    const exists = value.some((p) => p.email?.toLowerCase() === e.email.toLowerCase());
     if (exists) {
-      onChange(value.filter((p) => p.email.toLowerCase() !== e.email.toLowerCase()));
+      onChange(value.filter((p) => p.email?.toLowerCase() !== e.email.toLowerCase()));
     } else {
       onChange([...value, { email: e.email, name: e.full_name }]);
     }
@@ -98,12 +127,12 @@ export function ParticipantPicker({
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {value.map((p) => (
-            <Badge key={p.email} variant="secondary" className="gap-1 pr-1">
+            <Badge key={p.email ?? p.name} variant="secondary" className="gap-1 pr-1">
               {p.name ?? p.email}
               <button
                 type="button"
                 aria-label={`Remove ${p.name ?? p.email}`}
-                onClick={() => onChange(value.filter((x) => x.email !== p.email))}
+                onClick={() => removeParticipant(p)}
                 className="rounded-sm hover:bg-muted p-0.5"
               >
                 <X className="w-3 h-3" />
@@ -112,6 +141,29 @@ export function ParticipantPicker({
           ))}
         </div>
       )}
+      <div className="flex gap-2">
+        <Input
+          placeholder="Enter external participant name"
+          value={freeTextName}
+          onChange={(e) => setFreeTextName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addFreeTextParticipant();
+            }
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={addFreeTextParticipant}
+          disabled={!freeTextName.trim()}
+          aria-label="Add participant"
+        >
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
       <div className="relative">
         <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
         <Input
@@ -126,7 +178,7 @@ export function ParticipantPicker({
           <div className="text-sm text-muted-foreground p-3 text-center">No employees found.</div>
         )}
         {filtered.map((e) => {
-          const selected = value.some((p) => p.email.toLowerCase() === e.email.toLowerCase());
+          const selected = value.some((p) => p.email?.toLowerCase() === e.email.toLowerCase());
           return (
             <button
               type="button"
