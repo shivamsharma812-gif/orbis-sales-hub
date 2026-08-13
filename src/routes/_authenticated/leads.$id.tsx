@@ -138,6 +138,8 @@ function LeadWorkspace() {
           status: "active" as never,
           pipeline_stage: "Prospect" as never,
           lost_reason: null,
+          lost_reason_code: null,
+          lost_reason_note: null,
           lost_at: null,
         } as never)
         .eq("id", id);
