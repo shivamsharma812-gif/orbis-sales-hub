@@ -183,13 +183,14 @@ export function MarkLostDialog({
   }, [open]);
 
   const markLost = useMutation({
-    mutationFn: async (reason: string) => {
+    mutationFn: async ({ code, note }: { code: string; note: string }) => {
       if (!leadId) throw new Error("Lead missing");
       const { error } = await supabase
         .from("leads")
         .update({
           status: "lost" as never,
-          lost_reason: reason,
+          lost_reason_code: code as never,
+          lost_reason_note: code === "other" ? note : null,
           lost_at: new Date().toISOString(),
         } as never)
         .eq("id", leadId);
