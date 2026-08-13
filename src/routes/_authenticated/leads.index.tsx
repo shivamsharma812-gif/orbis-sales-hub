@@ -170,9 +170,10 @@ function LeadsPage() {
           </button>
         </div>
         <Button
-          variant={statusFilter === "lost" ? "default" : "outline"}
+          variant={isLostView ? "default" : "outline"}
           size="sm"
-          onClick={() => { setStatusFilter(statusFilter === "lost" ? "active" : "lost"); setView("list"); }}
+          aria-pressed={isLostView}
+          onClick={() => { setStatusFilter(isLostView ? "active" : "lost"); setView("list"); }}
         >
           {statusFilter === "lost" ? "Showing lost leads" : "View lost leads"}
         </Button>
