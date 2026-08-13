@@ -751,6 +751,14 @@ export type Database = {
         Returns: boolean
       }
       is_top_of_tree: { Args: never; Returns: boolean }
+      list_end_ownership_targets: {
+        Args: never
+        Returns: {
+          designation: string
+          full_name: string
+          id: string
+        }[]
+      }
       record_user_login: { Args: never; Returns: boolean }
     }
     Enums: {

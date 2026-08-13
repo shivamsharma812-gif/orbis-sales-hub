@@ -23,7 +23,6 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 
-const ELIGIBLE_DESIGNATIONS = ["President", "MD & CEO"];
 
 interface Props {
   open: boolean;
@@ -59,25 +58,23 @@ export function ShareTransferLeadDialog({
   const label = entity === "client" ? "client" : "lead";
   const effectiveEndOwnerId = currentEndOwnerId ?? hierarchyEndOwnerId(ownerId);
 
+  // Presidents can't see each other through the normal directory (vertical RBAC),
+  // so the eligible recipients come from a security-definer lookup instead.
   const { data: peers = [] } = useQuery({
-    queryKey: ["president-peers"],
+    queryKey: ["end-ownership-targets", myId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, full_name, designation")
-        .in("designation", ELIGIBLE_DESIGNATIONS)
-        .eq("status", "active");
+      const { data, error } = await supabase.rpc("list_end_ownership_targets");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as { id: string; full_name: string; designation: string | null }[];
     },
   });
 
-  // Never offer the signed-in user, the current end owner, or (when sharing) the existing co-owner.
+  // Never offer the current end owner or (when sharing) the existing co-owner.
   const options = peers.filter((p) => {
     if (p.id === effectiveEndOwnerId) return false;
     if (myId && p.id === myId) return false;
     if (mode === "share" && p.id === currentCoOwnerId) return false;
-    return p.designation === "President";
+    return true;
   });
 
   const apply = useMutation({
