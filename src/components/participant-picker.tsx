@@ -82,7 +82,7 @@ export function ParticipantPicker({
     const q = query.trim().toLowerCase();
     if (!q) return employees;
     return employees.filter(
-      (e) => e.full_name.toLowerCase().includes(q) || e.email.toLowerCase().includes(q),
+      (e) => e.full_name.toLowerCase().includes(q),
     );
   }, [employees, query]);
 
