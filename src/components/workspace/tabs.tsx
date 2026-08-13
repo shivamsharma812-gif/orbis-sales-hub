@@ -440,9 +440,11 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
             </div>
           )}
           <ParticipantPicker
+            autoAddSelf
             value={form.attendees}
             onChange={(next) => setForm({ ...form, attendees: next })}
           />
+
 
         </div>
         <DialogFooter>
