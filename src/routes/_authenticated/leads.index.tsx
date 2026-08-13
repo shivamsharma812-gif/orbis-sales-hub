@@ -32,6 +32,7 @@ import { ImportLeadsDialog } from "@/components/import-leads-dialog";
 import {
   ConvertLeadDialog,
   MarkLostDialog,
+  lostReasonText,
   type ConvertibleLead,
 } from "@/components/lead-outcome-dialogs";
 
