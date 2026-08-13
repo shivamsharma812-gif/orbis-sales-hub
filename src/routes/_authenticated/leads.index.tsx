@@ -98,6 +98,7 @@ function LeadsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const months = monthOptions();
   const navigate = useNavigate();
+  const isLostView = statusFilter === "lost";
   
 
   const { data: leads = [] } = useQuery({
