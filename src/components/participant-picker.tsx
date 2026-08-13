@@ -95,14 +95,27 @@ export function ParticipantPicker({
   value,
   onChange,
   label = "Add participants",
+  autoAddSelf = false,
 }: {
   value: Participant[];
   onChange: (next: Participant[]) => void;
   label?: string;
+  autoAddSelf?: boolean;
 }) {
   const { data: employees = [] } = useEmployees();
+  const { data: me } = useCurrentUser();
   const [query, setQuery] = useState("");
   const [freeTextName, setFreeTextName] = useState("");
+  const seededRef = useRef(false);
+
+  // The organiser is always a participant of their own meeting.
+  useEffect(() => {
+    if (!autoAddSelf || seededRef.current || !me?.email) return;
+    seededRef.current = true;
+    if (value.some((p) => p.email?.toLowerCase() === me.email.toLowerCase())) return;
+    onChange([...value, { email: me.email, name: me.full_name }]);
+  }, [autoAddSelf, me, value, onChange]);
+
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
