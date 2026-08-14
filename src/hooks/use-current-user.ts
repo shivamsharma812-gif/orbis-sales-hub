@@ -21,12 +21,12 @@ export function useCurrentUser() {
   return useQuery({
     queryKey: ["current-app-user"],
     queryFn: async (): Promise<AppUser | null> => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return null;
+      const { data: auth } = await supabase.auth.getSession();
+      if (!auth.session?.user) return null;
       const { data, error } = await supabase
         .from("users")
         .select("*")
-        .eq("auth_user_id", auth.user.id)
+        .eq("auth_user_id", auth.session.user.id)
         .maybeSingle();
       if (error) throw error;
       return data as AppUser | null;
