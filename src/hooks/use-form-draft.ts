@@ -17,7 +17,10 @@ interface StoredDraft<T> {
   userId: string;
   updatedAt: string;
   formData: Partial<T>;
+  /** Extra UI state to restore with the draft (e.g. the wizard step). */
+  meta?: Record<string, unknown>;
 }
+
 
 function draftKey(type: DraftType, userId: string) {
   return `crm:create-${type}-draft:${userId}`;
