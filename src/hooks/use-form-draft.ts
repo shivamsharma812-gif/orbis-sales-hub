@@ -66,7 +66,10 @@ export function useFormDraft<T extends object>(options: {
 }) {
   const { type, userId, value, defaults, active } = options;
   const [hasDraft, setHasDraft] = useState(false);
-  const suspended = useRef(false);
+  // Snapshot of the form at the moment we cleared the draft (discard/submit).
+  // Autosave stays paused only until the user actually types something new,
+  // so a second draft can always be captured after a discard.
+  const suspendedSnapshot = useRef<string | null>(null);
 
   const refresh = useCallback(() => {
     if (!userId) return setHasDraft(false);
@@ -78,7 +81,11 @@ export function useFormDraft<T extends object>(options: {
   }, [refresh, active]);
 
   const clearDraft = useCallback(() => {
-    suspended.current = true;
+    try {
+      suspendedSnapshot.current = JSON.stringify(value);
+    } catch {
+      suspendedSnapshot.current = null;
+    }
     if (!userId) return;
     try {
       window.localStorage.removeItem(draftKey(type, userId));
@@ -86,7 +93,7 @@ export function useFormDraft<T extends object>(options: {
       /* storage unavailable — nothing to clean up */
     }
     setHasDraft(false);
-  }, [type, userId]);
+  }, [type, userId, value]);
 
   /** Reads the stored draft merged over the given defaults, or null. */
   const loadDraft = useCallback(
@@ -94,7 +101,7 @@ export function useFormDraft<T extends object>(options: {
       if (!userId) return null;
       const stored = readRaw<T>(type, userId);
       if (!stored) return null;
-      suspended.current = false;
+      suspendedSnapshot.current = null;
       return { ...base, ...stored.formData };
     },
     [type, userId],
@@ -102,9 +109,15 @@ export function useFormDraft<T extends object>(options: {
 
   // Debounced autosave while the form is open.
   useEffect(() => {
-    if (!active || !userId || suspended.current) return;
+    if (!active || !userId) return;
     const handle = window.setTimeout(() => {
       try {
+        const serialized = JSON.stringify(value);
+        if (suspendedSnapshot.current !== null) {
+          // Still identical to the state at discard/submit time → stay paused.
+          if (suspendedSnapshot.current === serialized) return;
+          suspendedSnapshot.current = null;
+        }
         if (!hasMeaningfulInput(value, defaults)) {
           window.localStorage.removeItem(draftKey(type, userId));
           setHasDraft(false);
@@ -125,6 +138,7 @@ export function useFormDraft<T extends object>(options: {
     }, 400);
     return () => window.clearTimeout(handle);
   }, [active, userId, type, value, defaults]);
+
 
   return { hasDraft, loadDraft, clearDraft, refreshDraft: refresh };
 }
