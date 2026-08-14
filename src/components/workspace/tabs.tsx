@@ -1069,8 +1069,8 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={() => create.mutate()} disabled={!form.title || create.isPending}>Create</Button>
+          <Button variant="outline" onClick={() => { setOpen(false); setEditingId(null); setForm(emptyForm); }}>Cancel</Button>
+          <Button onClick={() => save.mutate()} disabled={!form.title || save.isPending}>{editingId ? "Save changes" : "Create"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
