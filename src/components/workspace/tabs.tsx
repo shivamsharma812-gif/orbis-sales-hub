@@ -1119,11 +1119,15 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
   );
 }
 
-/* ---------------- Notes (append-only) ---------------- */
+/* ---------------- Notes ---------------- */
 export function NotesTab({ parentType, parentId }: WorkspaceProps) {
   const qc = useQueryClient();
   const [body, setBody] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
   const { data: currentUser } = useCurrentUser();
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["notes", parentType, parentId] });
 
   const { data: notes = [] } = useQuery({
     queryKey: ["notes", parentType, parentId],
@@ -1133,6 +1137,7 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
         .select("*")
         .eq("parent_type", parentType as never)
         .eq("parent_id", parentId)
+        .eq("is_deleted", false)
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -1141,6 +1146,7 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
   const create = useMutation({
     mutationFn: async () => {
       if (!currentUser) throw new Error("Not signed in");
+      if (!body.trim()) throw new Error("Note cannot be empty");
       const { error } = await supabase.from("notes").insert({
         parent_type: parentType as never,
         parent_id: parentId,
@@ -1150,24 +1156,37 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notes", parentType, parentId] });
+      invalidate();
       setBody("");
       toast.success("Note added");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("notes").delete().eq("id", id);
+  const update = useMutation({
+    mutationFn: async () => {
+      if (!editingId) return;
+      if (!editBody.trim()) throw new Error("Note cannot be empty");
+      const { error } = await supabase.from("notes").update({ body: editBody }).eq("id", editingId);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notes", parentType, parentId] });
-      toast.success("Note deleted");
+      invalidate();
+      setEditingId(null);
+      setEditBody("");
+      toast.success("Note updated");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const remove = (id: string) =>
+    softDeleteWithUndo({
+      table: "notes",
+      id,
+      label: "Note",
+      actorId: currentUser?.id,
+      onChanged: invalidate,
+    });
 
   return (
     <Card className="p-4">
@@ -1185,16 +1204,34 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
       <div className="mt-4 space-y-2">
         {notes.map((n) => {
           const isMine = currentUser && n.owner_id === currentUser.id;
+          const isEditing = editingId === n.id;
           return (
             <div key={n.id} className="border-l-2 border-primary pl-3 py-1 flex items-start justify-between gap-2 group">
               <div className="min-w-0 flex-1">
-                <div className="text-sm">{n.body}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{formatDateTime(n.created_at)}</div>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <Textarea rows={3} value={editBody} onChange={(e) => setEditBody(e.target.value)} />
+                    <div className="flex gap-2 justify-end">
+                      <Button size="sm" variant="outline" onClick={() => { setEditingId(null); setEditBody(""); }}>Cancel</Button>
+                      <Button size="sm" onClick={() => update.mutate()} disabled={!editBody.trim() || update.isPending}>Save</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-sm whitespace-pre-wrap">{n.body}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{formatDateTime(n.created_at)}</div>
+                  </>
+                )}
               </div>
-              {isMine && (
-                <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={() => { if (confirm("Delete this note?")) del.mutate(n.id); }}>
-                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                </Button>
+              {isMine && !isEditing && (
+                <div className="flex items-center opacity-0 group-hover:opacity-100">
+                  <Button size="sm" variant="ghost" aria-label="Edit note" onClick={() => { setEditingId(n.id); setEditBody(n.body ?? ""); }}>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" aria-label="Delete note" onClick={() => remove(n.id)}>
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                </div>
               )}
             </div>
           );
@@ -1206,6 +1243,7 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
     </Card>
   );
 }
+
 
 /* ---------------- Timeline (activity) ---------------- */
 export function TimelineTab({ parentType, parentId }: WorkspaceProps) {
