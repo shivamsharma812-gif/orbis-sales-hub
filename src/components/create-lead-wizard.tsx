@@ -140,26 +140,35 @@ export function CreateLeadWizard({
     [me?.id],
   );
 
-  const { hasDraft, loadDraft, clearDraft } = useFormDraft<FormState>({
+  const { hasDraft, loadDraft, loadDraftMeta, clearDraft } = useFormDraft<FormState>({
     type: "lead",
     userId: me?.id,
     value: form,
     defaults,
     active: open,
+    meta: { step },
   });
 
   const [restored, setRestored] = useState(false);
 
-  // Restore any unsubmitted draft when the dialog opens.
+  // Restore any unsubmitted draft (and the step it was left on) when the dialog opens.
   useEffect(() => {
     if (!open) {
       setRestored(false);
       return;
     }
     if (restored || !me) return;
-    setForm(loadDraft(defaults) ?? defaults);
+    const draft = loadDraft(defaults);
+    setForm(draft ?? defaults);
+    if (draft) {
+      const savedStep = loadDraftMeta()?.step;
+      if (typeof savedStep === "number" && savedStep >= 0 && savedStep < STEPS.length) {
+        setStep(savedStep);
+      }
+    }
     setRestored(true);
-  }, [open, me, restored, loadDraft, defaults]);
+  }, [open, me, restored, loadDraft, loadDraftMeta, defaults]);
+
 
   const reset = () => {
     setForm(defaults);
