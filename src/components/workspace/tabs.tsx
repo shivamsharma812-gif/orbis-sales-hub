@@ -932,17 +932,24 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
   const [openState, setOpenState] = useState(false);
   const open = openOverride ?? openState;
   const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
-  const [form, setForm] = useState({
+  const emptyForm = {
     title: "",
     description: "",
     due_date: "",
     priority: "medium",
     assigned_to: ownerId,
-  });
+  };
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const { data: currentUser } = useCurrentUser();
 
   // Only the current user's own reporting downline can be assigned work.
   const { data: users = [] } = useAssignableUsers();
 
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] });
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+  };
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks", parentType, parentId],
@@ -952,32 +959,43 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
         .select("*")
         .eq("parent_type", parentType as never)
         .eq("parent_id", parentId)
+        .eq("is_deleted", false)
         .order("due_date", { ascending: true });
       return data ?? [];
     },
   });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("tasks").insert({
-        parent_type: parentType as never,
-        parent_id: parentId,
-        owner_id: ownerId,
+      if (!form.title.trim()) throw new Error("A title is required");
+      const payload = {
         assigned_to: form.assigned_to,
         title: form.title,
         description: form.description,
         due_date: form.due_date || null,
         priority: form.priority as never,
-        status: "open" as never,
-      });
-      if (error) throw error;
+      };
+      if (editingId) {
+        const { error } = await supabase.from("tasks").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("tasks").insert({
+          parent_type: parentType as never,
+          parent_id: parentId,
+          owner_id: ownerId,
+          status: "open" as never,
+          ...payload,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidate();
+      const wasEdit = !!editingId;
       setOpen(false);
-      setForm({ title: "", description: "", due_date: "", priority: "medium", assigned_to: ownerId });
-      toast.success("Task created");
+      setEditingId(null);
+      setForm(emptyForm);
+      toast.success(wasEdit ? "Task updated" : "Task created");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -988,20 +1006,30 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
       const { error } = await supabase.from("tasks").update({ status: next as never }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] }),
+    onSuccess: invalidate,
   });
 
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] });
-      toast.success("Task deleted");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const remove = (id: string) =>
+    softDeleteWithUndo({
+      table: "tasks",
+      id,
+      label: "Task",
+      actorId: currentUser?.id,
+      onChanged: invalidate,
+    });
+
+  const openEdit = (t: typeof tasks[number]) => {
+    setEditingId(t.id);
+    setForm({
+      title: t.title ?? "",
+      description: t.description ?? "",
+      due_date: t.due_date ?? "",
+      priority: t.priority ?? "medium",
+      assigned_to: t.assigned_to ?? ownerId,
+    });
+    setOpen(true);
+  };
+
 
   const createDialog = (
     <Dialog open={open} onOpenChange={setOpen}>
