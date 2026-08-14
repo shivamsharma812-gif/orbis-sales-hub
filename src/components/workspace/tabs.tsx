@@ -807,6 +807,18 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
     onSuccess: invalidate,
   });
 
+  const reopen = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("followups")
+        .update({ status: "pending" as never, completed_at: null, completion_notes: null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success("Follow-up marked as pending"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const remove = (id: string) =>
     softDeleteWithUndo({
       table: "followups",
