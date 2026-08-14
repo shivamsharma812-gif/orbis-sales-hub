@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { PIPELINE_STAGES } from "@/components/stage-badge";
+import { softDeleteWithUndo } from "@/lib/soft-delete";
 
 // Advance a lead's pipeline_stage forward only (never regress).
 async function advanceLeadStage(leadId: string, targetStage: string) {
