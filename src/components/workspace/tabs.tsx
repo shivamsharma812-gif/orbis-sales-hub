@@ -738,7 +738,15 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
   const [openState, setOpenState] = useState(false);
   const open = openOverride ?? openState;
   const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
-  const [form, setForm] = useState({ due_date: "", priority: "medium", description: "" });
+  const emptyForm = { due_date: "", priority: "medium", description: "" };
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const { data: currentUser } = useCurrentUser();
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+  };
 
   const { data: followups = [] } = useQuery({
     queryKey: ["followups", parentType, parentId],
@@ -748,30 +756,41 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
         .select("*")
         .eq("parent_type", parentType as never)
         .eq("parent_id", parentId)
+        .eq("is_deleted", false)
         .order("due_date", { ascending: true });
       return data ?? [];
     },
   });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("followups").insert({
-        parent_type: parentType as never,
-        parent_id: parentId,
-        owner_id: ownerId,
+      if (!form.due_date) throw new Error("A due date is required");
+      const payload = {
         due_date: form.due_date,
         priority: form.priority as never,
         description: form.description,
-        status: "pending" as never,
-      });
-      if (error) throw error;
+      };
+      if (editingId) {
+        const { error } = await supabase.from("followups").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("followups").insert({
+          parent_type: parentType as never,
+          parent_id: parentId,
+          owner_id: ownerId,
+          status: "pending" as never,
+          ...payload,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidate();
+      const wasEdit = !!editingId;
       setOpen(false);
-      setForm({ due_date: "", priority: "medium", description: "" });
-      toast.success("Follow-up created");
+      setEditingId(null);
+      setForm(emptyForm);
+      toast.success(wasEdit ? "Follow-up updated" : "Follow-up created");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -784,37 +803,44 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: invalidate,
   });
 
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("followups").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
-      toast.success("Follow-up deleted");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const remove = (id: string) =>
+    softDeleteWithUndo({
+      table: "followups",
+      id,
+      label: "Follow-up",
+      actorId: currentUser?.id,
+      onChanged: invalidate,
+    });
+
+  const openEdit = (f: typeof followups[number]) => {
+    setEditingId(f.id);
+    setForm({
+      due_date: f.due_date ?? "",
+      priority: f.priority ?? "medium",
+      description: f.description ?? "",
+    });
+    setOpen(true);
+  };
 
   const today = new Date().toISOString().split("T")[0];
   const pending = followups.filter((f) => f.status === "pending");
   const completed = followups.filter((f) => f.status === "completed");
 
   const createDialog = (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null); setForm(emptyForm); } }}
+    >
       {!formOnly && (
         <DialogTrigger asChild>
           <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New follow-up</Button>
         </DialogTrigger>
       )}
       <DialogContent>
-        <DialogHeader><DialogTitle>{"Create follow-up" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{(editingId ? "Edit follow-up" : "Create follow-up") + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5"><Label>Due date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
           <div className="space-y-1.5">
@@ -829,8 +855,8 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
           <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={() => create.mutate()} disabled={!form.due_date || create.isPending}>Create</Button>
+          <Button variant="outline" onClick={() => { setOpen(false); setEditingId(null); setForm(emptyForm); }}>Cancel</Button>
+          <Button onClick={() => save.mutate()} disabled={!form.due_date || save.isPending}>{editingId ? "Save changes" : "Create"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -862,7 +888,10 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
                 </div>
               </div>
               {overdue && <Badge variant="destructive">Overdue</Badge>}
-              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this follow-up?")) del.mutate(f.id); }}>
+              <Button size="sm" variant="ghost" aria-label="Edit follow-up" onClick={() => openEdit(f)}>
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button size="sm" variant="ghost" aria-label="Delete follow-up" onClick={() => remove(f.id)}>
                 <Trash2 className="w-3.5 h-3.5 text-destructive" />
               </Button>
             </div>
@@ -880,7 +909,10 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
                     Completed {formatDate(f.completed_at)}
                   </div>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this follow-up?")) del.mutate(f.id); }}>
+                <Button size="sm" variant="ghost" aria-label="Edit follow-up" onClick={() => openEdit(f)}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+                <Button size="sm" variant="ghost" aria-label="Delete follow-up" onClick={() => remove(f.id)}>
                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
                 </Button>
               </div>
@@ -891,6 +923,7 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
     </Card>
   );
 }
+
 
 /* ---------------- Tasks ---------------- */
 export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
