@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -34,6 +35,14 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Filter } from "lucide-react";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { BusinessFields } from "@/components/business-fields";
+import {
+  BusinessFormState,
+  businessToClientColumns,
+  emptyBusinessForm,
+  validateBusinessForm,
+} from "@/lib/business-fields";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
   head: () => ({ meta: [{ title: "Clients — Orbis CRM" }] }),
@@ -42,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/clients/")({
 
 function ClientsPage() {
   const [serviceFilter, setServiceFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("active");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [q, setQ] = useState("");
   const navigate = useNavigate();
 
@@ -101,6 +110,7 @@ function ClientsPage() {
           <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All status</SelectItem>
+            <SelectItem value="onboarded">Onboarded</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
