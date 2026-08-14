@@ -135,9 +135,9 @@ function PipelineReport() {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="Pipeline value by stage (₹ Cr)">
+        <ChartCard title="Pipeline value by stage (₹ Cr, log scale)">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ bottom: 16 }}>
+            <BarChart data={data.filter((d) => d.value > 0)} margin={{ bottom: 16, top: 16 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
               <XAxis
                 dataKey="stage"
@@ -147,12 +147,28 @@ function PipelineReport() {
                 textAnchor="end"
                 height={60}
               />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
-              <Bar dataKey="value" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
+              <YAxis
+                scale="log"
+                domain={["auto", "auto"]}
+                allowDataOverflow
+                tick={{ fontSize: 11 }}
+              />
+              <Tooltip
+                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+                formatter={(v: number) => formatCurrencyCr(v)}
+              />
+              <Bar dataKey="value" fill="var(--chart-3)" radius={[4, 4, 0, 0]}>
+                <LabelList
+                  dataKey="value"
+                  position="top"
+                  fontSize={10}
+                  formatter={(v: number) => formatCurrencyCr(v)}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
+
       </div>
       <ChartCard title="Client sources">
         {sourceData.length === 0 ? (
