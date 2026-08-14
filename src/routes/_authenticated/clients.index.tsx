@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import { Plus, Filter } from "lucide-react";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { BusinessFields } from "@/components/business-fields";
 import {
   BusinessFormState,
@@ -183,14 +184,56 @@ export function CreateClientDialog({
   const update = <K extends keyof BusinessFormState>(k: K, v: BusinessFormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const handleOpen = (o: boolean) => {
-    if (o) {
-      setForm((f) => ({ ...f, owner_id: f.owner_id || me?.id || "" }));
-    } else {
-      setForm(emptyBusinessForm);
-      setContact({ name: "", designation: "", email: "", phone: "" });
+  type ClientDraft = BusinessFormState & { contact: typeof contact };
+
+  const defaults = useMemo<ClientDraft>(
+    () => ({
+      ...emptyBusinessForm,
+      owner_id: me?.id ?? "",
+      contact: { name: "", designation: "", email: "", phone: "" },
+    }),
+    [me?.id],
+  );
+
+  const draftValue = useMemo<ClientDraft>(() => ({ ...form, contact }), [form, contact]);
+
+  const { hasDraft, loadDraft, clearDraft } = useFormDraft<ClientDraft>({
+    type: "client",
+    userId: me?.id,
+    value: draftValue,
+    defaults,
+    active: open,
+  });
+
+  const [restored, setRestored] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setRestored(false);
+      return;
     }
+    if (restored || !me) return;
+    const { contact: c, ...rest } = loadDraft(defaults) ?? defaults;
+    setForm(rest);
+    setContact(c);
+    setRestored(true);
+  }, [open, me, restored, loadDraft, defaults]);
+
+  const reset = () => {
+    const { contact: c, ...rest } = defaults;
+    setForm(rest);
+    setContact(c);
+  };
+
+  const handleOpen = (o: boolean) => {
+    if (!o) reset();
     setOpen(o);
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    reset();
+    toast.success("Draft discarded");
   };
 
   const errors = validateBusinessForm(form);
@@ -218,6 +261,7 @@ export function CreateClientDialog({
       }
     },
     onSuccess: () => {
+      clearDraft();
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Client created");
@@ -265,11 +309,18 @@ export function CreateClientDialog({
             {errors.map((e) => <li key={e}>• {e}</li>)}
           </ul>
         )}
-        <DialogFooter>
+        <DialogFooter className="sm:justify-between">
+          <div>
+            {hasDraft && (
+              <Button variant="ghost" size="sm" onClick={discardDraft}>Discard draft</Button>
+            )}
+          </div>
+          <div className="flex gap-2">
           <Button variant="outline" onClick={() => handleOpen(false)}>Cancel</Button>
           <Button onClick={() => create.mutate()} disabled={errors.length > 0 || create.isPending}>
             Create
           </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
