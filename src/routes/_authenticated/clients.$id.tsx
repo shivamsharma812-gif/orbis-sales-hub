@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trash2, Undo2, Share2 } from "lucide-react";
+import { ArrowLeft, Trash2, Undo2, Share2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import {
@@ -30,6 +30,7 @@ import { useAssignableUsers } from "@/hooks/use-assignable-users";
 import { useEndOwners } from "@/hooks/use-end-owners";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
+import { EditRecordDialog } from "@/components/edit-record-dialog";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({ meta: [{ title: "Client — Orbis CRM" }] }),
@@ -41,6 +42,7 @@ function ClientWorkspace() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [shareTransferOpen, setShareTransferOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { endOwnerName, userName } = useEndOwners();
   const { data: me } = useCurrentUser();
 
@@ -137,6 +139,9 @@ function ClientWorkspace() {
             <Button asChild variant="ghost" size="sm">
               <Link to="/clients"><ArrowLeft className="w-4 h-4" /> Back</Link>
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="w-4 h-4" /> Edit
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -193,6 +198,10 @@ function ClientWorkspace() {
           </div>
         </Card>
       </div>
+
+      {editOpen && (
+        <EditRecordDialog kind="client" row={client as unknown as Record<string, unknown>} open={editOpen} onOpenChange={setEditOpen} />
+      )}
 
       <ShareTransferLeadDialog
         open={shareTransferOpen}

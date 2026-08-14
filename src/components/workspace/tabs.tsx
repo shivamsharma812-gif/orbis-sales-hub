@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { PIPELINE_STAGES } from "@/components/stage-badge";
+import { softDeleteWithUndo } from "@/lib/soft-delete";
 
 // Advance a lead's pipeline_stage forward only (never regress).
 async function advanceLeadStage(leadId: string, targetStage: string) {
@@ -738,7 +739,15 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
   const [openState, setOpenState] = useState(false);
   const open = openOverride ?? openState;
   const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
-  const [form, setForm] = useState({ due_date: "", priority: "medium", description: "" });
+  const emptyForm = { due_date: "", priority: "medium", description: "" };
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const { data: currentUser } = useCurrentUser();
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+  };
 
   const { data: followups = [] } = useQuery({
     queryKey: ["followups", parentType, parentId],
@@ -748,30 +757,41 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
         .select("*")
         .eq("parent_type", parentType as never)
         .eq("parent_id", parentId)
+        .eq("is_deleted", false)
         .order("due_date", { ascending: true });
       return data ?? [];
     },
   });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("followups").insert({
-        parent_type: parentType as never,
-        parent_id: parentId,
-        owner_id: ownerId,
+      if (!form.due_date) throw new Error("A due date is required");
+      const payload = {
         due_date: form.due_date,
         priority: form.priority as never,
         description: form.description,
-        status: "pending" as never,
-      });
-      if (error) throw error;
+      };
+      if (editingId) {
+        const { error } = await supabase.from("followups").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("followups").insert({
+          parent_type: parentType as never,
+          parent_id: parentId,
+          owner_id: ownerId,
+          status: "pending" as never,
+          ...payload,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidate();
+      const wasEdit = !!editingId;
       setOpen(false);
-      setForm({ due_date: "", priority: "medium", description: "" });
-      toast.success("Follow-up created");
+      setEditingId(null);
+      setForm(emptyForm);
+      toast.success(wasEdit ? "Follow-up updated" : "Follow-up created");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -784,37 +804,44 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: invalidate,
   });
 
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("followups").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["followups", parentType, parentId] });
-      toast.success("Follow-up deleted");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const remove = (id: string) =>
+    softDeleteWithUndo({
+      table: "followups",
+      id,
+      label: "Follow-up",
+      actorId: currentUser?.id,
+      onChanged: invalidate,
+    });
+
+  const openEdit = (f: typeof followups[number]) => {
+    setEditingId(f.id);
+    setForm({
+      due_date: f.due_date ?? "",
+      priority: f.priority ?? "medium",
+      description: f.description ?? "",
+    });
+    setOpen(true);
+  };
 
   const today = new Date().toISOString().split("T")[0];
   const pending = followups.filter((f) => f.status === "pending");
   const completed = followups.filter((f) => f.status === "completed");
 
   const createDialog = (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null); setForm(emptyForm); } }}
+    >
       {!formOnly && (
         <DialogTrigger asChild>
           <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New follow-up</Button>
         </DialogTrigger>
       )}
       <DialogContent>
-        <DialogHeader><DialogTitle>{"Create follow-up" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{(editingId ? "Edit follow-up" : "Create follow-up") + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5"><Label>Due date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
           <div className="space-y-1.5">
@@ -829,8 +856,8 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
           <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={() => create.mutate()} disabled={!form.due_date || create.isPending}>Create</Button>
+          <Button variant="outline" onClick={() => { setOpen(false); setEditingId(null); setForm(emptyForm); }}>Cancel</Button>
+          <Button onClick={() => save.mutate()} disabled={!form.due_date || save.isPending}>{editingId ? "Save changes" : "Create"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -862,7 +889,10 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
                 </div>
               </div>
               {overdue && <Badge variant="destructive">Overdue</Badge>}
-              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this follow-up?")) del.mutate(f.id); }}>
+              <Button size="sm" variant="ghost" aria-label="Edit follow-up" onClick={() => openEdit(f)}>
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button size="sm" variant="ghost" aria-label="Delete follow-up" onClick={() => remove(f.id)}>
                 <Trash2 className="w-3.5 h-3.5 text-destructive" />
               </Button>
             </div>
@@ -880,7 +910,10 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
                     Completed {formatDate(f.completed_at)}
                   </div>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this follow-up?")) del.mutate(f.id); }}>
+                <Button size="sm" variant="ghost" aria-label="Edit follow-up" onClick={() => openEdit(f)}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+                <Button size="sm" variant="ghost" aria-label="Delete follow-up" onClick={() => remove(f.id)}>
                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
                 </Button>
               </div>
@@ -892,23 +925,31 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
   );
 }
 
+
 /* ---------------- Tasks ---------------- */
 export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
   const [openState, setOpenState] = useState(false);
   const open = openOverride ?? openState;
   const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
-  const [form, setForm] = useState({
+  const emptyForm = {
     title: "",
     description: "",
     due_date: "",
     priority: "medium",
     assigned_to: ownerId,
-  });
+  };
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const { data: currentUser } = useCurrentUser();
 
   // Only the current user's own reporting downline can be assigned work.
   const { data: users = [] } = useAssignableUsers();
 
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] });
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+  };
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks", parentType, parentId],
@@ -918,32 +959,43 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
         .select("*")
         .eq("parent_type", parentType as never)
         .eq("parent_id", parentId)
+        .eq("is_deleted", false)
         .order("due_date", { ascending: true });
       return data ?? [];
     },
   });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("tasks").insert({
-        parent_type: parentType as never,
-        parent_id: parentId,
-        owner_id: ownerId,
+      if (!form.title.trim()) throw new Error("A title is required");
+      const payload = {
         assigned_to: form.assigned_to,
         title: form.title,
         description: form.description,
         due_date: form.due_date || null,
         priority: form.priority as never,
-        status: "open" as never,
-      });
-      if (error) throw error;
+      };
+      if (editingId) {
+        const { error } = await supabase.from("tasks").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("tasks").insert({
+          parent_type: parentType as never,
+          parent_id: parentId,
+          owner_id: ownerId,
+          status: "open" as never,
+          ...payload,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidate();
+      const wasEdit = !!editingId;
       setOpen(false);
-      setForm({ title: "", description: "", due_date: "", priority: "medium", assigned_to: ownerId });
-      toast.success("Task created");
+      setEditingId(null);
+      setForm(emptyForm);
+      toast.success(wasEdit ? "Task updated" : "Task created");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -954,30 +1006,43 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
       const { error } = await supabase.from("tasks").update({ status: next as never }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] }),
+    onSuccess: invalidate,
   });
 
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tasks", parentType, parentId] });
-      toast.success("Task deleted");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const remove = (id: string) =>
+    softDeleteWithUndo({
+      table: "tasks",
+      id,
+      label: "Task",
+      actorId: currentUser?.id,
+      onChanged: invalidate,
+    });
+
+  const openEdit = (t: typeof tasks[number]) => {
+    setEditingId(t.id);
+    setForm({
+      title: t.title ?? "",
+      description: t.description ?? "",
+      due_date: t.due_date ?? "",
+      priority: t.priority ?? "medium",
+      assigned_to: t.assigned_to ?? ownerId,
+    });
+    setOpen(true);
+  };
+
 
   const createDialog = (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null); setForm(emptyForm); } }}
+    >
       {!formOnly && (
         <DialogTrigger asChild>
           <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New task</Button>
         </DialogTrigger>
       )}
       <DialogContent>
-        <DialogHeader><DialogTitle>{"Create task" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{(editingId ? "Edit task" : "Create task") + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
           <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
@@ -1004,8 +1069,8 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={() => create.mutate()} disabled={!form.title || create.isPending}>Create</Button>
+          <Button variant="outline" onClick={() => { setOpen(false); setEditingId(null); setForm(emptyForm); }}>Cancel</Button>
+          <Button onClick={() => save.mutate()} disabled={!form.title || save.isPending}>{editingId ? "Save changes" : "Create"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1041,7 +1106,10 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
                 {t.due_date ? relativeDay(t.due_date) : "No due date"} · {t.priority} · {users.find((u) => u.id === t.assigned_to)?.full_name ?? "—"}
               </div>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this task?")) del.mutate(t.id); }}>
+            <Button size="sm" variant="ghost" aria-label="Edit task" onClick={() => openEdit(t)}>
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" variant="ghost" aria-label="Delete task" onClick={() => remove(t.id)}>
               <Trash2 className="w-3.5 h-3.5 text-destructive" />
             </Button>
           </div>
@@ -1051,11 +1119,15 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
   );
 }
 
-/* ---------------- Notes (append-only) ---------------- */
+/* ---------------- Notes ---------------- */
 export function NotesTab({ parentType, parentId }: WorkspaceProps) {
   const qc = useQueryClient();
   const [body, setBody] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
   const { data: currentUser } = useCurrentUser();
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["notes", parentType, parentId] });
 
   const { data: notes = [] } = useQuery({
     queryKey: ["notes", parentType, parentId],
@@ -1065,6 +1137,7 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
         .select("*")
         .eq("parent_type", parentType as never)
         .eq("parent_id", parentId)
+        .eq("is_deleted", false)
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -1073,6 +1146,7 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
   const create = useMutation({
     mutationFn: async () => {
       if (!currentUser) throw new Error("Not signed in");
+      if (!body.trim()) throw new Error("Note cannot be empty");
       const { error } = await supabase.from("notes").insert({
         parent_type: parentType as never,
         parent_id: parentId,
@@ -1082,24 +1156,37 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notes", parentType, parentId] });
+      invalidate();
       setBody("");
       toast.success("Note added");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("notes").delete().eq("id", id);
+  const update = useMutation({
+    mutationFn: async () => {
+      if (!editingId) return;
+      if (!editBody.trim()) throw new Error("Note cannot be empty");
+      const { error } = await supabase.from("notes").update({ body: editBody }).eq("id", editingId);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notes", parentType, parentId] });
-      toast.success("Note deleted");
+      invalidate();
+      setEditingId(null);
+      setEditBody("");
+      toast.success("Note updated");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const remove = (id: string) =>
+    softDeleteWithUndo({
+      table: "notes",
+      id,
+      label: "Note",
+      actorId: currentUser?.id,
+      onChanged: invalidate,
+    });
 
   return (
     <Card className="p-4">
@@ -1117,16 +1204,34 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
       <div className="mt-4 space-y-2">
         {notes.map((n) => {
           const isMine = currentUser && n.owner_id === currentUser.id;
+          const isEditing = editingId === n.id;
           return (
             <div key={n.id} className="border-l-2 border-primary pl-3 py-1 flex items-start justify-between gap-2 group">
               <div className="min-w-0 flex-1">
-                <div className="text-sm">{n.body}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{formatDateTime(n.created_at)}</div>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <Textarea rows={3} value={editBody} onChange={(e) => setEditBody(e.target.value)} />
+                    <div className="flex gap-2 justify-end">
+                      <Button size="sm" variant="outline" onClick={() => { setEditingId(null); setEditBody(""); }}>Cancel</Button>
+                      <Button size="sm" onClick={() => update.mutate()} disabled={!editBody.trim() || update.isPending}>Save</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-sm whitespace-pre-wrap">{n.body}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{formatDateTime(n.created_at)}</div>
+                  </>
+                )}
               </div>
-              {isMine && (
-                <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={() => { if (confirm("Delete this note?")) del.mutate(n.id); }}>
-                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                </Button>
+              {isMine && !isEditing && (
+                <div className="flex items-center opacity-0 group-hover:opacity-100">
+                  <Button size="sm" variant="ghost" aria-label="Edit note" onClick={() => { setEditingId(n.id); setEditBody(n.body ?? ""); }}>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" aria-label="Delete note" onClick={() => remove(n.id)}>
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                </div>
               )}
             </div>
           );
@@ -1138,6 +1243,7 @@ export function NotesTab({ parentType, parentId }: WorkspaceProps) {
     </Card>
   );
 }
+
 
 /* ---------------- Timeline (activity) ---------------- */
 export function TimelineTab({ parentType, parentId }: WorkspaceProps) {

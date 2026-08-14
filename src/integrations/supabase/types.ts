@@ -84,18 +84,26 @@ export type Database = {
           address: string | null
           annual_revenue: number | null
           auc: number | null
+          city: string | null
           client_type: string | null
           co_owner_id: string | null
           company_name: string
+          country: string | null
           created_at: string
           end_owner_id: string | null
+          expected_close_date: string | null
           id: string
           industry: string | null
+          lead_source: string | null
           originating_lead_id: string | null
           owner_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          referral_by: string | null
           remarks: string | null
           service_type: string | null
+          services: string[]
           status: Database["public"]["Enums"]["client_status"]
+          sub_category: string | null
           updated_at: string
           website: string | null
         }
@@ -103,18 +111,26 @@ export type Database = {
           address?: string | null
           annual_revenue?: number | null
           auc?: number | null
+          city?: string | null
           client_type?: string | null
           co_owner_id?: string | null
           company_name: string
+          country?: string | null
           created_at?: string
           end_owner_id?: string | null
+          expected_close_date?: string | null
           id?: string
           industry?: string | null
+          lead_source?: string | null
           originating_lead_id?: string | null
           owner_id: string
+          priority?: Database["public"]["Enums"]["priority_level"]
+          referral_by?: string | null
           remarks?: string | null
           service_type?: string | null
+          services?: string[]
           status?: Database["public"]["Enums"]["client_status"]
+          sub_category?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -122,18 +138,26 @@ export type Database = {
           address?: string | null
           annual_revenue?: number | null
           auc?: number | null
+          city?: string | null
           client_type?: string | null
           co_owner_id?: string | null
           company_name?: string
+          country?: string | null
           created_at?: string
           end_owner_id?: string | null
+          expected_close_date?: string | null
           id?: string
           industry?: string | null
+          lead_source?: string | null
           originating_lead_id?: string | null
           owner_id?: string
+          priority?: Database["public"]["Enums"]["priority_level"]
+          referral_by?: string | null
           remarks?: string | null
           service_type?: string | null
+          services?: string[]
           status?: Database["public"]["Enums"]["client_status"]
+          sub_category?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -272,9 +296,12 @@ export type Database = {
           completed_at: string | null
           completion_notes: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           due_date: string
           id: string
+          is_deleted: boolean
           owner_id: string
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
@@ -287,9 +314,12 @@ export type Database = {
           completed_at?: string | null
           completion_notes?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           due_date: string
           id?: string
+          is_deleted?: boolean
           owner_id: string
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
@@ -302,9 +332,12 @@ export type Database = {
           completed_at?: string | null
           completion_notes?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           due_date?: string
           id?: string
+          is_deleted?: boolean
           owner_id?: string
           parent_id?: string
           parent_type?: Database["public"]["Enums"]["parent_kind"]
@@ -314,6 +347,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "followups_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "followups_owner_id_fkey"
             columns: ["owner_id"]
@@ -612,28 +652,47 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
+          is_deleted: boolean
           owner_id: string
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
+          updated_at: string
         }
         Insert: {
           body: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
+          is_deleted?: boolean
           owner_id: string
           parent_id: string
           parent_type: Database["public"]["Enums"]["parent_kind"]
+          updated_at?: string
         }
         Update: {
           body?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
+          is_deleted?: boolean
           owner_id?: string
           parent_id?: string
           parent_type?: Database["public"]["Enums"]["parent_kind"]
+          updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notes_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notes_owner_id_fkey"
             columns: ["owner_id"]
@@ -671,9 +730,12 @@ export type Database = {
         Row: {
           assigned_to: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           due_date: string | null
           id: string
+          is_deleted: boolean
           owner_id: string
           parent_id: string | null
           parent_type: Database["public"]["Enums"]["parent_kind"] | null
@@ -685,9 +747,12 @@ export type Database = {
         Insert: {
           assigned_to: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          is_deleted?: boolean
           owner_id: string
           parent_id?: string | null
           parent_type?: Database["public"]["Enums"]["parent_kind"] | null
@@ -699,9 +764,12 @@ export type Database = {
         Update: {
           assigned_to?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          is_deleted?: boolean
           owner_id?: string
           parent_id?: string | null
           parent_type?: Database["public"]["Enums"]["parent_kind"] | null
@@ -714,6 +782,13 @@ export type Database = {
           {
             foreignKeyName: "tasks_assigned_to_fkey"
             columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_deleted_by_fkey"
+            columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -924,7 +999,7 @@ export type Database = {
     }
     Enums: {
       app_role: "system_admin"
-      client_status: "active" | "inactive"
+      client_status: "active" | "inactive" | "onboarded"
       followup_status: "pending" | "completed"
       lead_lost_reason:
         | "requires_bank_custodian"
@@ -1077,7 +1152,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["system_admin"],
-      client_status: ["active", "inactive"],
+      client_status: ["active", "inactive", "onboarded"],
       followup_status: ["pending", "completed"],
       lead_lost_reason: [
         "requires_bank_custodian",
