@@ -6,12 +6,12 @@ export function useIsAdmin() {
   return useQuery({
     queryKey: ["is-admin"],
     queryFn: async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return false;
+      const { data: auth } = await supabase.auth.getSession();
+      if (!auth.session?.user) return false;
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", auth.user.id)
+        .eq("user_id", auth.session.user.id)
         .eq("role", "system_admin")
         .maybeSingle();
       if (error) return false;
