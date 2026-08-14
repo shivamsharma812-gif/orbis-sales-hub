@@ -66,13 +66,17 @@ export function useFormDraft<T extends object>(options: {
   defaults: T;
   /** Only autosave while the dialog is open. */
   active: boolean;
+  /** Extra UI state saved with the draft (e.g. `{ step }`). */
+  meta?: Record<string, unknown>;
 }) {
-  const { type, userId, value, defaults, active } = options;
+  const { type, userId, value, defaults, active, meta } = options;
   const [hasDraft, setHasDraft] = useState(false);
   // Snapshot of the form at the moment we cleared the draft (discard/submit).
   // Autosave stays paused only until the user actually types something new,
   // so a second draft can always be captured after a discard.
   const suspendedSnapshot = useRef<string | null>(null);
+  const metaRef = useRef(meta);
+  metaRef.current = meta;
 
   const refresh = useCallback(() => {
     if (!userId) return setHasDraft(false);
@@ -110,7 +114,15 @@ export function useFormDraft<T extends object>(options: {
     [type, userId],
   );
 
+  /** Reads the extra UI state stored with the draft, if any. */
+  const loadDraftMeta = useCallback((): Record<string, unknown> | null => {
+    if (!userId) return null;
+    const stored = readRaw<T>(type, userId);
+    return stored?.meta ?? null;
+  }, [type, userId]);
+
   // Debounced autosave while the form is open.
+  const metaKey = JSON.stringify(meta ?? null);
   useEffect(() => {
     if (!active || !userId) return;
     const handle = window.setTimeout(() => {
@@ -132,6 +144,7 @@ export function useFormDraft<T extends object>(options: {
           userId,
           updatedAt: new Date().toISOString(),
           formData: value,
+          meta: metaRef.current,
         };
         window.localStorage.setItem(draftKey(type, userId), JSON.stringify(payload));
         setHasDraft(true);
@@ -140,8 +153,8 @@ export function useFormDraft<T extends object>(options: {
       }
     }, 400);
     return () => window.clearTimeout(handle);
-  }, [active, userId, type, value, defaults]);
+  }, [active, userId, type, value, defaults, metaKey]);
 
+  return { hasDraft, loadDraft, loadDraftMeta, clearDraft, refreshDraft: refresh };
 
-  return { hasDraft, loadDraft, clearDraft, refreshDraft: refresh };
 }
