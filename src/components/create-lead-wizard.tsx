@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import { useAssignableUsers } from "@/hooks/use-assignable-users";
 import {
   Dialog,
@@ -134,19 +135,46 @@ export function CreateLeadWizard({
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const defaults = useMemo<FormState>(
+    () => ({ ...initialState, assigned_rm: me?.id ?? "" }),
+    [me?.id],
+  );
+
+  const { hasDraft, loadDraft, clearDraft } = useFormDraft<FormState>({
+    type: "lead",
+    userId: me?.id,
+    value: form,
+    defaults,
+    active: open,
+  });
+
+  const [restored, setRestored] = useState(false);
+
+  // Restore any unsubmitted draft when the dialog opens.
+  useEffect(() => {
+    if (!open) {
+      setRestored(false);
+      return;
+    }
+    if (restored || !me) return;
+    setForm(loadDraft(defaults) ?? defaults);
+    setRestored(true);
+  }, [open, me, restored, loadDraft, defaults]);
+
   const reset = () => {
-    setForm({ ...initialState, assigned_rm: me?.id ?? "" });
+    setForm(defaults);
     setStep(0);
   };
 
-  // Prefill RM to self when dialog opens
   const handleOpen = (o: boolean) => {
-    if (o) {
-      setForm((f) => ({ ...f, assigned_rm: f.assigned_rm || me?.id || "" }));
-    } else {
-      reset();
-    }
+    if (!o) reset();
     setOpen(o);
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    reset();
+    toast.success("Draft discarded");
   };
 
   const subCategoryOptions = SUB_CATEGORIES[form.client_category] ?? [];
@@ -234,6 +262,7 @@ export function CreateLeadWizard({
       return lead;
     },
     onSuccess: () => {
+      clearDraft();
       toast.success("Lead created");
       qc.invalidateQueries({ queryKey: ["leads"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
@@ -719,8 +748,13 @@ export function CreateLeadWizard({
         </div>
 
         <DialogFooter className="flex sm:justify-between gap-2">
-          <div className="text-xs text-muted-foreground self-center">
-            Step {step + 1} of {STEPS.length}
+          <div className="text-xs text-muted-foreground self-center flex items-center gap-2">
+            <span>Step {step + 1} of {STEPS.length}</span>
+            {hasDraft && (
+              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={discardDraft}>
+                Discard draft
+              </Button>
+            )}
           </div>
           <div className="flex gap-2">
             <Button
