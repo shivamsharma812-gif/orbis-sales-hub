@@ -62,9 +62,10 @@ export const Route = createFileRoute("/api/public/bootstrap-demo-users")({
             await supabaseAdmin.from("users").update({ auth_user_id: authId }).eq("id", d.app_user_id);
             results.push({ email: d.email, ok: true, note: "created" });
           } else {
-            // Ensure password is the shared demo password
-            await supabaseAdmin.auth.admin.updateUserById(authId, { password: PASSWORD });
-            results.push({ email: d.email, ok: true, note: "refreshed" });
+            // Already linked — do NOT reset the password here. Calling
+            // updateUserById revokes every existing refresh token, which
+            // silently signs active users out mid-session.
+            results.push({ email: d.email, ok: true, note: "already linked" });
           }
         }
 
