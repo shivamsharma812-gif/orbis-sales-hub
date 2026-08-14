@@ -29,7 +29,6 @@ import { PIPELINE_STAGES } from "@/components/stage-badge";
 import { Plus, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
 import {
   CLIENT_CATEGORIES,
   PROBABILITY_VALUES,
@@ -41,6 +40,7 @@ import {
   SERVICES,
   toCrores,
 } from "@/lib/business-fields";
+
 
 const STEPS = [
   { key: "basic", title: "Basic Information" },
