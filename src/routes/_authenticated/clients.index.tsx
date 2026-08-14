@@ -165,82 +165,104 @@ export function CreateClientDialog({
   const [openState, setOpenState] = useState(false);
   const open = openOverride ?? openState;
   const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
-  const [form, setForm] = useState({
-    company_name: "",
-    client_type: "AIF",
-    service_type: "Custody & Allied Services",
-    auc: "",
-    annual_revenue: "",
-  });
+  const { data: me } = useCurrentUser();
+  const [form, setForm] = useState<BusinessFormState>(emptyBusinessForm);
+  const [contact, setContact] = useState({ name: "", designation: "", email: "", phone: "" });
   const qc = useQueryClient();
+
+  const update = <K extends keyof BusinessFormState>(k: K, v: BusinessFormState[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const handleOpen = (o: boolean) => {
+    if (o) {
+      setForm((f) => ({ ...f, owner_id: f.owner_id || me?.id || "" }));
+    } else {
+      setForm(emptyBusinessForm);
+      setContact({ name: "", designation: "", email: "", phone: "" });
+    }
+    setOpen(o);
+  };
+
+  const errors = validateBusinessForm(form);
 
   const create = useMutation({
     mutationFn: async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) throw new Error("Not signed in");
-      const { data: me } = await supabase
-        .from("users")
-        .select("id")
-        .eq("auth_user_id", auth.user.id)
-        .maybeSingle();
-      if (!me) throw new Error("Your account isn't linked to a user record");
-      const { error } = await supabase.from("clients").insert({
-        company_name: form.company_name,
-        client_type: form.client_type,
-        service_type: form.service_type,
-        auc: Number(form.auc) || 0,
-        annual_revenue: Number(form.annual_revenue) || 0,
-        owner_id: me.id,
-      });
+      // `status` is intentionally not sent — the database forces "onboarded".
+      const { data: client, error } = await supabase
+        .from("clients")
+        .insert(businessToClientColumns(form) as never)
+        .select()
+        .single();
       if (error) throw error;
+      if (contact.name.trim()) {
+        const { error: cErr } = await supabase.from("contacts").insert({
+          parent_type: "client" as never,
+          parent_id: client.id,
+          name: contact.name.trim(),
+          designation: contact.designation || null,
+          email: contact.email || null,
+          phone: contact.phone || null,
+          is_primary: true,
+        });
+        if (cErr) throw cErr;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Client created");
-      setOpen(false);
-      setForm({ company_name: "", client_type: "AIF", service_type: "Custody & Allied Services", auc: "", annual_revenue: "" });
+      handleOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpen}>
       {!hideTrigger && (
         <DialogTrigger asChild>
           <Button size="sm"><Plus className="w-4 h-4" /> New client</Button>
         </DialogTrigger>
       )}
-      <DialogContent>
-        <DialogHeader><DialogTitle>Create client</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 space-y-1.5"><Label>Company name</Label><Input value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} /></div>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create client</DialogTitle>
+          <DialogDescription>
+            Same details as a pipeline record. New clients are always onboarded.
+          </DialogDescription>
+        </DialogHeader>
+        <BusinessFields form={form} update={update} showProbability={false} showState={false} showAddress />
+        <section className="grid grid-cols-2 gap-4 border-t pt-4">
+          <div className="col-span-2 text-sm font-medium">Primary contact</div>
           <div className="space-y-1.5">
-            <Label>Client type</Label>
-            <Select value={form.client_type} onValueChange={(v) => setForm({ ...form, client_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["AIF","PMS","Mutual Fund","Trading Member","Corporate","Family Office"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label>Name</Label>
+            <Input value={contact.name} onChange={(e) => setContact({ ...contact, name: e.target.value })} />
           </div>
           <div className="space-y-1.5">
-            <Label>Service</Label>
-            <Select value={form.service_type} onValueChange={(v) => setForm({ ...form, service_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["Custody & Allied Services","PCM","Fund Accounting","Trusteeship","RTA"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label>Designation</Label>
+            <Input value={contact.designation} onChange={(e) => setContact({ ...contact, designation: e.target.value })} />
           </div>
-          <div className="space-y-1.5"><Label>AUC (₹ Cr)</Label><Input type="number" step="0.01" value={form.auc} onChange={(e) => setForm({ ...form, auc: e.target.value })} /></div>
-          <div className="col-span-2 space-y-1.5"><Label>Annual Revenue (₹ Cr)</Label><Input type="number" step="0.01" value={form.annual_revenue} onChange={(e) => setForm({ ...form, annual_revenue: e.target.value })} /></div>
-        </div>
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <Input value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Phone</Label>
+            <Input value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} />
+          </div>
+        </section>
+        {errors.length > 0 && (
+          <ul className="text-xs text-destructive space-y-0.5">
+            {errors.map((e) => <li key={e}>• {e}</li>)}
+          </ul>
+        )}
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={() => create.mutate()} disabled={!form.company_name || create.isPending}>Create</Button>
+          <Button variant="outline" onClick={() => handleOpen(false)}>Cancel</Button>
+          <Button onClick={() => create.mutate()} disabled={errors.length > 0 || create.isPending}>
+            Create
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
