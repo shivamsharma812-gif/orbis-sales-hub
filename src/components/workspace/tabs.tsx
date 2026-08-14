@@ -807,6 +807,18 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
     onSuccess: invalidate,
   });
 
+  const reopen = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("followups")
+        .update({ status: "pending" as never, completed_at: null, completion_notes: null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success("Follow-up marked as pending"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const remove = (id: string) =>
     softDeleteWithUndo({
       table: "followups",
@@ -903,7 +915,13 @@ export function FollowupsTab({ parentType, parentId, ownerId, formOnly, openOver
             <div className="px-3 py-1.5 text-xs text-muted-foreground bg-surface-2">Completed</div>
             {completed.map((f) => (
               <div key={f.id} className="p-3 flex items-start gap-3 opacity-60">
-                <input type="checkbox" checked readOnly className="mt-1" />
+                <input
+                  type="checkbox"
+                  checked
+                  aria-label="Mark follow-up as pending"
+                  onChange={() => reopen.mutate(f.id)}
+                  className="mt-1 cursor-pointer"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm line-through">{f.description}</div>
                   <div className="text-xs text-muted-foreground">
