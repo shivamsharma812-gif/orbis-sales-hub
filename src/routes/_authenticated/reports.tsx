@@ -18,6 +18,8 @@ import {
   Line,
   CartesianGrid,
   Legend,
+  LabelList,
+
 } from "recharts";
 import { formatCurrencyCr } from "@/lib/format";
 
@@ -303,32 +305,56 @@ function TeamReport() {
     },
   });
 
+  const pipelineData = data.filter((r) => r.pipeline > 0).sort((a, b) => b.pipeline - a.pipeline);
+  const revenueData = data.filter((r) => r.revenue > 0).sort((a, b) => b.revenue - a.revenue);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <ChartCard title="Pipeline value by user (₹ Cr)">
+      <ChartCard title="Pipeline value by user (₹ Cr, log scale)">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical">
+          <BarChart data={pipelineData} layout="vertical" margin={{ right: 56 }}>
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-            <XAxis type="number" tick={{ fontSize: 11 }} />
+            <XAxis type="number" scale="log" domain={["auto", "auto"]} allowDataOverflow tick={{ fontSize: 11 }} />
             <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 11 }} />
-            <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
-            <Bar dataKey="pipeline" fill="var(--chart-1)" radius={[0, 4, 4, 0]} />
+            <Tooltip
+              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+              formatter={(v: number) => formatCurrencyCr(v)}
+            />
+            <Bar dataKey="pipeline" fill="var(--chart-1)" radius={[0, 4, 4, 0]}>
+              <LabelList
+                dataKey="pipeline"
+                position="right"
+                style={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                formatter={(v: number) => formatCurrencyCr(v)}
+              />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
-      <ChartCard title="Active client revenue by user (₹ Cr)">
+      <ChartCard title="Active client revenue by user (₹ Cr, log scale)">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical">
+          <BarChart data={revenueData} layout="vertical" margin={{ right: 56 }}>
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-            <XAxis type="number" tick={{ fontSize: 11 }} />
+            <XAxis type="number" scale="log" domain={["auto", "auto"]} allowDataOverflow tick={{ fontSize: 11 }} />
             <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 11 }} />
-            <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
-            <Bar dataKey="revenue" fill="var(--chart-3)" radius={[0, 4, 4, 0]} />
+            <Tooltip
+              contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+              formatter={(v: number) => formatCurrencyCr(v)}
+            />
+            <Bar dataKey="revenue" fill="var(--chart-3)" radius={[0, 4, 4, 0]}>
+              <LabelList
+                dataKey="revenue"
+                position="right"
+                style={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                formatter={(v: number) => formatCurrencyCr(v)}
+              />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
     </div>
   );
+
 }
 
 function MeetingsReport() {
