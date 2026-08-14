@@ -30,89 +30,17 @@ import { Plus, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const CLIENT_CATEGORIES = [
-  "Alternative Investment Fund (AIF)",
-  "Portfolio Management Services (PMS)",
-  "Foreign Portfolio Investor (FPI)",
-  "Foreign Direct Investment (FDI)",
-  "Foreign Venture Capital Investor (FVCI)",
-  "Trading Member",
-  "Family Office",
-  "General Corporate",
-  "Individual",
-  "Other",
-] as const;
-
-const PROBABILITY_VALUES: Record<string, number> = { high: 80, moderate: 50, low: 20 };
-const PROBABILITY_LABELS: Record<string, string> = { high: "High", moderate: "Moderate", low: "Low" };
-
-const SUB_CATEGORIES: Record<string, string[]> = {
-  "Alternative Investment Fund (AIF)": ["Category I", "Category II", "Category III"],
-  "Portfolio Management Services (PMS)": ["DPMS", "NDPMS"],
-  "Foreign Portfolio Investor (FPI)": ["Category I", "Category II"],
-};
-
-const COUNTRIES = [
-  "India",
-  "GIFT City (India)",
-  "Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan",
-  "Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bermuda","Bhutan","Bolivia",
-  "Bosnia and Herzegovina","Botswana","Brazil","British Virgin Islands","Brunei","Bulgaria","Burkina Faso","Burundi",
-  "Cambodia","Cameroon","Canada","Cayman Islands","Chile","China","Colombia","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic",
-  "Denmark","Djibouti","Dominica","Dominican Republic",
-  "Ecuador","Egypt","El Salvador","Estonia","Ethiopia",
-  "Fiji","Finland","France",
-  "Gabon","Gambia","Georgia","Germany","Ghana","Greece","Guatemala","Guernsey","Guinea","Guyana",
-  "Haiti","Honduras","Hong Kong","Hungary",
-  "Iceland","Indonesia","Iran","Iraq","Ireland","Isle of Man","Israel","Italy","Ivory Coast",
-  "Jamaica","Japan","Jersey","Jordan",
-  "Kazakhstan","Kenya","Kuwait","Kyrgyzstan",
-  "Laos","Latvia","Lebanon","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg",
-  "Macau","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Mauritania","Mauritius","Mexico","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar",
-  "Namibia","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Macedonia","Norway",
-  "Oman",
-  "Pakistan","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Puerto Rico",
-  "Qatar",
-  "Romania","Russia","Rwanda",
-  "Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Somalia","South Africa","South Korea","Spain","Sri Lanka","Sudan","Sweden","Switzerland","Syria",
-  "Taiwan","Tajikistan","Tanzania","Thailand","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan",
-  "Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan",
-  "Venezuela","Vietnam",
-  "Yemen",
-  "Zambia","Zimbabwe",
-  "Other",
-];
-
-const CATEGORIES_HIDE_STATE = new Set([
-  "Foreign Portfolio Investor (FPI)",
-  "Foreign Direct Investment (FDI)",
-  "Foreign Venture Capital Investor (FVCI)",
-]);
-
-const LEAD_SOURCES = [
-  "Referral",
-  "Cold Outreach",
-  "Event",
-  "Website",
-  "Regulatory Filing",
-  "Partner",
-  "Inbound Email",
-];
-
-const SERVICES = [
-  "Custody & Allied Services",
-  "PCM",
-  "RTA",
-  "Trusteeship",
-  "Fund Accounting",
-  "Fund Administration",
-] as const;
-
-function toCrores(value: string, unit: "cr" | "lakh"): number {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 0;
-  return unit === "lakh" ? n / 100 : n;
-}
+import {
+  CLIENT_CATEGORIES,
+  PROBABILITY_VALUES,
+  PROBABILITY_LABELS,
+  SUB_CATEGORIES,
+  COUNTRIES,
+  CATEGORIES_HIDE_STATE,
+  LEAD_SOURCES,
+  SERVICES,
+  toCrores,
+} from "@/lib/business-fields";
 
 const STEPS = [
   { key: "basic", title: "Basic Information" },
