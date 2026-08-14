@@ -270,6 +270,10 @@ function LeadWorkspace() {
         </div>
       )}
 
+      {editOpen && (
+        <EditRecordDialog kind="lead" row={lead as unknown as Record<string, unknown>} open={editOpen} onOpenChange={setEditOpen} />
+      )}
+
       <ShareTransferLeadDialog
         open={shareTransferOpen}
         onOpenChange={setShareTransferOpen}

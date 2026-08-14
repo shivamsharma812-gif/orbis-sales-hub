@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trash2, Undo2, Share2 } from "lucide-react";
+import { ArrowLeft, Trash2, Undo2, Share2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrencyCr, formatDate } from "@/lib/format";
 import {
@@ -198,6 +198,10 @@ function ClientWorkspace() {
           </div>
         </Card>
       </div>
+
+      {editOpen && (
+        <EditRecordDialog kind="client" row={client as unknown as Record<string, unknown>} open={editOpen} onOpenChange={setEditOpen} />
+      )}
 
       <ShareTransferLeadDialog
         open={shareTransferOpen}
