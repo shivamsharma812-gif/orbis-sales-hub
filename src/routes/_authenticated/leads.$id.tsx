@@ -23,11 +23,12 @@ import {
 } from "@/components/ui/dialog";
 import { StageBadge, PIPELINE_STAGES } from "@/components/stage-badge";
 import { formatCurrencyCr, formatDate, formatDateTime } from "@/lib/format";
-import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX, Share2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Trash2, RotateCcw, Check, Users, UserX, Share2, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useEndOwners } from "@/hooks/use-end-owners";
 import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
+import { EditRecordDialog } from "@/components/edit-record-dialog";
 import {
   ConvertLeadDialog,
   MarkLostDialog,
@@ -60,6 +61,7 @@ function LeadWorkspace() {
   const [convertOpen, setConvertOpen] = useState(false);
 
   const [shareTransferOpen, setShareTransferOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
@@ -178,6 +180,9 @@ function LeadWorkspace() {
           <>
             <Button asChild variant="ghost" size="sm">
               <Link to="/leads"><ArrowLeft className="w-4 h-4" /> Back</Link>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="w-4 h-4" /> Edit
             </Button>
             {lead.status === "active" && (
               <>

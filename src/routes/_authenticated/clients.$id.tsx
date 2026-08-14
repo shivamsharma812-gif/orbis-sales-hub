@@ -30,6 +30,7 @@ import { useAssignableUsers } from "@/hooks/use-assignable-users";
 import { useEndOwners } from "@/hooks/use-end-owners";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ShareTransferLeadDialog } from "@/components/share-transfer-lead-dialog";
+import { EditRecordDialog } from "@/components/edit-record-dialog";
 
 export const Route = createFileRoute("/_authenticated/clients/$id")({
   head: () => ({ meta: [{ title: "Client — Orbis CRM" }] }),
@@ -41,6 +42,7 @@ function ClientWorkspace() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [shareTransferOpen, setShareTransferOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { endOwnerName, userName } = useEndOwners();
   const { data: me } = useCurrentUser();
 
@@ -136,6 +138,9 @@ function ClientWorkspace() {
           <>
             <Button asChild variant="ghost" size="sm">
               <Link to="/clients"><ArrowLeft className="w-4 h-4" /> Back</Link>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="w-4 h-4" /> Edit
             </Button>
             <Button
               variant="outline"
