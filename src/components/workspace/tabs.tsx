@@ -1032,14 +1032,17 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
 
 
   const createDialog = (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null); setForm(emptyForm); } }}
+    >
       {!formOnly && (
         <DialogTrigger asChild>
           <Button size="sm" variant="outline"><Plus className="w-4 h-4" /> New task</Button>
         </DialogTrigger>
       )}
       <DialogContent>
-        <DialogHeader><DialogTitle>{"Create task" + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{(editingId ? "Edit task" : "Create task") + (titleSuffix ?? "")}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
           <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
