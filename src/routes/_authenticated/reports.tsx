@@ -119,9 +119,16 @@ function PipelineReport() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ChartCard title="Leads by pipeline stage">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
+            <BarChart data={data} margin={{ bottom: 16 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-              <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="stage"
+                tick={{ fontSize: 11 }}
+                interval={0}
+                angle={-35}
+                textAnchor="end"
+                height={60}
+              />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
               <Bar dataKey="count" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
@@ -130,9 +137,16 @@ function PipelineReport() {
         </ChartCard>
         <ChartCard title="Pipeline value by stage (₹ Cr)">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
+            <BarChart data={data} margin={{ bottom: 16 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-              <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="stage"
+                tick={{ fontSize: 11 }}
+                interval={0}
+                angle={-35}
+                textAnchor="end"
+                height={60}
+              />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
               <Bar dataKey="value" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
