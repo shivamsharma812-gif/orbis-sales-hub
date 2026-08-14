@@ -1106,7 +1106,10 @@ export function TasksTab({ parentType, parentId, ownerId, formOnly, openOverride
                 {t.due_date ? relativeDay(t.due_date) : "No due date"} · {t.priority} · {users.find((u) => u.id === t.assigned_to)?.full_name ?? "—"}
               </div>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this task?")) del.mutate(t.id); }}>
+            <Button size="sm" variant="ghost" aria-label="Edit task" onClick={() => openEdit(t)}>
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" variant="ghost" aria-label="Delete task" onClick={() => remove(t.id)}>
               <Trash2 className="w-3.5 h-3.5 text-destructive" />
             </Button>
           </div>
