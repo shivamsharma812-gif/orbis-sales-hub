@@ -83,8 +83,8 @@ function DashboardPage() {
           .select("id", { count: "exact", head: true })
           .gte("meeting_date", startOfDay)
           .lt("meeting_date", endOfDay),
-        supabase.from("followups").select("id, due_date", { count: "exact" }).eq("status", "pending"),
-        supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", ["open", "in_progress"]),
+        supabase.from("followups").select("id, due_date", { count: "exact" }).eq("status", "pending").eq("is_deleted", false),
+        supabase.from("tasks").select("id", { count: "exact", head: true }).in("status", ["open", "in_progress"]).eq("is_deleted", false),
       ]);
 
       const pipelineValue =
@@ -172,6 +172,7 @@ function DashboardPage() {
         .from("followups")
         .select("id, parent_type, parent_id, due_date, description, priority")
         .eq("status", "pending")
+        .eq("is_deleted", false)
         .lte("due_date", today)
         .order("due_date", { ascending: false })
         .limit(50);

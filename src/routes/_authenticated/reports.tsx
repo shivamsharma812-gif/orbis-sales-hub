@@ -368,7 +368,7 @@ function FollowupsReport() {
     queryKey: ["report", "followups"],
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
-      const { data } = await supabase.from("followups").select("status, due_date");
+      const { data } = await supabase.from("followups").select("status, due_date").eq("is_deleted", false);
       const pending = data?.filter((f) => f.status === "pending").length ?? 0;
       const overdue = data?.filter((f) => f.status === "pending" && f.due_date < today).length ?? 0;
       const completed = data?.filter((f) => f.status === "completed").length ?? 0;
