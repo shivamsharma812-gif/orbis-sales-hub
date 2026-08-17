@@ -422,7 +422,7 @@ function LeadWorkspace() {
             </Card>
           </TabsContent>
           <TabsContent value="contacts"><ContactsTab parentType="lead" parentId={lead.id} ownerId={lead.owner_id} /></TabsContent>
-          <TabsContent value="meetings"><MeetingsTab parentType="lead" parentId={lead.id} ownerId={lead.owner_id} /></TabsContent>
+          <TabsContent value="meetings"><MeetingsTab parentType="lead" parentId={lead.id} ownerId={lead.owner_id} parentName={lead.company_name} /></TabsContent>
           <TabsContent value="followups"><FollowupsTab parentType="lead" parentId={lead.id} ownerId={lead.owner_id} /></TabsContent>
           <TabsContent value="tasks"><TasksTab parentType="lead" parentId={lead.id} ownerId={lead.owner_id} /></TabsContent>
           <TabsContent value="notes"><NotesTab parentType="lead" parentId={lead.id} ownerId={lead.owner_id} /></TabsContent>
