@@ -34,10 +34,12 @@ export function MinutesOfMeetingDialog({
   meeting,
   open,
   onOpenChange,
+  onSaved,
 }: {
   meeting: MomMeeting | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onSaved?: (meetingId: string) => void;
 }) {
   const qc = useQueryClient();
   const [counterparty, setCounterparty] = useState("");
