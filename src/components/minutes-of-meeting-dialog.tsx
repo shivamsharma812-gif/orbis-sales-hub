@@ -90,6 +90,7 @@ export function MinutesOfMeetingDialog({
       toast.success("Minutes of the meeting saved");
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["meetings"] });
+      if (meeting) onSaved?.(meeting.id);
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
