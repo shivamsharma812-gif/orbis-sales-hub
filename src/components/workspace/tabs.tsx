@@ -356,13 +356,8 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const complete = useMutation({
-    mutationFn: async ({ id, summary, actions }: { id: string; summary: string; actions: string }) => {
-      const { error } = await supabase
-        .from("meetings")
-        .update({ status: "completed" as never, discussion_summary: summary, action_items: actions })
-        .eq("id", id);
-      if (error) throw error;
+  const afterComplete = useMutation({
+    mutationFn: async (id: string) => {
       if (parentType === "lead") await advanceLeadStage(parentId, "Meeting Completed");
       return id;
     },
