@@ -500,12 +500,14 @@ type MeetingRowType = Database["public"]["Tables"]["meetings"]["Row"];
 function MeetingRow({
   m,
   contacts,
+  parentName,
   onComplete,
   onDelete,
   onEdit,
 }: {
   m: MeetingRowType;
   contacts: { name: string | null; email: string }[];
+  parentName?: string;
   onComplete: (meetingId: string) => void;
   onDelete: () => void;
   onEdit: () => void;
