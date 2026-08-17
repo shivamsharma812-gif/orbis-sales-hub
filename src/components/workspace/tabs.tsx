@@ -615,22 +615,29 @@ function MeetingRow({
         </DialogContent>
       </Dialog>
       {m.status === "scheduled" && (
-        <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="ghost" className="mt-2 h-7">Mark completed</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Complete meeting</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1.5"><Label>Meeting notes</Label><Textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} /></div>
-              <div className="space-y-1.5"><Label>Action items</Label><Textarea rows={2} value={actions} onChange={(e) => setActions(e.target.value)} /></div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCompleteOpen(false)}>Cancel</Button>
-              <Button onClick={() => { onComplete(summary, actions); setCompleteOpen(false); }}>Save</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <>
+          <Button size="sm" variant="ghost" className="mt-2 h-7" onClick={() => setCompleteOpen(true)}>
+            Mark completed
+          </Button>
+          <MinutesOfMeetingDialog
+            meeting={{
+              id: m.id,
+              parent_type: m.parent_type as "lead" | "client",
+              parent_id: m.parent_id,
+              meeting_date: m.meeting_date,
+              meeting_type: m.meeting_type,
+              agenda: m.agenda,
+              duration_minutes: m.duration_minutes,
+              discussion_summary: m.discussion_summary,
+              action_items: m.action_items,
+              attendees: m.attendees,
+              parent_name: parentName,
+            }}
+            open={completeOpen}
+            onOpenChange={setCompleteOpen}
+            onSaved={onComplete}
+          />
+        </>
       )}
     </div>
   );
