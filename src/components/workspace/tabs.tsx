@@ -625,6 +625,7 @@ function MeetingRow({
               id: m.id,
               parent_type: m.parent_type as "lead" | "client",
               parent_id: m.parent_id,
+              parent_name: parentName,
               meeting_date: m.meeting_date,
               meeting_type: m.meeting_type,
               agenda: m.agenda,
