@@ -236,7 +236,7 @@ export function CreateClientDialog({
     toast.success("Draft discarded");
   };
 
-  const errors = validateBusinessForm(form);
+  const errors = validateBusinessForm(form, { showState: false });
 
   const create = useMutation({
     mutationFn: async () => {
