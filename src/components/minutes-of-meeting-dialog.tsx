@@ -52,14 +52,15 @@ export function MinutesOfMeetingDialog({
 
   useEffect(() => {
     if (!meeting) return;
-    setCounterparty(meeting.parent_name ?? "");
-    setDate(meeting.meeting_date.slice(0, 10));
+    const parsed = parseMinutes(meeting.discussion_summary);
+    setCounterparty(parsed.counterparty || meeting.parent_name || "");
+    setDate(parsed.date || meeting.meeting_date.slice(0, 10));
+    setTheirParticipants(parsed.theirParticipants ?? "");
     const attendees = Array.isArray(meeting.attendees) ? (meeting.attendees as { name?: string; email?: string }[]) : [];
-    setOrbisParticipants(attendees.map((a) => a.name ?? a.email ?? "").filter(Boolean).join(", "));
-    setTheirParticipants("");
-    setBackground(meeting.agenda ?? "");
-    setKeyPoints("");
-    setNextSteps(meeting.action_items ?? "");
+    setOrbisParticipants(parsed.orbisParticipants || attendees.map((a) => a.name ?? a.email ?? "").filter(Boolean).join(", "));
+    setBackground(parsed.background || meeting.agenda || "");
+    setKeyPoints(parsed.keyPoints ?? "");
+    setNextSteps(meeting.action_items || parsed.nextSteps || "");
   }, [meeting]);
 
   const save = useMutation({
