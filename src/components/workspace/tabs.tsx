@@ -474,6 +474,7 @@ export function MeetingsTab({ parentType, parentId, ownerId, parentName, formOnl
             key={m.id}
             m={m}
             contacts={contacts}
+            parentName={parentName}
             onComplete={(id) => afterComplete.mutate(id)}
             onDelete={() => { if (confirm("Delete this meeting?")) del.mutate(m.id); }}
             onEdit={() => setEditing(m)}
