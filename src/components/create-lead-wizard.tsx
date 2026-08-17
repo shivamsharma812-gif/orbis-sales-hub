@@ -189,7 +189,10 @@ export function CreateLeadWizard({
     if (isOther && !form.other_category_name.trim()) errs[0].push("Other category name is required");
     if (!form.country) errs[0].push("Country is required");
 
-    if (!CATEGORIES_HIDE_STATE.has(form.client_category) && !form.state.trim()) errs[0].push("State is required");
+    if (!CATEGORIES_HIDE_STATE.has(form.client_category) && !(form.state ?? "").trim())
+      errs[0].push("State is required");
+    if (!(form.city ?? "").trim()) errs[0].push("City is required");
+
 
     if (!form.contact_name.trim()) errs[1].push("Contact name is required");
     if (!form.contact_email.trim() && !form.contact_phone.trim()) errs[1].push("Provide at least an email or phone");
