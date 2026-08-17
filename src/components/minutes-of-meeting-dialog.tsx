@@ -34,10 +34,12 @@ export function MinutesOfMeetingDialog({
   meeting,
   open,
   onOpenChange,
+  onSaved,
 }: {
   meeting: MomMeeting | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onSaved?: (meetingId: string) => void;
 }) {
   const qc = useQueryClient();
   const [counterparty, setCounterparty] = useState("");
@@ -88,6 +90,7 @@ export function MinutesOfMeetingDialog({
       toast.success("Minutes of the meeting saved");
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["meetings"] });
+      if (meeting) onSaved?.(meeting.id);
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
