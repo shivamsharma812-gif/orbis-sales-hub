@@ -46,7 +46,7 @@ export function EditRecordDialog({
     onOpenChange(o);
   };
 
-  const errors = validateBusinessForm(form);
+  const errors = validateBusinessForm(form, { showState: kind === "lead" });
 
   const save = useMutation({
     mutationFn: async () => {

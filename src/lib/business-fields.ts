@@ -290,15 +290,20 @@ export const emptyBusinessForm: BusinessFormState = {
 };
 
 /** Shared validation used by lead create/edit and client create/edit. */
-export function validateBusinessForm(f: BusinessFormState): string[] {
+export function validateBusinessForm(f: BusinessFormState, opts?: { showState?: boolean }): string[] {
   const errs: string[] = [];
   const needsSub = (SUB_CATEGORIES[f.client_category] ?? []).length > 0;
+  const stateVisible = (opts?.showState ?? true) && !CATEGORIES_HIDE_STATE.has(f.client_category);
   if (!f.company_name.trim()) errs.push("Company name is required");
   if (!f.client_category) errs.push("Client category is required");
   if (needsSub && !f.sub_category) errs.push("Sub-category is required");
   if (f.client_category === "Other" && !f.other_category_name.trim()) errs.push("Other category name is required");
   if (!f.country) errs.push("Country is required");
+  if (stateVisible && !(f.state ?? "").trim()) errs.push("State is required");
+
+  if (!(f.city ?? "").trim()) errs.push("City is required");
   if (!f.owner_id) errs.push("Assign a Relationship Manager");
+
   if (f.services.length === 0) errs.push("Select at least one service");
   return errs;
 }

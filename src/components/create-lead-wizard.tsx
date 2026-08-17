@@ -189,7 +189,10 @@ export function CreateLeadWizard({
     if (isOther && !form.other_category_name.trim()) errs[0].push("Other category name is required");
     if (!form.country) errs[0].push("Country is required");
 
-    if (!CATEGORIES_HIDE_STATE.has(form.client_category) && !form.state.trim()) errs[0].push("State is required");
+    if (!CATEGORIES_HIDE_STATE.has(form.client_category) && !(form.state ?? "").trim())
+      errs[0].push("State is required");
+    if (!(form.city ?? "").trim()) errs[0].push("City is required");
+
 
     if (!form.contact_name.trim()) errs[1].push("Contact name is required");
     if (!form.contact_email.trim() && !form.contact_phone.trim()) errs[1].push("Provide at least an email or phone");
@@ -396,8 +399,9 @@ export function CreateLeadWizard({
                 </div>
               )}
               <div className="space-y-1.5">
-                <Label>City</Label>
+                <Label>City *</Label>
                 <Input value={form.city} onChange={(e) => update("city", e.target.value)} />
+
               </div>
               <div className="col-span-2 space-y-1.5">
                 <Label>Website</Label>
