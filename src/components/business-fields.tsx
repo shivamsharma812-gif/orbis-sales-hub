@@ -10,6 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAssignableUsers } from "@/hooks/use-assignable-users";
+import { LocationCombobox } from "@/components/location-combobox";
+import { cityOptions, stateOptions } from "@/lib/india-locations";
+
 import {
   BusinessFormState,
   CATEGORIES_HIDE_STATE,
@@ -113,13 +116,27 @@ export function BusinessFields({
         {!hideState && (
           <div className="space-y-1.5">
             <Label>State *</Label>
-            <Input value={form.state} onChange={(e) => update("state", e.target.value)} />
+            <LocationCombobox
+              value={form.state}
+              onChange={(v) => {
+                update("state", v);
+                update("city", "");
+              }}
+              options={stateOptions(form.country)}
+              placeholder="Select state"
+            />
           </div>
         )}
         <div className="space-y-1.5">
           <Label>City *</Label>
-          <Input value={form.city} onChange={(e) => update("city", e.target.value)} />
+          <LocationCombobox
+            value={form.city}
+            onChange={(v) => update("city", v)}
+            options={cityOptions(form.country, form.state)}
+            placeholder="Select city"
+          />
         </div>
+
 
         <div className="space-y-1.5">
           <Label>Website</Label>
