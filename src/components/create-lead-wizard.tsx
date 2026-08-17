@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useAssignableUsers } from "@/hooks/use-assignable-users";
+import { LocationCombobox } from "@/components/location-combobox";
+import { cityOptions, stateOptions } from "@/lib/india-locations";
+
 import {
   Dialog,
   DialogContent,
