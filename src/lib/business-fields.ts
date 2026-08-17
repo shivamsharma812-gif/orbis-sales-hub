@@ -298,7 +298,10 @@ export function validateBusinessForm(f: BusinessFormState): string[] {
   if (needsSub && !f.sub_category) errs.push("Sub-category is required");
   if (f.client_category === "Other" && !f.other_category_name.trim()) errs.push("Other category name is required");
   if (!f.country) errs.push("Country is required");
+  if (!CATEGORIES_HIDE_STATE.has(f.client_category) && !(f.state ?? "").trim()) errs.push("State is required");
+  if (!(f.city ?? "").trim()) errs.push("City is required");
   if (!f.owner_id) errs.push("Assign a Relationship Manager");
+
   if (f.services.length === 0) errs.push("Select at least one service");
   return errs;
 }
