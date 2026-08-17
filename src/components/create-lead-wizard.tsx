@@ -399,7 +399,8 @@ export function CreateLeadWizard({
                 </div>
               )}
               <div className="space-y-1.5">
-                <Label>City</Label>
+                <Label>City *</Label>
+
                 <Input value={form.city} onChange={(e) => update("city", e.target.value)} />
               </div>
               <div className="col-span-2 space-y-1.5">
