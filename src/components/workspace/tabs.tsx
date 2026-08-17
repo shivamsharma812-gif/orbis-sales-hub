@@ -86,6 +86,8 @@ interface WorkspaceProps {
   parentType: ParentType;
   parentId: string;
   ownerId: string;
+  /** Display name of the parent lead/client, used for prefilled meeting minutes. */
+  parentName?: string;
   /** Render only the create dialog (used by global Quick Actions). */
   formOnly?: boolean;
   /** Controlled open state for the create dialog. */
