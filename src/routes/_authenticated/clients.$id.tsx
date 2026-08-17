@@ -248,7 +248,7 @@ function ClientWorkspace() {
             </Card>
           </TabsContent>
           <TabsContent value="contacts"><ContactsTab parentType="client" parentId={client.id} ownerId={client.owner_id} /></TabsContent>
-          <TabsContent value="meetings"><MeetingsTab parentType="client" parentId={client.id} ownerId={client.owner_id} /></TabsContent>
+          <TabsContent value="meetings"><MeetingsTab parentType="client" parentId={client.id} ownerId={client.owner_id} parentName={client.company_name} /></TabsContent>
           <TabsContent value="followups"><FollowupsTab parentType="client" parentId={client.id} ownerId={client.owner_id} /></TabsContent>
           <TabsContent value="tasks"><TasksTab parentType="client" parentId={client.id} ownerId={client.owner_id} /></TabsContent>
           <TabsContent value="notes"><NotesTab parentType="client" parentId={client.id} ownerId={client.owner_id} /></TabsContent>

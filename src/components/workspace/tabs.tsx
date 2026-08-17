@@ -86,6 +86,8 @@ interface WorkspaceProps {
   parentType: ParentType;
   parentId: string;
   ownerId: string;
+  /** Display name of the parent lead/client, used for prefilled meeting minutes. */
+  parentName?: string;
   /** Render only the create dialog (used by global Quick Actions). */
   formOnly?: boolean;
   /** Controlled open state for the create dialog. */
@@ -254,7 +256,7 @@ export function ContactsTab({ parentType, parentId, formOnly, openOverride, onOp
 }
 
 /* ---------------- Meetings ---------------- */
-export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
+export function MeetingsTab({ parentType, parentId, ownerId, parentName, formOnly, openOverride, onOpenChange, titleSuffix }: WorkspaceProps) {
   const qc = useQueryClient();
   const [openState, setOpenState] = useState(false);
   const open = openOverride ?? openState;
@@ -472,6 +474,7 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
             key={m.id}
             m={m}
             contacts={contacts}
+            parentName={parentName}
             onComplete={(id) => afterComplete.mutate(id)}
             onDelete={() => { if (confirm("Delete this meeting?")) del.mutate(m.id); }}
             onEdit={() => setEditing(m)}
@@ -497,12 +500,14 @@ type MeetingRowType = Database["public"]["Tables"]["meetings"]["Row"];
 function MeetingRow({
   m,
   contacts,
+  parentName,
   onComplete,
   onDelete,
   onEdit,
 }: {
   m: MeetingRowType;
   contacts: { name: string | null; email: string }[];
+  parentName?: string;
   onComplete: (meetingId: string) => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -620,6 +625,7 @@ function MeetingRow({
               id: m.id,
               parent_type: m.parent_type as "lead" | "client",
               parent_id: m.parent_id,
+              parent_name: parentName,
               meeting_date: m.meeting_date,
               meeting_type: m.meeting_type,
               agenda: m.agenda,

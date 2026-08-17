@@ -30,6 +30,36 @@ export interface MomMeeting {
 }
 
 /** Structured minutes-of-meeting capture. Stored on the meeting record. */
+
+function parseMinutes(summary?: string | null) {
+  const parsed: Record<string, string> = {};
+  if (!summary) return parsed;
+
+  // Extract single-line fields from the top section
+  const lines = summary.split("\n");
+  for (const line of lines) {
+    const match = line.match(/^(.+?):\s*(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      const value = match[2].trim();
+      if (value === "—") continue;
+      if (key === "Prospect / Client / Intermediary") parsed.counterparty = value;
+      else if (key === "Date") parsed.date = value;
+      else if (key === "Prospect / Client / Intermediary participants") parsed.theirParticipants = value;
+      else if (key === "Orbis participants") parsed.orbisParticipants = value;
+    }
+  }
+
+  // Extract Background and Key points sections
+  const backgroundMatch = summary.match(/Background:\n([\s\S]*?)(?:\n\nKey points discussed:|\nKey points discussed:|$)/);
+  if (backgroundMatch) parsed.background = backgroundMatch[1].trim();
+
+  const keyPointsMatch = summary.match(/Key points discussed:\n([\s\S]*?)(?:\n\n|$)/);
+  if (keyPointsMatch) parsed.keyPoints = keyPointsMatch[1].trim();
+
+  return parsed;
+}
+
 export function MinutesOfMeetingDialog({
   meeting,
   open,
@@ -52,14 +82,15 @@ export function MinutesOfMeetingDialog({
 
   useEffect(() => {
     if (!meeting) return;
-    setCounterparty(meeting.parent_name ?? "");
-    setDate(meeting.meeting_date.slice(0, 10));
+    const parsed = parseMinutes(meeting.discussion_summary);
+    setCounterparty(parsed.counterparty || meeting.parent_name || "");
+    setDate(parsed.date || meeting.meeting_date.slice(0, 10));
+    setTheirParticipants(parsed.theirParticipants ?? "");
     const attendees = Array.isArray(meeting.attendees) ? (meeting.attendees as { name?: string; email?: string }[]) : [];
-    setOrbisParticipants(attendees.map((a) => a.name ?? a.email ?? "").filter(Boolean).join(", "));
-    setTheirParticipants("");
-    setBackground(meeting.agenda ?? "");
-    setKeyPoints("");
-    setNextSteps(meeting.action_items ?? "");
+    setOrbisParticipants(parsed.orbisParticipants || attendees.map((a) => a.name ?? a.email ?? "").filter(Boolean).join(", "));
+    setBackground(parsed.background || meeting.agenda || "");
+    setKeyPoints(parsed.keyPoints ?? "");
+    setNextSteps(meeting.action_items || parsed.nextSteps || "");
   }, [meeting]);
 
   const save = useMutation({
