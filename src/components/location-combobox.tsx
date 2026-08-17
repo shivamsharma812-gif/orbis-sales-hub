@@ -64,9 +64,11 @@ export function LocationCombobox({
         <Command shouldFilter>
           <CommandInput placeholder="Search or type…" value={query} onValueChange={setQuery} />
           <CommandList className="max-h-60">
-            {!showCustom && <CommandEmpty>No match.</CommandEmpty>}
+            {!showCustom && (
+              <CommandEmpty>Type a name to add it manually.</CommandEmpty>
+            )}
             {showCustom && (
-              <CommandGroup>
+              <CommandGroup heading="Manual entry">
                 <CommandItem value={trimmed} onSelect={() => pick(trimmed)}>
                   Use “{trimmed}”
                 </CommandItem>

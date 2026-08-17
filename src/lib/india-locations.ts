@@ -113,10 +113,16 @@ export function stateOptions(country: string): string[] {
   return INDIA_COUNTRIES.has(country) ? INDIAN_STATES : [];
 }
 
+/**
+ * All cities available for a country. When a state is selected (India), its
+ * cities are listed first, followed by every other city in the country so the
+ * user is never restricted by the state choice.
+ */
 export function cityOptions(country: string, state: string): string[] {
   if (INDIA_COUNTRIES.has(country)) {
-    if (state && INDIA_CITIES_BY_STATE[state]) return INDIA_CITIES_BY_STATE[state];
-    return Array.from(new Set(Object.values(INDIA_CITIES_BY_STATE).flat())).sort();
+    const all = Array.from(new Set(Object.values(INDIA_CITIES_BY_STATE).flat())).sort();
+    const preferred = (state && INDIA_CITIES_BY_STATE[state]) || [];
+    return [...preferred, ...all.filter((c) => !preferred.includes(c))];
   }
   return CITIES_BY_COUNTRY[country] ?? [];
 }
