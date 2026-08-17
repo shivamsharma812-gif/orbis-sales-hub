@@ -61,6 +61,7 @@ import {
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { PIPELINE_STAGES } from "@/components/stage-badge";
 import { softDeleteWithUndo } from "@/lib/soft-delete";
+import { MinutesOfMeetingDialog } from "@/components/minutes-of-meeting-dialog";
 
 // Advance a lead's pipeline_stage forward only (never regress).
 async function advanceLeadStage(leadId: string, targetStage: string) {
@@ -476,7 +477,7 @@ export function MeetingsTab({ parentType, parentId, ownerId, formOnly, openOverr
             key={m.id}
             m={m}
             contacts={contacts}
-            onComplete={(summary, actions) => complete.mutate({ id: m.id, summary, actions })}
+            onComplete={(id) => afterComplete.mutate(id)}
             onDelete={() => { if (confirm("Delete this meeting?")) del.mutate(m.id); }}
             onEdit={() => setEditing(m)}
           />
@@ -507,7 +508,7 @@ function MeetingRow({
 }: {
   m: MeetingRowType;
   contacts: { name: string | null; email: string }[];
-  onComplete: (summary: string, actions: string) => void;
+  onComplete: (meetingId: string) => void;
   onDelete: () => void;
   onEdit: () => void;
 }) {
@@ -631,7 +632,6 @@ function MeetingRow({
               discussion_summary: m.discussion_summary,
               action_items: m.action_items,
               attendees: m.attendees,
-              parent_name: parentName,
             }}
             open={completeOpen}
             onOpenChange={setCompleteOpen}
