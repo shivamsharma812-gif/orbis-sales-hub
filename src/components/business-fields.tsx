@@ -112,14 +112,15 @@ export function BusinessFields({
         </div>
         {!hideState && (
           <div className="space-y-1.5">
-            <Label>State</Label>
+            <Label>State *</Label>
             <Input value={form.state} onChange={(e) => update("state", e.target.value)} />
           </div>
         )}
         <div className="space-y-1.5">
-          <Label>City</Label>
+          <Label>City *</Label>
           <Input value={form.city} onChange={(e) => update("city", e.target.value)} />
         </div>
+
         <div className="space-y-1.5">
           <Label>Website</Label>
           <Input
