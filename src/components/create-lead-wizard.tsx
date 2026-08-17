@@ -19,13 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PIPELINE_STAGES } from "@/components/stage-badge";
 import { Plus, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,7 +35,6 @@ import {
   SERVICES,
   toCrores,
 } from "@/lib/business-fields";
-
 
 const STEPS = [
   { key: "basic", title: "Basic Information" },
@@ -125,20 +118,19 @@ export function CreateLeadWizard({
 } = {}) {
   const [openState, setOpenState] = useState(false);
   const open = openOverride ?? openState;
-  const setOpen = (o: boolean) => { setOpenState(o); onOpenChange?.(o); };
+  const setOpen = (o: boolean) => {
+    setOpenState(o);
+    onOpenChange?.(o);
+  };
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(initialState);
   const qc = useQueryClient();
   const { data: me } = useCurrentUser();
   const { data: assignable = [] } = useAssignableUsers();
 
-  const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  const update = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const defaults = useMemo<FormState>(
-    () => ({ ...initialState, assigned_rm: me?.id ?? "" }),
-    [me?.id],
-  );
+  const defaults = useMemo<FormState>(() => ({ ...initialState, assigned_rm: me?.id ?? "" }), [me?.id]);
 
   const { hasDraft, loadDraft, loadDraftMeta, clearDraft } = useFormDraft<FormState>({
     type: "lead",
@@ -169,7 +161,6 @@ export function CreateLeadWizard({
     setRestored(true);
   }, [open, me, restored, loadDraft, loadDraftMeta, defaults]);
 
-
   const reset = () => {
     setForm(defaults);
     setStep(0);
@@ -195,13 +186,13 @@ export function CreateLeadWizard({
     if (!form.company_name.trim()) errs[0].push("Company name is required");
     if (!form.client_category) errs[0].push("Client category is required");
     if (needsSubCategory && !form.sub_category) errs[0].push("Sub-category is required");
-    if (isOther && !form.other_category_name.trim())
-      errs[0].push("Other category name is required");
+    if (isOther && !form.other_category_name.trim()) errs[0].push("Other category name is required");
     if (!form.country) errs[0].push("Country is required");
 
+    if (!CATEGORIES_HIDE_STATE.has(form.client_category) && !form.state.trim()) errs[0].push("State is required");
+
     if (!form.contact_name.trim()) errs[1].push("Contact name is required");
-    if (!form.contact_email.trim() && !form.contact_phone.trim())
-      errs[1].push("Provide at least an email or phone");
+    if (!form.contact_email.trim() && !form.contact_phone.trim()) errs[1].push("Provide at least an email or phone");
     if (form.contact_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contact_email))
       errs[1].push("Contact email looks invalid");
 
@@ -292,9 +283,7 @@ export function CreateLeadWizard({
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Create new lead</DialogTitle>
-          <DialogDescription>
-            Capture everything needed to start working the opportunity.
-          </DialogDescription>
+          <DialogDescription>Capture everything needed to start working the opportunity.</DialogDescription>
         </DialogHeader>
 
         {/* Stepper */}
@@ -316,17 +305,12 @@ export function CreateLeadWizard({
                 </div>
                 <div className="min-w-0">
                   <div
-                    className={cn(
-                      "text-xs font-medium truncate",
-                      active ? "text-foreground" : "text-muted-foreground",
-                    )}
+                    className={cn("text-xs font-medium truncate", active ? "text-foreground" : "text-muted-foreground")}
                   >
                     {s.title}
                   </div>
                 </div>
-                {i < STEPS.length - 1 && (
-                  <div className="flex-1 h-px bg-border ml-1" />
-                )}
+                {i < STEPS.length - 1 && <div className="flex-1 h-px bg-border ml-1" />}
               </li>
             );
           })}
@@ -367,10 +351,7 @@ export function CreateLeadWizard({
               {needsSubCategory && (
                 <div className="space-y-1.5">
                   <Label>Sub-category *</Label>
-                  <Select
-                    value={form.sub_category}
-                    onValueChange={(v) => update("sub_category", v)}
-                  >
+                  <Select value={form.sub_category} onValueChange={(v) => update("sub_category", v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select sub-category" />
                     </SelectTrigger>
@@ -410,7 +391,7 @@ export function CreateLeadWizard({
               </div>
               {!CATEGORIES_HIDE_STATE.has(form.client_category) && (
                 <div className="space-y-1.5">
-                  <Label>State</Label>
+                  <Label>State *</Label>
                   <Input value={form.state} onChange={(e) => update("state", e.target.value)} />
                 </div>
               )}
@@ -434,10 +415,7 @@ export function CreateLeadWizard({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Contact name *</Label>
-                <Input
-                  value={form.contact_name}
-                  onChange={(e) => update("contact_name", e.target.value)}
-                />
+                <Input value={form.contact_name} onChange={(e) => update("contact_name", e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>Designation</Label>
@@ -457,10 +435,7 @@ export function CreateLeadWizard({
               </div>
               <div className="space-y-1.5">
                 <Label>Phone number</Label>
-                <Input
-                  value={form.contact_phone}
-                  onChange={(e) => update("contact_phone", e.target.value)}
-                />
+                <Input value={form.contact_phone} onChange={(e) => update("contact_phone", e.target.value)} />
               </div>
               <div className="col-span-2 space-y-1.5">
                 <Label>LinkedIn profile</Label>
@@ -490,10 +465,7 @@ export function CreateLeadWizard({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Assigned Relationship Manager *</Label>
-                <Select
-                  value={form.assigned_rm}
-                  onValueChange={(v) => update("assigned_rm", v)}
-                >
+                <Select value={form.assigned_rm} onValueChange={(v) => update("assigned_rm", v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select RM" />
                   </SelectTrigger>
@@ -509,10 +481,7 @@ export function CreateLeadWizard({
               </div>
               <div className="space-y-1.5">
                 <Label>Lead source</Label>
-                <Select
-                  value={form.lead_source}
-                  onValueChange={(v) => update("lead_source", v)}
-                >
+                <Select value={form.lead_source} onValueChange={(v) => update("lead_source", v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -535,10 +504,7 @@ export function CreateLeadWizard({
               </div>
               <div className="space-y-1.5">
                 <Label>Pipeline stage *</Label>
-                <Select
-                  value={form.pipeline_stage}
-                  onValueChange={(v) => update("pipeline_stage", v)}
-                >
+                <Select value={form.pipeline_stage} onValueChange={(v) => update("pipeline_stage", v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -553,10 +519,7 @@ export function CreateLeadWizard({
               </div>
               <div className="space-y-1.5">
                 <Label>Priority</Label>
-                <Select
-                  value={form.priority}
-                  onValueChange={(v) => update("priority", v as FormState["priority"])}
-                >
+                <Select value={form.priority} onValueChange={(v) => update("priority", v as FormState["priority"])}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -585,11 +548,10 @@ export function CreateLeadWizard({
                     value={form.auc}
                     onChange={(e) => update("auc", e.target.value)}
                   />
-                  <Select
-                    value={form.auc_unit}
-                    onValueChange={(v) => update("auc_unit", v as "cr" | "lakh")}
-                  >
-                    <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                  <Select value={form.auc_unit} onValueChange={(v) => update("auc_unit", v as "cr" | "lakh")}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="cr">₹ Crores</SelectItem>
                       <SelectItem value="lakh">₹ Lakhs</SelectItem>
@@ -612,11 +574,10 @@ export function CreateLeadWizard({
                     value={form.estimated_annual_revenue}
                     onChange={(e) => update("estimated_annual_revenue", e.target.value)}
                   />
-                  <Select
-                    value={form.revenue_unit}
-                    onValueChange={(v) => update("revenue_unit", v as "cr" | "lakh")}
-                  >
-                    <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                  <Select value={form.revenue_unit} onValueChange={(v) => update("revenue_unit", v as "cr" | "lakh")}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="cr">₹ Crores</SelectItem>
                       <SelectItem value="lakh">₹ Lakhs</SelectItem>
@@ -635,7 +596,9 @@ export function CreateLeadWizard({
                   value={form.probability}
                   onValueChange={(v) => update("probability", v as FormState["probability"])}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="high">High</SelectItem>
                     <SelectItem value="moderate">Moderate</SelectItem>
@@ -667,20 +630,13 @@ export function CreateLeadWizard({
                         key={s}
                         className={cn(
                           "flex items-center gap-2.5 border rounded-md px-3 py-2.5 cursor-pointer transition-colors",
-                          checked
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:bg-accent",
+                          checked ? "border-primary bg-primary/5" : "border-border hover:bg-accent",
                         )}
                       >
                         <Checkbox
                           checked={checked}
                           onCheckedChange={(v) => {
-                            update(
-                              "services",
-                              v
-                                ? [...form.services, s]
-                                : form.services.filter((x) => x !== s),
-                            );
+                            update("services", v ? [...form.services, s] : form.services.filter((x) => x !== s));
                           }}
                         />
                         <span className="text-sm">{s}</span>
@@ -691,9 +647,7 @@ export function CreateLeadWizard({
               </div>
 
               <div className="border border-border rounded-md p-4 bg-surface-2/40">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                  Review
-                </div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Review</div>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                   <ReviewItem label="Company" value={form.company_name} />
                   <ReviewItem
@@ -701,9 +655,7 @@ export function CreateLeadWizard({
                     value={
                       isOther
                         ? form.other_category_name
-                        : [form.client_category, form.sub_category]
-                            .filter(Boolean)
-                            .join(" — ")
+                        : [form.client_category, form.sub_category].filter(Boolean).join(" — ")
                     }
                   />
                   <ReviewItem
@@ -714,22 +666,15 @@ export function CreateLeadWizard({
                   <ReviewItem label="Contact" value={form.contact_name} />
                   <ReviewItem
                     label="Contact info"
-                    value={[form.contact_email, form.contact_phone]
-                      .filter(Boolean)
-                      .join(" · ")}
+                    value={[form.contact_email, form.contact_phone].filter(Boolean).join(" · ")}
                   />
                   <ReviewItem
                     label="Assigned RM"
-                    value={
-                      assignable.find((u) => u.id === form.assigned_rm)?.full_name ?? "—"
-                    }
+                    value={assignable.find((u) => u.id === form.assigned_rm)?.full_name ?? "—"}
                   />
                   <ReviewItem label="Stage" value={form.pipeline_stage} />
                   <ReviewItem label="Priority" value={form.priority} />
-                  <ReviewItem
-                    label="Estimated deal closure"
-                    value={form.expected_close_date || "—"}
-                  />
+                  <ReviewItem label="Estimated deal closure" value={form.expected_close_date || "—"} />
                   <ReviewItem
                     label="Est. annual revenue"
                     value={
@@ -738,10 +683,7 @@ export function CreateLeadWizard({
                         : "—"
                     }
                   />
-                  <ReviewItem
-                    label="Probability"
-                    value={PROBABILITY_LABELS[form.probability] ?? "—"}
-                  />
+                  <ReviewItem label="Probability" value={PROBABILITY_LABELS[form.probability] ?? "—"} />
                 </dl>
               </div>
             </div>
@@ -758,7 +700,9 @@ export function CreateLeadWizard({
 
         <DialogFooter className="flex sm:justify-between gap-2">
           <div className="text-xs text-muted-foreground self-center flex items-center gap-2">
-            <span>Step {step + 1} of {STEPS.length}</span>
+            <span>
+              Step {step + 1} of {STEPS.length}
+            </span>
             {hasDraft && (
               <Button variant="ghost" size="sm" className="h-7 px-2" onClick={discardDraft}>
                 Discard draft
@@ -766,10 +710,7 @@ export function CreateLeadWizard({
             )}
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => (step === 0 ? handleOpen(false) : setStep(step - 1))}
-            >
+            <Button variant="outline" onClick={() => (step === 0 ? handleOpen(false) : setStep(step - 1))}>
               {step === 0 ? (
                 "Cancel"
               ) : (
@@ -779,17 +720,11 @@ export function CreateLeadWizard({
               )}
             </Button>
             {step < STEPS.length - 1 ? (
-              <Button
-                disabled={!canProceed}
-                onClick={() => setStep(step + 1)}
-              >
+              <Button disabled={!canProceed} onClick={() => setStep(step + 1)}>
                 Next <ChevronRight className="w-4 h-4" />
               </Button>
             ) : (
-              <Button
-                disabled={!allValid || create.isPending}
-                onClick={() => create.mutate()}
-              >
+              <Button disabled={!allValid || create.isPending} onClick={() => create.mutate()}>
                 {create.isPending ? "Creating…" : "Create lead"}
               </Button>
             )}
@@ -803,9 +738,7 @@ export function CreateLeadWizard({
 function ReviewItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </dt>
+      <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</dt>
       <dd className="truncate">{value || "—"}</dd>
     </div>
   );
